@@ -1,55 +1,77 @@
-# 테스트 전략
+# Test Strategy
 
-> demo-vibe 프로젝트의 테스트 전략 문서
+> Test strategy document for the demo-vibe project
 
-## 1. 테스트 레벨
+## 1. Test Levels
 
-| 레벨 | 범위 | 도구 | 커버리지 목표 |
-|------|------|------|-------------|
-| 단위 테스트 | 서비스 레이어, 유틸리티 | Jest | 70% |
-| 통합 테스트 | API 엔드포인트, DB 연동 | Supertest + Jest | 주요 API 100% |
-| E2E 테스트 | 사용자 시나리오 전체 흐름 | Playwright / Chrome MCP | 핵심 시나리오 |
+| Level | Scope | Tool | Coverage Target |
+|-------|-------|------|-----------------|
+| Unit Tests | Service layer, utilities | Jest | 70% |
+| Integration Tests | API endpoints, DB integration | Supertest + Jest | 100% of key APIs |
+| E2E Tests | Full user scenario flows | Playwright / Chrome MCP | Critical scenarios |
 
-## 2. 테스트 환경
+## 2. Test Environments
 
-| 환경 | 용도 | DB |
-|------|------|-----|
-| Local | 개발 중 단위/통합 테스트 | MongoDB (Docker) |
-| CI | PR 병합 전 자동 테스트 | MongoDB (GitHub Actions) |
-| Staging | E2E 테스트, 사용자 테스트 | MongoDB (Staging) |
+| Environment | Purpose | DB |
+|------------|---------|-----|
+| Local | Unit/integration tests during development | MongoDB (Docker) |
+| CI | Automated tests before PR merge | MongoDB (GitHub Actions) |
+| Staging | E2E tests, user acceptance testing | MongoDB (Staging) |
 
-## 3. 네이밍 규칙
+## 3. Naming Conventions
 
-### 테스트 파일
+### Test Files
 ```
 {module}.{layer}.spec.ts
 ```
-예시: `auth.service.spec.ts`, `board.controller.spec.ts`
+Examples: `auth.service.spec.ts`, `board.controller.spec.ts`
 
-### 테스트 케이스
+### Test Cases
 ```
-describe('{대상}', () => {
-  it('should {기대 동작} when {조건}', () => {})
+describe('{Subject}', () => {
+  it('should {expected behavior} when {condition}', () => {})
 })
 ```
 
-## 4. 테스트 케이스 관리
+## 4. Test Case Management
 
-- 스프린트별 관리: `docs/tests/test-cases/sprint-N/`
-- `/test-scenario` 명령으로 E2E 시나리오 자동 생성
-- 각 시나리오에 우선순위(P0~P2) 부여
+- Managed per sprint: `docs/tests/test-cases/sprint-N/`
+- Use `/test-scenario` command for auto-generating E2E scenarios
+- Each scenario assigned a priority (P0~P2)
 
-## 5. 테스트 보고서
+## 5. Test Reports
 
-- 위치: `docs/tests/test-reports/`
-- 포함 항목: 커버리지 달성률, 실패 테스트 분석, 개선 사항
-- `/test-run` 명령으로 Chrome MCP 통합 테스트 실행 및 보고서 생성
+- Location: `docs/tests/test-reports/`
+- Includes: Coverage achievement rate, failed test analysis, improvement items
+- Use `/test-run` command for Chrome MCP integration test execution and report generation
 
-## 6. 자동화 범위
+## 6. Test Data Management
 
-| 항목 | 자동화 | 비고 |
-|------|--------|------|
-| 단위 테스트 실행 | CI 자동 | PR 시 필수 |
-| 통합 테스트 실행 | CI 자동 | PR 시 필수 |
-| E2E 테스트 | 수동 트리거 | 스프린트 종료 시 |
-| 커버리지 리포트 | CI 자동 | 70% 미달 시 실패 |
+### Seeding
+- Use a shared `test/fixtures/` directory for reusable seed data (JSON files)
+- Each test module has its own seed function (e.g., `seedUsers()`, `seedPosts()`)
+- Seed data is loaded in `beforeAll()` hooks
+
+### Isolation
+- Each integration test suite uses a dedicated MongoDB database (`demo_vibe_test_{suite}`)
+- Unit tests use in-memory mocks — no real DB connection
+- E2E tests use a dedicated staging database, reset before each run
+
+### Cleanup
+- `afterAll()` drops the test database after each integration suite
+- No shared state between test files — each suite is self-contained
+- CI pipeline creates a fresh MongoDB container per workflow run
+
+### Sensitive Data
+- No real user data in test fixtures — use faker/generated data only
+- Passwords in fixtures are pre-hashed bcrypt strings
+- API tokens in tests use dedicated test-only secrets from CI env vars
+
+## 7. Automation Scope
+
+| Item | Automation | Notes |
+|------|-----------|-------|
+| Unit test execution | CI auto | Required on PR |
+| Integration test execution | CI auto | Required on PR |
+| E2E tests | Manual trigger | At sprint end |
+| Coverage report | CI auto | Fails if below 70% |
