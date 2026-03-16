@@ -1,7 +1,54 @@
+'use client';
+
+import { useState, useEffect, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signup, isLoggedIn, AuthError } from '@/lib/auth';
 import styles from '../auth.module.css';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn()) router.replace('/dashboard');
+  }, [router]);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await signup(email, password, name, nickname || undefined);
+      router.push('/dashboard');
+    } catch (err) {
+      if (err instanceof AuthError) {
+        switch (err.code) {
+          case 'EMAIL_ALREADY_EXISTS':
+            setError('This email is already registered.');
+            break;
+          case 'NICKNAME_ALREADY_EXISTS':
+            setError('This nickname is already taken.');
+            break;
+          case 'VALIDATION_ERROR':
+            setError(err.message);
+            break;
+          default:
+            setError(err.message);
+        }
+      } else {
+        setError('Unable to connect to server. Please try again.');
+      }
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={styles.page}>
       {/* Left Panel — Branding */}
@@ -57,8 +104,11 @@ export default function SignupPage() {
             <div className={styles.dividerLine} />
           </div>
 
+          {/* Error Message */}
+          {error && <div className={styles.errorMessage}>{error}</div>}
+
           {/* Email Form */}
-          <form className={styles.form}>
+          <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.formRow}>
               <div className={styles.inputGroup}>
                 <label htmlFor="name" className={styles.label}>
@@ -70,6 +120,9 @@ export default function SignupPage() {
                   className={styles.input}
                   placeholder="Your name"
                   autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                 />
               </div>
               <div className={styles.inputGroup}>
@@ -81,6 +134,8 @@ export default function SignupPage() {
                   type="text"
                   className={styles.input}
                   placeholder="Display name"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
                 />
               </div>
             </div>
@@ -95,6 +150,9 @@ export default function SignupPage() {
                 className={styles.input}
                 placeholder="you@example.com"
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -108,11 +166,22 @@ export default function SignupPage() {
                 className={styles.input}
                 placeholder="Min. 8 characters"
                 autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
               />
+              <p className={styles.inputHint}>
+                Must include uppercase, lowercase, number, and special character
+              </p>
             </div>
 
-            <button type="submit" className={styles.submitBtn}>
-              Create Account
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={loading}
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 

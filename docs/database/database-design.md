@@ -104,7 +104,7 @@
 | CD_VAL | String | Y | Code value (e.g. `ACTV`) |
 | CD_NM | String | Y | Code name (e.g. `Active`) |
 | CD_DC | String | N | Code description |
-| SORT_SN | Number | Y | Sort order |
+| SORT_NO | Number | Y | Sort order |
 | USE_YN | String(1) | Y | Active flag (default: `Y`) |
 
 #### Initial Code Data
@@ -140,12 +140,12 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | User ID |
-| USER_EMAIL | String | Y | unique, max 100 | Email |
-| USER_PSWD | String | N | min 60 (bcrypt) | Password (hashed). Null for social-only login |
-| USER_NM | String | Y | max 50 | User name |
-| USER_NCNM | String | N | unique, max 30 | Nickname |
+| USE_EMAIL | String | Y | unique, max 100 | Email |
+| USE_PSWD | String | N | min 60 (bcrypt) | Password (hashed). Null for social-only login |
+| USE_NM | String | Y | max 50 | User name |
+| USE_NCNM | String | N | unique, max 30 | Nickname |
 | PRFL_IMG_URL | String | N | max 500 | Profile image URL |
-| USER_STTS_CD | String | Y | enum: ACTV/INAC/SUSP | User status code (default: `ACTV`) |
+| USE_STTS_CD | String | Y | enum: ACTV/INAC/SUSP | User status code (default: `ACTV`) |
 | LST_LGN_DT | DateTime | N | | Last login datetime |
 | EMAIL_VRFC_YN | String(1) | Y | | Email verified flag (default: `N`) |
 | EMAIL_VRFC_TKN | String | N | | Email verification token |
@@ -157,24 +157,24 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Social account ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 | SCL_PRVD_CD | String | Y | enum: GOOGLE/KAKAO/NAVER | Social provider code |
-| SCL_PRVD_USER_ID | String | Y | | Social provider user ID |
+| SCL_PRVD_USE_ID | String | Y | | Social provider user ID |
 | SCL_EMAIL | String | N | max 100 | Social email |
 | SCL_PRFL_IMG_URL | String | N | max 500 | Social profile image URL |
 | LNKD_DT | DateTime | Y | | Linked datetime |
 
-> Compound unique: `{ SCL_PRVD_CD, SCL_PRVD_USER_ID }`
+> Compound unique: `{ SCL_PRVD_CD, SCL_PRVD_USE_ID }`
 
 ### TB_COMM_RFRSH_TKN (Refresh Token)
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Token ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 | TKN_VAL | String | Y | unique | Token value (hashed) |
 | EXPR_DT | DateTime | Y | TTL index | Expiry datetime |
 | CLNT_IP_ADDR | String | Y | max 45 | Client IP address |
-| USER_AGNT | String | N | max 500 | User-Agent |
+| USE_AGNT | String | N | max 500 | User-Agent |
 | RVKD_YN | String(1) | Y | | Revoked flag (default: `N`) |
 
 > TTL Index: `EXPR_DT` — MongoDB auto-deletes expired tokens
@@ -183,13 +183,13 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Log ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 | LGN_MTHD_CD | String | Y | enum: EMAIL/GOOGLE/KAKAO/NAVER | Login method code |
 | LGN_DT | DateTime | Y | | Login datetime |
 | LGN_IP_ADDR | String | Y | max 45 | Login IP address |
 | LGN_RSLT_CD | String | Y | enum: SUCC/FAIL | Login result code |
 | FAIL_RSN | String | N | max 200 | Failure reason |
-| USER_AGNT | String | N | max 500 | User-Agent |
+| USE_AGNT | String | N | max 500 | User-Agent |
 
 > No DEL_YN (logs cannot be deleted). TTL Index: `LGN_DT` (auto-delete after 90 days)
 
@@ -201,7 +201,7 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Post ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | Author ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | Author ID |
 | POST_TTL | String | Y | max 200 | Post title |
 | POST_CN | String | Y | max 10000 | Post content |
 | POST_CTGR_CD | String | Y | enum: NOTICE/FREE/QNA/REVIEW | Post category code |
@@ -216,7 +216,7 @@
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Comment ID |
 | POST_ID | ObjectId | FK | ref: TB_COMM_BOARD_POST | Post ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | Author ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | Author ID |
 | CMNT_CN | String | Y | max 2000 | Comment content |
 | PRNT_CMNT_ID | ObjectId | N | ref: self | Parent comment ID (reply, 1 depth only) |
 | CMNT_DPTH | Number | Y | 0 or 1 | Comment depth (0: root, 1: reply) |
@@ -227,18 +227,18 @@
 | _id | ObjectId | PK | | Attachment ID |
 | POST_ID | ObjectId | FK | ref: TB_COMM_BOARD_POST | Post ID |
 | ATCH_TYPE_CD | String | Y | enum: IMG/DOC/VIDEO | Attachment type code |
-| FILE_NM | String | Y | max 200 | Original file name |
-| FILE_PATH | String | Y | max 500 | Storage path (S3 key) |
-| FILE_SIZE | Number | Y | max: 10MB | File size (bytes) |
-| FILE_MIME_TYPE | String | Y | max 100 | MIME type |
-| SORT_SN | Number | Y | | Sort order |
+| ATCM_NM | String | Y | max 200 | Original file name |
+| ATCM_URL | String | Y | max 500 | Storage path (S3 key) |
+| ATCM_SIZE | Number | Y | max: 10MB | File size (bytes) |
+| ATCM_MIME_TYPE | String | Y | max 100 | MIME type |
+| SORT_NO | Number | Y | | Sort order |
 
 ### TR_COMM_BOARD_LIKE (Post Like)
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Like ID |
 | POST_ID | ObjectId | FK | ref: TB_COMM_BOARD_POST | Post ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 
 > Compound unique: `{ POST_ID, USER_ID }` — one like per user. No DEL_YN (unlike = document delete)
 
@@ -254,15 +254,15 @@
 | CHAT_ROOM_TYPE_CD | String | Y | enum: DM/GROUP | Chat room type code |
 | MAX_MBR_CNT | Number | Y | DM: 2, GROUP: 100 | Max member count |
 | CRTR_ID | ObjectId | FK | ref: TB_COMM_USER | Creator ID |
-| LST_MSG_CN | String | N | max 100 | Last message content (preview) |
-| LST_MSG_DT | DateTime | N | | Last message datetime |
+| LST_MSSG_CN | String | N | max 100 | Last message content (preview) |
+| LST_MSSG_DT | DateTime | N | | Last message datetime |
 
 ### TR_COMM_CHAT_ROOM_MBR (Chat Room Member)
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | ID |
 | CHAT_ROOM_ID | ObjectId | FK | ref: TB_COMM_CHAT_ROOM | Chat room ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 | JOIN_DT | DateTime | Y | | Joined datetime |
 | LAST_READ_DT | DateTime | N | | Last read datetime (for unread count) |
 | NOTI_YN | String(1) | Y | default: `Y` | Notification enabled flag |
@@ -274,9 +274,9 @@
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Message ID |
 | CHAT_ROOM_ID | ObjectId | FK | ref: TB_COMM_CHAT_ROOM | Chat room ID |
-| USER_ID | ObjectId | FK | ref: TB_COMM_USER | Sender ID |
-| MSG_CN | String | Y | max 5000 | Message content |
-| MSG_TYPE_CD | String | Y | enum: TEXT/IMG/FILE | Message type code |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | Sender ID |
+| MSSG_CN | String | Y | max 5000 | Message content |
+| MSSG_TYPE_CD | String | Y | enum: TEXT/IMG/FILE | Message type code |
 | SEND_DT | DateTime | Y | | Sent datetime |
 
 > No DEL_YN (message delete = physical delete). Default sort: SEND_DT descending.
@@ -285,12 +285,12 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | Attachment ID |
-| MSG_ID | ObjectId | FK | ref: TB_COMM_CHAT_MSG | Message ID |
-| FILE_NM | String | Y | max 200 | Original file name |
-| FILE_PATH | String | Y | max 500 | Storage path (S3 key) |
-| FILE_SIZE | Number | Y | max: 10MB | File size (bytes) |
-| FILE_MIME_TYPE | String | Y | max 100 | MIME type |
-| THMB_PATH | String | N | max 500 | Thumbnail path (for images) |
+| MSSG_ID | ObjectId | FK | ref: TB_COMM_CHAT_MSG | Message ID |
+| ATCM_NM | String | Y | max 200 | Original file name |
+| ATCM_URL | String | Y | max 500 | Storage path (S3 key) |
+| ATCM_SIZE | Number | Y | max: 10MB | File size (bytes) |
+| ATCM_MIME_TYPE | String | Y | max 100 | MIME type |
+| THMB_URL | String | N | max 500 | Thumbnail path (for images) |
 
 ---
 
@@ -299,25 +299,25 @@
 ### Single Indexes
 | Collection | Field | Type | Purpose |
 |-----------|-------|------|---------|
-| TB_COMM_USER | USER_EMAIL | Unique | Email login |
-| TB_COMM_USER | USER_NCNM | Unique (sparse) | Nickname uniqueness |
+| TB_COMM_USER | USE_EMAIL | Unique | Email login |
+| TB_COMM_USER | USE_NCNM | Unique (sparse) | Nickname uniqueness |
 | TB_COMM_BOARD_POST | POST_CTGR_CD | Single | Category filtering |
 | TB_COMM_RFRSH_TKN | TKN_VAL | Unique | Token validation |
-| TB_COMM_RFRSH_TKN | USER_ID | Single | Revoke all user tokens |
+| TB_COMM_RFRSH_TKN | USE_ID | Single | Revoke all user tokens |
 
 ### Compound Indexes
 | Collection | Fields | Type | Purpose |
 |-----------|--------|------|---------|
 | TC_COMM_CD | CD_GRP_ID + CD_VAL | Compound + Unique | Code lookup |
-| TB_COMM_SCL_ACNT | SCL_PRVD_CD + SCL_PRVD_USER_ID | Compound + Unique | Social login |
-| TB_COMM_SCL_ACNT | USER_ID | Single | User's social accounts |
+| TB_COMM_SCL_ACNT | SCL_PRVD_CD + SCL_PRVD_USE_ID | Compound + Unique | Social login |
+| TB_COMM_SCL_ACNT | USE_ID | Single | User's social accounts |
 | TB_COMM_BOARD_POST | DEL_YN + POST_CTGR_CD + RGST_DT(desc) | Compound | Board listing |
-| TB_COMM_BOARD_POST | DEL_YN + USER_ID + RGST_DT(desc) | Compound | My posts |
+| TB_COMM_BOARD_POST | DEL_YN + USE_ID + RGST_DT(desc) | Compound | My posts |
 | TB_COMM_BOARD_CMNT | POST_ID + DEL_YN + RGST_DT | Compound | Post comments |
-| TR_COMM_BOARD_LIKE | POST_ID + USER_ID | Compound + Unique | Like deduplication |
+| TR_COMM_BOARD_LIKE | POST_ID + USE_ID | Compound + Unique | Like deduplication |
 | TB_COMM_CHAT_MSG | CHAT_ROOM_ID + SEND_DT(desc) | Compound | Chat message listing |
-| TR_COMM_CHAT_ROOM_MBR | CHAT_ROOM_ID + USER_ID | Compound + Unique | Member deduplication |
-| TR_COMM_CHAT_ROOM_MBR | USER_ID | Single | My chat rooms |
+| TR_COMM_CHAT_ROOM_MBR | CHAT_ROOM_ID + USE_ID | Compound + Unique | Member deduplication |
+| TR_COMM_CHAT_ROOM_MBR | USE_ID | Single | My chat rooms |
 
 ### TTL Indexes (Auto-delete)
 | Collection | Field | TTL | Purpose |
@@ -336,7 +336,7 @@
 
 | Rule | Application |
 |------|-------------|
-| Email format | `USER_EMAIL`: RFC 5322 regex |
+| Email format | `USE_EMAIL`: RFC 5322 regex |
 | Password strength | Min 8 chars, uppercase + lowercase + number + special char required (API-level validation) |
 | Nickname format | 2~30 chars, Korean/English/numbers/_ only |
 | Post title | 1~200 chars |
@@ -373,4 +373,4 @@ TB_COMM_CHAT_MSG_ATCH → ChatMessageAttachment → @@map("TB_COMM_CHAT_MSG_ATCH
 ```
 
 > Field mapping: Prisma fields use `camelCase`, MongoDB actual fields use `UPPER_SNAKE_CASE` → use `@map()`
-> Example: `userEmail String @map("USER_EMAIL")`
+> Example: `userEmail String @map("USE_EMAIL")`

@@ -4,6 +4,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../server/node_modules/.prisma/client"
 }
 
 datasource db {
@@ -38,7 +39,7 @@ model CommonCode {
   cdVal   String  @map("CD_VAL")
   cdNm    String  @map("CD_NM")
   cdDc    String? @map("CD_DC")
-  sortSn  Int     @map("SORT_SN")
+  sortSn  Int     @map("SORT_NO")
   useYn   String  @default("Y") @map("USE_YN")
   rgstDt  DateTime @default(now()) @map("RGST_DT")
   rgtrId  String?  @map("RGTR_ID")
@@ -58,12 +59,12 @@ model CommonCode {
 
 model User {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  userEmail        String    @unique @map("USER_EMAIL")
-  userPswd         String?   @map("USER_PSWD")
-  userNm           String    @map("USER_NM")
-  userNcnm         String?   @unique @map("USER_NCNM")
+  userEmail        String    @unique @map("USE_EMAIL")
+  userPswd         String?   @map("USE_PSWD")
+  userNm           String    @map("USE_NM")
+  userNcnm         String?   @unique @map("USE_NCNM")
   prflImgUrl       String?   @map("PRFL_IMG_URL")
-  userSttsCd       String    @default("ACTV") @map("USER_STTS_CD")
+  userSttsCd       String    @default("ACTV") @map("USE_STTS_CD")
   lstLgnDt         DateTime? @map("LST_LGN_DT")
   emailVrfcYn      String    @default("N") @map("EMAIL_VRFC_YN")
   emailVrfcTkn     String?   @map("EMAIL_VRFC_TKN")
@@ -91,9 +92,9 @@ model User {
 
 model SocialAccount {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String   @map("USER_ID") @db.ObjectId
+  userId         String   @map("USE_ID") @db.ObjectId
   sclPrvdCd      String   @map("SCL_PRVD_CD")
-  sclPrvdUserId  String   @map("SCL_PRVD_USER_ID")
+  sclPrvdUserId  String   @map("SCL_PRVD_USE_ID")
   sclEmail       String?  @map("SCL_EMAIL")
   sclPrflImgUrl  String?  @map("SCL_PRFL_IMG_URL")
   lnkdDt         DateTime @map("LNKD_DT")
@@ -107,15 +108,16 @@ model SocialAccount {
 
   @@unique([sclPrvdCd, sclPrvdUserId])
   @@map("TB_COMM_SCL_ACNT")
+
 }
 
 model RefreshToken {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @map("USER_ID") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
   tknVal     String   @unique @map("TKN_VAL")
   exprDt     DateTime @map("EXPR_DT")
   clntIpAddr String   @map("CLNT_IP_ADDR")
-  userAgnt   String?  @map("USER_AGNT")
+  userAgnt   String?  @map("USE_AGNT")
   rvkdYn     String   @default("N") @map("RVKD_YN")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
@@ -130,13 +132,13 @@ model RefreshToken {
 
 model LoginLog {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @map("USER_ID") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
   lgnMthdCd  String   @map("LGN_MTHD_CD")
   lgnDt      DateTime @map("LGN_DT")
   lgnIpAddr  String   @map("LGN_IP_ADDR")
   lgnRsltCd  String   @map("LGN_RSLT_CD")
   failRsn    String?  @map("FAIL_RSN")
-  userAgnt   String?  @map("USER_AGNT")
+  userAgnt   String?  @map("USE_AGNT")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
 
@@ -152,7 +154,7 @@ model LoginLog {
 
 model BoardPost {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @map("USER_ID") @db.ObjectId
+  userId       String   @map("USE_ID") @db.ObjectId
   postTtl      String   @map("POST_TTL")
   postCn       String   @map("POST_CN")
   postCtgrCd   String   @map("POST_CTGR_CD")
@@ -178,7 +180,7 @@ model BoardPost {
 model BoardComment {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   postId     String   @map("POST_ID") @db.ObjectId
-  userId     String   @map("USER_ID") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
   cmntCn     String   @map("CMNT_CN")
   prntCmntId String?  @map("PRNT_CMNT_ID") @db.ObjectId
   cmntDpth   Int      @map("CMNT_DPTH")
@@ -198,11 +200,11 @@ model BoardAttachment {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   postId       String   @map("POST_ID") @db.ObjectId
   atchTypeCd   String   @map("ATCH_TYPE_CD")
-  fileNm       String   @map("FILE_NM")
-  filePath     String   @map("FILE_PATH")
-  fileSize     Int      @map("FILE_SIZE")
-  fileMimeType String   @map("FILE_MIME_TYPE")
-  sortSn       Int      @map("SORT_SN")
+  fileNm       String   @map("ATCM_NM")
+  filePath     String   @map("ATCM_URL")
+  fileSize     Int      @map("ATCM_SIZE")
+  fileMimeType String   @map("ATCM_MIME_TYPE")
+  sortSn       Int      @map("SORT_NO")
   rgstDt       DateTime @default(now()) @map("RGST_DT")
   rgtrId       String?  @map("RGTR_ID")
   mdfcnDt      DateTime @default(now()) @updatedAt @map("MDFCN_DT")
@@ -217,7 +219,7 @@ model BoardAttachment {
 model BoardLike {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   postId String @map("POST_ID") @db.ObjectId
-  userId String @map("USER_ID") @db.ObjectId
+  userId String @map("USE_ID") @db.ObjectId
   rgstDt DateTime @default(now()) @map("RGST_DT")
 
   boardPost BoardPost @relation(fields: [postId], references: [id])
@@ -238,8 +240,8 @@ model ChatRoom {
   chatRoomTypeCd String    @map("CHAT_ROOM_TYPE_CD")
   maxMbrCnt      Int       @map("MAX_MBR_CNT")
   crtrId         String    @map("CRTR_ID") @db.ObjectId
-  lstMsgCn       String?   @map("LST_MSG_CN")
-  lstMsgDt       DateTime? @map("LST_MSG_DT")
+  lstMsgCn       String?   @map("LST_MSSG_CN")
+  lstMsgDt       DateTime? @map("LST_MSSG_DT")
   rgstDt         DateTime  @default(now()) @map("RGST_DT")
   rgtrId         String?   @map("RGTR_ID")
   mdfcnDt        DateTime  @default(now()) @updatedAt @map("MDFCN_DT")
@@ -256,7 +258,7 @@ model ChatRoom {
 model ChatRoomMember {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   chatRoomId String    @map("CHAT_ROOM_ID") @db.ObjectId
-  userId     String    @map("USER_ID") @db.ObjectId
+  userId     String    @map("USE_ID") @db.ObjectId
   joinDt     DateTime  @map("JOIN_DT")
   lastReadDt DateTime? @map("LAST_READ_DT")
   notiYn     String    @default("Y") @map("NOTI_YN")
@@ -272,9 +274,9 @@ model ChatRoomMember {
 model ChatMessage {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   chatRoomId String   @map("CHAT_ROOM_ID") @db.ObjectId
-  userId     String   @map("USER_ID") @db.ObjectId
-  msgCn      String   @map("MSG_CN")
-  msgTypeCd  String   @map("MSG_TYPE_CD")
+  userId     String   @map("USE_ID") @db.ObjectId
+  msgCn      String   @map("MSSG_CN")
+  msgTypeCd  String   @map("MSSG_TYPE_CD")
   sendDt     DateTime @map("SEND_DT")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
@@ -289,12 +291,12 @@ model ChatMessage {
 
 model ChatMessageAttachment {
   id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  msgId        String  @map("MSG_ID") @db.ObjectId
-  fileNm       String  @map("FILE_NM")
-  filePath     String  @map("FILE_PATH")
-  fileSize     Int     @map("FILE_SIZE")
-  fileMimeType String  @map("FILE_MIME_TYPE")
-  thmbPath     String? @map("THMB_PATH")
+  msgId        String  @map("MSSG_ID") @db.ObjectId
+  fileNm       String  @map("ATCM_NM")
+  filePath     String  @map("ATCM_URL")
+  fileSize     Int     @map("ATCM_SIZE")
+  fileMimeType String  @map("ATCM_MIME_TYPE")
+  thmbPath     String? @map("THMB_URL")
   rgstDt       DateTime @default(now()) @map("RGST_DT")
   rgtrId       String?  @map("RGTR_ID")
 

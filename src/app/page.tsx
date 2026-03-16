@@ -1,4 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { isLoggedIn, getUser, type UserInfo } from '@/lib/auth';
 import styles from './page.module.css';
 
 const FEATURES = [
@@ -44,6 +48,14 @@ const TESTIMONIALS = [
 ];
 
 export default function LandingPage() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    setLoggedIn(isLoggedIn());
+    setUser(getUser());
+  }, []);
+
   return (
     <div className={styles.page}>
       {/* ── Navigation ── */}
@@ -59,12 +71,22 @@ export default function LandingPage() {
             <a href="#testimonials" className={styles.navLink}>
               Stories
             </a>
-            <Link href="/auth/login" className={styles.navLink}>
-              Sign In
-            </Link>
-            <Link href="/auth/signup" className={styles.navCta}>
-              Get Started
-            </Link>
+            {loggedIn ? (
+              <>
+                <Link href="/dashboard" className={styles.navCta}>
+                  {user?.nickname || user?.name || 'Dashboard'}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className={styles.navLink}>
+                  Sign In
+                </Link>
+                <Link href="/auth/signup" className={styles.navCta}>
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -86,8 +108,11 @@ export default function LandingPage() {
             crafted space.
           </p>
           <div className={`${styles.heroCtas} animate-fade-up delay-3`}>
-            <Link href="/auth/signup" className={styles.btnPrimary}>
-              Start Exploring
+            <Link
+              href={loggedIn ? '/dashboard' : '/auth/signup'}
+              className={styles.btnPrimary}
+            >
+              {loggedIn ? 'Go to Dashboard' : 'Start Exploring'}
             </Link>
             <a href="#features" className={styles.btnSecondary}>
               Learn More
@@ -212,8 +237,11 @@ export default function LandingPage() {
             Join thousands of buyers and sellers who have already discovered a
             better way to connect.
           </p>
-          <Link href="/auth/signup" className={styles.btnPrimary}>
-            Create Free Account
+          <Link
+            href={loggedIn ? '/dashboard' : '/auth/signup'}
+            className={styles.btnPrimary}
+          >
+            {loggedIn ? 'Go to Dashboard' : 'Create Free Account'}
           </Link>
         </div>
       </section>

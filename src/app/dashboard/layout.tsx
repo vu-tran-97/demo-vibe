@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 import styles from './dashboard.module.css';
 
 const NAV_ITEMS = [
@@ -18,6 +21,19 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading, logout } = useAuth(true);
+
+  if (loading) {
+    return (
+      <div className={styles.loadingScreen}>
+        <div className={styles.loadingSpinner} />
+      </div>
+    );
+  }
+
+  const displayName = user?.nickname || user?.name || 'User';
+  const initials = displayName.charAt(0).toUpperCase();
+
   return (
     <div className={styles.layout}>
       {/* ── Sidebar ── */}
@@ -49,11 +65,20 @@ export default function DashboardLayout({
             </Link>
           ))}
 
+          <button
+            type="button"
+            className={styles.navItem}
+            onClick={logout}
+          >
+            <span className={styles.navIcon}>↗</span>
+            <span className={styles.navLabel}>Log Out</span>
+          </button>
+
           <div className={styles.userCard}>
-            <div className={styles.userAvatar}>V</div>
+            <div className={styles.userAvatar}>{initials}</div>
             <div className={styles.userInfo}>
-              <p className={styles.userName}>Vu Tran</p>
-              <p className={styles.userRole}>Admin</p>
+              <p className={styles.userName}>{displayName}</p>
+              <p className={styles.userRole}>{user?.email}</p>
             </div>
           </div>
         </div>

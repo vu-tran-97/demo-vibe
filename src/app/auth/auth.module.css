@@ -344,6 +344,33 @@
   text-underline-offset: 2px;
 }
 
+/* ── Error Message ── */
+.errorMessage {
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  color: #991b1b;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Input Hint ── */
+.inputHint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Disabled Button ── */
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1023px) {
   .page {
