@@ -12,7 +12,7 @@
 
 | Feature | Blueprint | DB Design | Test Cases | Implementation | Test Report | Status |
 |---------|-----------|-----------|------------|----------------|-------------|--------|
-| Auth — Email Signup & Login | - | - | - | - | - | Not Started |
+| Auth — Email Signup & Login | Done | Done | Done | Done | Done | Completed |
 | Auth — Social Login | - | - | - | - | - | Not Started |
 
 **Legend**: `-` Not Started, `WIP` In Progress, `Done` Completed, `N/A` Not Applicable
@@ -21,10 +21,10 @@
 <!-- SUMMARY_START -->
 ## Summary
 - **Total Features**: 2
-- **Completed**: 0
+- **Completed**: 1
 - **In Progress**: 0
-- **Overall Progress**: 0%
-- **Last Updated**: 2026-03-16 10:50
+- **Overall Progress**: 50%
+- **Last Updated**: 2026-03-16 14:00
 <!-- SUMMARY_END -->
 
 <!-- ACTIVITY_LOG_START -->

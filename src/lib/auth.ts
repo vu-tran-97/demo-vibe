@@ -7,6 +7,7 @@ export interface UserInfo {
   nickname: string | null;
   emailVerified: boolean;
   profileImageUrl: string | null;
+  role: string;
 }
 
 interface AuthResponse {

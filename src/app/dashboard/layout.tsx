@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: 'Board', href: '/dashboard/board', icon: '☰' },
   { label: 'Chat', href: '/dashboard/chat', icon: '◉' },
   { label: 'Products', href: '/dashboard/products', icon: '◇' },
+  { label: 'Cart', href: '/dashboard/cart', icon: '▣' },
   { label: 'Orders', href: '/dashboard/orders', icon: '□' },
 ];
 

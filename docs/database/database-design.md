@@ -82,6 +82,7 @@
 **Total 14 collections**: TB 6 + TC 2 + TL 1 + TR 2 + Chat-related 3
 
 > Auth module fields updated to support password reset flow (PSWD_RST_TKN, PSWD_RST_EXPR_DT in TB_COMM_USER) per blueprint 001-auth.
+> RBAC: USE_ROLE_CD added to TB_COMM_USER, USE_ROLE code group added to TC_COMM_CD per blueprint 002-rbac.
 
 ---
 
@@ -111,6 +112,9 @@
 
 | Code Group (CD_GRP_ID) | Group Name | Code Value (CD_VAL) | Code Name |
 |------------------------|------------|---------------------|-----------|
+| `USE_ROLE` | User Role | `SUPER_ADMIN` | Super Admin |
+| | | `SELLER` | Seller |
+| | | `BUYER` | Buyer |
 | `USER_STTS` | User Status | `ACTV` | Active |
 | | | `INAC` | Inactive |
 | | | `SUSP` | Suspended |
@@ -145,6 +149,7 @@
 | USE_NM | String | Y | max 50 | User name |
 | USE_NCNM | String | N | unique, max 30 | Nickname |
 | PRFL_IMG_URL | String | N | max 500 | Profile image URL |
+| USE_ROLE_CD | String | Y | enum: SUPER_ADMIN/SELLER/BUYER | User role code (default: `BUYER`) |
 | USE_STTS_CD | String | Y | enum: ACTV/INAC/SUSP | User status code (default: `ACTV`) |
 | LST_LGN_DT | DateTime | N | | Last login datetime |
 | EMAIL_VRFC_YN | String(1) | Y | | Email verified flag (default: `N`) |
@@ -301,6 +306,7 @@
 |-----------|-------|------|---------|
 | TB_COMM_USER | USE_EMAIL | Unique | Email login |
 | TB_COMM_USER | USE_NCNM | Unique (sparse) | Nickname uniqueness |
+| TB_COMM_USER | USE_ROLE_CD | Single | Admin query filtering by role |
 | TB_COMM_BOARD_POST | POST_CTGR_CD | Single | Category filtering |
 | TB_COMM_RFRSH_TKN | TKN_VAL | Unique | Token validation |
 | TB_COMM_RFRSH_TKN | USE_ID | Single | Revoke all user tokens |

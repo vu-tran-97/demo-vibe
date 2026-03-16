@@ -113,10 +113,10 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
 
-      const tokens = await service.generateTokens(userId, email);
+      const tokens = await service.generateTokens(userId, email, 'BUYER');
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, type: 'access' },
+        { sub: userId, email, role: 'BUYER', type: 'access' },
         { expiresIn: 900 },
       );
       expect(tokens.accessToken).toBe('access-token');
@@ -131,10 +131,10 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
 
-      const tokens = await service.generateTokens(userId, email);
+      const tokens = await service.generateTokens(userId, email, 'BUYER');
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, type: 'refresh' },
+        { sub: userId, email, role: 'BUYER', type: 'refresh' },
         { expiresIn: 604800 },
       );
       expect(tokens.refreshToken).toBe('refresh-token');
@@ -182,6 +182,7 @@ describe('AuthService', () => {
         userNcnm: signupDto.nickname,
         emailVrfcYn: 'N',
         prflImgUrl: null,
+        useRoleCd: 'BUYER',
       });
       mockJwtService.signAsync
         .mockResolvedValueOnce('access-token')
@@ -238,6 +239,7 @@ describe('AuthService', () => {
       userSttsCd: 'ACTV',
       emailVrfcYn: 'Y',
       prflImgUrl: null,
+      useRoleCd: 'BUYER',
       delYn: 'N',
     };
 
@@ -409,6 +411,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-id',
         userEmail: 'user@example.com',
+        useRoleCd: 'BUYER',
         delYn: 'N',
       });
       mockJwtService.signAsync

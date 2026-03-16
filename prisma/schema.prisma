@@ -64,6 +64,7 @@ model User {
   userNm           String    @map("USE_NM")
   userNcnm         String?   @unique @map("USE_NCNM")
   prflImgUrl       String?   @map("PRFL_IMG_URL")
+  useRoleCd        String    @default("BUYER") @map("USE_ROLE_CD")
   userSttsCd       String    @default("ACTV") @map("USE_STTS_CD")
   lstLgnDt         DateTime? @map("LST_LGN_DT")
   emailVrfcYn      String    @default("N") @map("EMAIL_VRFC_YN")
@@ -83,6 +84,7 @@ model User {
   boardPosts     BoardPost[]
   boardComments  BoardComment[]
   boardLikes     BoardLike[]
+  products         Product[]         @relation("SellerProducts")
   chatRoomsCreated ChatRoom[]
   chatRoomMembers  ChatRoomMember[]
   chatMessages     ChatMessage[]
@@ -228,6 +230,38 @@ model BoardLike {
   // No DEL_YN — unlike = physical delete
   @@unique([postId, userId])
   @@map("TR_COMM_BOARD_LIKE")
+}
+
+// ============================================================
+// Product Module
+// ============================================================
+
+model Product {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId     String   @map("SLLR_ID") @db.ObjectId
+  prdNm        String   @map("PRD_NM")
+  prdDc        String   @map("PRD_DC")
+  prdPrc       Float    @map("PRD_PRC")
+  prdSalePrc   Float?   @map("PRD_SALE_PRC")
+  prdCtgrCd    String   @map("PRD_CTGR_CD")
+  prdSttsCd    String   @default("ACTV") @map("PRD_STTS_CD")
+  prdImgUrl    String   @map("PRD_IMG_URL")
+  prdImgUrls   String[] @map("PRD_IMG_URLS")
+  stckQty      Int      @default(0) @map("STCK_QTY")
+  soldCnt      Int      @default(0) @map("SOLD_CNT")
+  viewCnt      Int      @default(0) @map("VIEW_CNT")
+  avgRtng      Float    @default(0) @map("AVG_RTNG")
+  rvwCnt       Int      @default(0) @map("RVW_CNT")
+  srchTags     String[] @map("SRCH_TAGS")
+  rgstDt       DateTime @default(now()) @map("RGST_DT")
+  rgtrId       String?  @map("RGTR_ID")
+  mdfcnDt      DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId       String?  @map("MDFR_ID")
+  delYn        String   @default("N") @map("DEL_YN")
+
+  seller User @relation("SellerProducts", fields: [sellerId], references: [id])
+
+  @@map("TB_PROD_PRD")
 }
 
 // ============================================================

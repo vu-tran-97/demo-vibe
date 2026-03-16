@@ -63,6 +63,7 @@ export class AuthService {
         userPswd: hashedPassword,
         userNm: dto.name,
         userNcnm: dto.nickname ?? null,
+        useRoleCd: 'BUYER',
         userSttsCd: 'ACTV',
         emailVrfcYn: 'N',
         emailVrfcTkn: verificationToken,
@@ -73,7 +74,7 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
     await this.logLoginAttempt(user.id, 'EMAIL', 'SUCC', ip, userAgent);
 
@@ -132,7 +133,7 @@ export class AuthService {
       data: { lstLgnDt: new Date() },
     });
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
     await this.logLoginAttempt(user.id, 'EMAIL', 'SUCC', ip, userAgent);
 
@@ -219,7 +220,7 @@ export class AuthService {
       );
     }
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
 
     return {
@@ -346,15 +347,18 @@ export class AuthService {
   async generateTokens(
     userId: string,
     email: string,
+    role: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessPayload: JwtPayload = {
       sub: userId,
       email,
+      role,
       type: 'access',
     };
     const refreshPayload: JwtPayload = {
       sub: userId,
       email,
+      role,
       type: 'refresh',
     };
 
@@ -399,11 +403,11 @@ export class AuthService {
   }
 
   private getAccessExpiration(): number {
-    return this.configService.get<number>('JWT_ACCESS_EXPIRATION', 900);
+    return Number(this.configService.get('JWT_ACCESS_EXPIRATION', 900));
   }
 
   private getRefreshExpiration(): number {
-    return this.configService.get<number>('JWT_REFRESH_EXPIRATION', 604800);
+    return Number(this.configService.get('JWT_REFRESH_EXPIRATION', 604800));
   }
 
   // --- Login log helpers ---
@@ -458,6 +462,7 @@ export class AuthService {
     userNcnm: string | null;
     emailVrfcYn: string;
     prflImgUrl: string | null;
+    useRoleCd: string;
   }) {
     return {
       id: user.id,
@@ -466,6 +471,7 @@ export class AuthService {
       nickname: user.userNcnm,
       emailVerified: user.emailVrfcYn === 'Y',
       profileImageUrl: user.prflImgUrl,
+      role: user.useRoleCd,
     };
   }
 }

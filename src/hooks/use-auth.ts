@@ -12,7 +12,7 @@ export function useAuth(requireAuth = true) {
   useEffect(() => {
     const loggedIn = isLoggedIn();
     if (requireAuth && !loggedIn) {
-      router.replace('/auth/login');
+      router.replace('/');
       return;
     }
     if (loggedIn) {
@@ -23,7 +23,7 @@ export function useAuth(requireAuth = true) {
 
   async function handleLogout() {
     await authLogout();
-    router.replace('/auth/login');
+    router.replace('/');
   }
 
   return { user, loading, logout: handleLogout };
