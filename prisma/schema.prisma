@@ -1,0 +1,340 @@
+// Prisma Schema for demo-vibe
+// MongoDB provider with UPPER_SNAKE_CASE field mapping
+// Reference: docs/database/database-design.md (SSoT)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../server/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Common Module — Code Tables
+// ============================================================
+
+model CommonCodeGroup {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  cdGrpId     String   @unique @map("CD_GRP_ID")
+  cdGrpNm     String   @map("CD_GRP_NM")
+  cdGrpDc     String?  @map("CD_GRP_DC")
+  useYn       String   @default("Y") @map("USE_YN")
+  rgstDt      DateTime @default(now()) @map("RGST_DT")
+  rgtrId      String?  @map("RGTR_ID")
+  mdfcnDt     DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId      String?  @map("MDFR_ID")
+  delYn       String   @default("N") @map("DEL_YN")
+
+  codes CommonCode[]
+
+  @@map("TC_COMM_CD_GRP")
+}
+
+model CommonCode {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  cdGrpId String  @map("CD_GRP_ID")
+  cdVal   String  @map("CD_VAL")
+  cdNm    String  @map("CD_NM")
+  cdDc    String? @map("CD_DC")
+  sortSn  Int     @map("SORT_NO")
+  useYn   String  @default("Y") @map("USE_YN")
+  rgstDt  DateTime @default(now()) @map("RGST_DT")
+  rgtrId  String?  @map("RGTR_ID")
+  mdfcnDt DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId  String?  @map("MDFR_ID")
+  delYn   String   @default("N") @map("DEL_YN")
+
+  codeGroup CommonCodeGroup @relation(fields: [cdGrpId], references: [cdGrpId])
+
+  @@unique([cdGrpId, cdVal])
+  @@map("TC_COMM_CD")
+}
+
+// ============================================================
+// Auth Module
+// ============================================================
+
+model User {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  userEmail        String    @unique @map("USE_EMAIL")
+  userPswd         String?   @map("USE_PSWD")
+  userNm           String    @map("USE_NM")
+  userNcnm         String?   @unique @map("USE_NCNM")
+  prflImgUrl       String?   @map("PRFL_IMG_URL")
+  useRoleCd        String    @default("BUYER") @map("USE_ROLE_CD")
+  userSttsCd       String    @default("ACTV") @map("USE_STTS_CD")
+  lstLgnDt         DateTime? @map("LST_LGN_DT")
+  emailVrfcYn      String    @default("N") @map("EMAIL_VRFC_YN")
+  emailVrfcTkn     String?   @map("EMAIL_VRFC_TKN")
+  emailVrfcExprDt  DateTime? @map("EMAIL_VRFC_EXPR_DT")
+  pswdRstTkn       String?   @map("PSWD_RST_TKN")
+  pswdRstExprDt    DateTime? @map("PSWD_RST_EXPR_DT")
+  rgstDt           DateTime  @default(now()) @map("RGST_DT")
+  rgtrId           String?   @map("RGTR_ID")
+  mdfcnDt          DateTime  @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId           String?   @map("MDFR_ID")
+  delYn            String    @default("N") @map("DEL_YN")
+
+  socialAccounts SocialAccount[]
+  refreshTokens  RefreshToken[]
+  loginLogs      LoginLog[]
+  boardPosts     BoardPost[]
+  boardComments  BoardComment[]
+  boardLikes     BoardLike[]
+  products         Product[]         @relation("SellerProducts")
+  chatRoomsCreated ChatRoom[]
+  chatRoomMembers  ChatRoomMember[]
+  chatMessages     ChatMessage[]
+
+  @@map("TB_COMM_USER")
+}
+
+model SocialAccount {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @map("USE_ID") @db.ObjectId
+  sclPrvdCd      String   @map("SCL_PRVD_CD")
+  sclPrvdUserId  String   @map("SCL_PRVD_USE_ID")
+  sclEmail       String?  @map("SCL_EMAIL")
+  sclPrflImgUrl  String?  @map("SCL_PRFL_IMG_URL")
+  lnkdDt         DateTime @map("LNKD_DT")
+  rgstDt         DateTime @default(now()) @map("RGST_DT")
+  rgtrId         String?  @map("RGTR_ID")
+  mdfcnDt        DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId         String?  @map("MDFR_ID")
+  delYn          String   @default("N") @map("DEL_YN")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([sclPrvdCd, sclPrvdUserId])
+  @@map("TB_COMM_SCL_ACNT")
+
+}
+
+model RefreshToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
+  tknVal     String   @unique @map("TKN_VAL")
+  exprDt     DateTime @map("EXPR_DT")
+  clntIpAddr String   @map("CLNT_IP_ADDR")
+  userAgnt   String?  @map("USE_AGNT")
+  rvkdYn     String   @default("N") @map("RVKD_YN")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+  mdfcnDt    DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId     String?  @map("MDFR_ID")
+  delYn      String   @default("N") @map("DEL_YN")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("TB_COMM_RFRSH_TKN")
+}
+
+model LoginLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
+  lgnMthdCd  String   @map("LGN_MTHD_CD")
+  lgnDt      DateTime @map("LGN_DT")
+  lgnIpAddr  String   @map("LGN_IP_ADDR")
+  lgnRsltCd  String   @map("LGN_RSLT_CD")
+  failRsn    String?  @map("FAIL_RSN")
+  userAgnt   String?  @map("USE_AGNT")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+
+  user User @relation(fields: [userId], references: [id])
+
+  // No DEL_YN — logs cannot be deleted
+  @@map("TL_COMM_LGN_LOG")
+}
+
+// ============================================================
+// Board Module
+// ============================================================
+
+model BoardPost {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @map("USE_ID") @db.ObjectId
+  postTtl      String   @map("POST_TTL")
+  postCn       String   @map("POST_CN")
+  postCtgrCd   String   @map("POST_CTGR_CD")
+  inqrCnt      Int      @default(0) @map("INQR_CNT")
+  likeCnt      Int      @default(0) @map("LIKE_CNT")
+  cmntCnt      Int      @default(0) @map("CMNT_CNT")
+  pnndYn       String   @default("N") @map("PNND_YN")
+  srchTags     String[] @map("SRCH_TAGS")
+  rgstDt       DateTime @default(now()) @map("RGST_DT")
+  rgtrId       String?  @map("RGTR_ID")
+  mdfcnDt      DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId       String?  @map("MDFR_ID")
+  delYn        String   @default("N") @map("DEL_YN")
+
+  user        User              @relation(fields: [userId], references: [id])
+  comments    BoardComment[]
+  attachments BoardAttachment[]
+  likes       BoardLike[]
+
+  @@map("TB_COMM_BOARD_POST")
+}
+
+model BoardComment {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId     String   @map("POST_ID") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
+  cmntCn     String   @map("CMNT_CN")
+  prntCmntId String?  @map("PRNT_CMNT_ID") @db.ObjectId
+  cmntDpth   Int      @map("CMNT_DPTH")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+  mdfcnDt    DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId     String?  @map("MDFR_ID")
+  delYn      String   @default("N") @map("DEL_YN")
+
+  post User      @relation(fields: [userId], references: [id])
+  boardPost BoardPost @relation(fields: [postId], references: [id])
+
+  @@map("TB_COMM_BOARD_CMNT")
+}
+
+model BoardAttachment {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId       String   @map("POST_ID") @db.ObjectId
+  atchTypeCd   String   @map("ATCH_TYPE_CD")
+  fileNm       String   @map("ATCM_NM")
+  filePath     String   @map("ATCM_URL")
+  fileSize     Int      @map("ATCM_SIZE")
+  fileMimeType String   @map("ATCM_MIME_TYPE")
+  sortSn       Int      @map("SORT_NO")
+  rgstDt       DateTime @default(now()) @map("RGST_DT")
+  rgtrId       String?  @map("RGTR_ID")
+  mdfcnDt      DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId       String?  @map("MDFR_ID")
+  delYn        String   @default("N") @map("DEL_YN")
+
+  boardPost BoardPost @relation(fields: [postId], references: [id])
+
+  @@map("TB_COMM_BOARD_ATCH")
+}
+
+model BoardLike {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  postId String @map("POST_ID") @db.ObjectId
+  userId String @map("USE_ID") @db.ObjectId
+  rgstDt DateTime @default(now()) @map("RGST_DT")
+
+  boardPost BoardPost @relation(fields: [postId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  // No DEL_YN — unlike = physical delete
+  @@unique([postId, userId])
+  @@map("TR_COMM_BOARD_LIKE")
+}
+
+// ============================================================
+// Product Module
+// ============================================================
+
+model Product {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId     String   @map("SLLR_ID") @db.ObjectId
+  prdNm        String   @map("PRD_NM")
+  prdDc        String   @map("PRD_DC")
+  prdPrc       Float    @map("PRD_PRC")
+  prdSalePrc   Float?   @map("PRD_SALE_PRC")
+  prdCtgrCd    String   @map("PRD_CTGR_CD")
+  prdSttsCd    String   @default("ACTV") @map("PRD_STTS_CD")
+  prdImgUrl    String   @map("PRD_IMG_URL")
+  prdImgUrls   String[] @map("PRD_IMG_URLS")
+  stckQty      Int      @default(0) @map("STCK_QTY")
+  soldCnt      Int      @default(0) @map("SOLD_CNT")
+  viewCnt      Int      @default(0) @map("VIEW_CNT")
+  avgRtng      Float    @default(0) @map("AVG_RTNG")
+  rvwCnt       Int      @default(0) @map("RVW_CNT")
+  srchTags     String[] @map("SRCH_TAGS")
+  rgstDt       DateTime @default(now()) @map("RGST_DT")
+  rgtrId       String?  @map("RGTR_ID")
+  mdfcnDt      DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId       String?  @map("MDFR_ID")
+  delYn        String   @default("N") @map("DEL_YN")
+
+  seller User @relation("SellerProducts", fields: [sellerId], references: [id])
+
+  @@map("TB_PROD_PRD")
+}
+
+// ============================================================
+// Chat Module
+// ============================================================
+
+model ChatRoom {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  chatRoomNm     String    @map("CHAT_ROOM_NM")
+  chatRoomTypeCd String    @map("CHAT_ROOM_TYPE_CD")
+  maxMbrCnt      Int       @map("MAX_MBR_CNT")
+  crtrId         String    @map("CRTR_ID") @db.ObjectId
+  lstMsgCn       String?   @map("LST_MSSG_CN")
+  lstMsgDt       DateTime? @map("LST_MSSG_DT")
+  rgstDt         DateTime  @default(now()) @map("RGST_DT")
+  rgtrId         String?   @map("RGTR_ID")
+  mdfcnDt        DateTime  @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId         String?   @map("MDFR_ID")
+  delYn          String    @default("N") @map("DEL_YN")
+
+  creator  User             @relation(fields: [crtrId], references: [id])
+  members  ChatRoomMember[]
+  messages ChatMessage[]
+
+  @@map("TB_COMM_CHAT_ROOM")
+}
+
+model ChatRoomMember {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  chatRoomId String    @map("CHAT_ROOM_ID") @db.ObjectId
+  userId     String    @map("USE_ID") @db.ObjectId
+  joinDt     DateTime  @map("JOIN_DT")
+  lastReadDt DateTime? @map("LAST_READ_DT")
+  notiYn     String    @default("Y") @map("NOTI_YN")
+
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  // No DEL_YN — leave = physical delete
+  @@unique([chatRoomId, userId])
+  @@map("TR_COMM_CHAT_ROOM_MBR")
+}
+
+model ChatMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  chatRoomId String   @map("CHAT_ROOM_ID") @db.ObjectId
+  userId     String   @map("USE_ID") @db.ObjectId
+  msgCn      String   @map("MSSG_CN")
+  msgTypeCd  String   @map("MSSG_TYPE_CD")
+  sendDt     DateTime @map("SEND_DT")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+
+  chatRoom    ChatRoom               @relation(fields: [chatRoomId], references: [id])
+  user        User                   @relation(fields: [userId], references: [id])
+  attachments ChatMessageAttachment[]
+
+  // No DEL_YN — message delete = physical delete
+  @@map("TB_COMM_CHAT_MSG")
+}
+
+model ChatMessageAttachment {
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  msgId        String  @map("MSSG_ID") @db.ObjectId
+  fileNm       String  @map("ATCM_NM")
+  filePath     String  @map("ATCM_URL")
+  fileSize     Int     @map("ATCM_SIZE")
+  fileMimeType String  @map("ATCM_MIME_TYPE")
+  thmbPath     String? @map("THMB_URL")
+  rgstDt       DateTime @default(now()) @map("RGST_DT")
+  rgtrId       String?  @map("RGTR_ID")
+
+  message ChatMessage @relation(fields: [msgId], references: [id])
+
+  @@map("TB_COMM_CHAT_MSG_ATCH")
+}

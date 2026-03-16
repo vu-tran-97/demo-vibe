@@ -113,7 +113,7 @@
   --z-modal: 400;
   --z-toast: 500;
 
-  /* ── Responsive Breakpoints (참조용, CSS에서 직접 사용) ── */
+  /* ── Responsive Breakpoints (reference only, use directly in CSS) ── */
   /* Mobile: ~767px */
   /* Tablet: 768px~1023px */
   /* Desktop: 1024px~ */
