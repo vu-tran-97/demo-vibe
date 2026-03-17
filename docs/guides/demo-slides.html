@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Vibe — Project Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --charcoal: #1a1a1a;
+    --charcoal-light: #2d2d2d;
+    --slate: #6b6b6b;
+    --muted: #999;
+    --gold: #c8a96e;
+    --gold-dark: #b08d4f;
+    --gold-light: #dcc99a;
+    --ivory: #fafaf7;
+    --ivory-warm: #f5f0e8;
+    --white: #fff;
+    --success: #5a8a6a;
+    --error: #c45b5b;
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'Outfit', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--charcoal);
+    color: var(--white);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Slide container */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Typography */
+  h1 {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 2.75rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+    color: var(--gold);
+  }
+
+  h3 {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  p, li {
+    font-size: 1.35rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.85);
+    font-weight: 300;
+  }
+
+  .subtitle {
+    font-size: 1.5rem;
+    color: var(--gold-light);
+    font-weight: 300;
+    margin-bottom: 8px;
+  }
+
+  .small { font-size: 1.1rem; color: var(--muted); }
+
+  /* Layout helpers */
+  .center { text-align: center; }
+  .left { text-align: left; align-items: flex-start; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    width: 100%;
+    max-width: 1100px;
+    align-items: start;
+  }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 40px;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  ul { list-style: none; }
+
+  ul li {
+    padding: 8px 0;
+    padding-left: 24px;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    max-width: 900px;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+
+  th {
+    text-align: left;
+    padding: 12px 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  td {
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-weight: 300;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-gold { background: rgba(200,169,110,0.15); color: var(--gold); }
+  .badge-green { background: rgba(90,138,106,0.15); color: var(--success); }
+  .badge-white { background: rgba(255,255,255,0.1); color: var(--white); }
+
+  /* Stat card */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 24px;
+  }
+
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 400;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  /* Flow */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 24px 0;
+  }
+
+  .flow-step {
+    background: rgba(200,169,110,0.12);
+    border: 1px solid rgba(200,169,110,0.25);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--gold-light);
+  }
+
+  .flow-arrow {
+    font-size: 1.2rem;
+    color: var(--slate);
+  }
+
+  /* Feature card */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 16px;
+  }
+
+  .feature-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 24px 28px;
+  }
+
+  .feature-card h4 {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+
+  .feature-card p {
+    font-size: 1rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Divider */
+  .divider {
+    width: 60px;
+    height: 2px;
+    background: var(--gold);
+    margin: 20px auto;
+  }
+
+  /* Nav */
+  .nav {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: var(--white);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    background: rgba(200,169,110,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .nav-counter {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* Progress bar */
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--gold);
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  /* Decorative line */
+  .gold-line {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 24px auto;
+  }
+
+  /* Code */
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.95em;
+    background: rgba(200,169,110,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--gold-light);
+  }
+
+  /* Accent background */
+  .slide-accent {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2520 100%);
+  }
+
+  .slide-ivory {
+    background: var(--ivory);
+    color: var(--charcoal);
+  }
+
+  .slide-ivory h2 { color: var(--charcoal); }
+  .slide-ivory p, .slide-ivory li { color: var(--slate); }
+  .slide-ivory .stat-value { color: var(--charcoal); }
+  .slide-ivory .stat-card { background: var(--white); border-color: #e8e4de; }
+
+  @media (max-width: 768px) {
+    .slide { padding: 40px 30px; }
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; }
+    p, li { font-size: 1.1rem; }
+    .two-col, .three-col { grid-template-columns: 1fr; gap: 30px; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .feature-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ============ SLIDE 1: Title ============ -->
+  <div class="slide active center">
+    <p class="subtitle">E-Commerce Marketplace</p>
+    <h1>Demo Vibe</h1>
+    <div class="gold-line"></div>
+    <p class="small" style="margin-top:8px">Next.js 15 &nbsp;·&nbsp; NestJS &nbsp;·&nbsp; MongoDB &nbsp;·&nbsp; Jenkins CI/CD</p>
+    <p class="small" style="margin-top:24px;opacity:0.5">March 2026</p>
+  </div>
+
+  <!-- ============ SLIDE 2: Tech Stack ============ -->
+  <div class="slide center">
+    <h2>Tech Stack</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">Next.js</div>
+        <div class="stat-label">Frontend · App Router · React 19</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">NestJS</div>
+        <div class="stat-label">Backend · REST API · JWT Auth</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">MongoDB</div>
+        <div class="stat-label">Database · Prisma ORM · Docker</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">Jenkins</div>
+        <div class="stat-label">CI/CD · Pipeline · Docker</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SLIDE 3: Architecture ============ -->
+  <div class="slide center">
+    <h2>Architecture</h2>
+    <div class="flow">
+      <div class="flow-step">Browser</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Next.js :3000</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">NestJS API :4000</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">MongoDB :27017</div>
+    </div>
+    <div class="flow" style="margin-top:32px">
+      <div class="flow-step">Git Push</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Jenkins :8080</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Lint + Test</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Build</div>
+    </div>
+    <p class="small" style="margin-top:40px">All services run locally via Docker Compose</p>
+  </div>
+
+  <!-- ============ SLIDE 4: Database Design ============ -->
+  <div class="slide center">
+    <h3>Database</h3>
+    <h2>19 Collections · 27 Tables Documented</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">TB_</div>
+        <div class="stat-label">General Tables</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">TC_</div>
+        <div class="stat-label">Code Tables</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">TH_</div>
+        <div class="stat-label">History Tables</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">TL_</div>
+        <div class="stat-label">Log Tables</div>
+      </div>
+    </div>
+    <p style="margin-top:32px;font-size:1.1rem;color:var(--muted)">
+      Prisma ORM · Replica Set · Single Source of Truth design document
+    </p>
+  </div>
+
+  <!-- ============ SLIDE 5: Backend API ============ -->
+  <div class="slide center">
+    <h3>Backend</h3>
+    <h2>40+ API Endpoints · 156 Unit Tests</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>Auth Module</h4>
+        <p>Signup, Login, JWT + Refresh Token, Profile, Password Change, Social Auth (scaffolding)</p>
+      </div>
+      <div class="feature-card">
+        <h4>Product Module</h4>
+        <p>CRUD, Categories, Advanced Filters (price, rating, stock), Sort, Multi-category, Search</p>
+      </div>
+      <div class="feature-card">
+        <h4>Order Module</h4>
+        <p>Checkout, Payment (Bank/Email), Buyer History, Seller Sales, Item Status, Bulk Update</p>
+      </div>
+      <div class="feature-card">
+        <h4>Admin Module</h4>
+        <p>Dashboard Stats, User CRUD, Role/Status Change, CSV Export, Activity Logs</p>
+      </div>
+      <div class="feature-card">
+        <h4>Board Module</h4>
+        <p>Posts CRUD, Categories (NOTICE/FREE/QNA), Nested Comments, Search, View Count</p>
+      </div>
+      <div class="feature-card">
+        <h4>Search Module</h4>
+        <p>Global Search (products + posts), Autocomplete Suggestions, Debounced API</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SLIDE 6: Frontend ============ -->
+  <div class="slide center">
+    <h3>Frontend</h3>
+    <h2>26 Pages · 13 Components · Responsive</h2>
+    <div class="three-col" style="margin-top:16px">
+      <div>
+        <h4 style="color:var(--gold);margin-bottom:12px;font-size:1rem">Public</h4>
+        <ul>
+          <li>Home page with products</li>
+          <li>Login / Signup modal</li>
+          <li>Product browsing</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color:var(--gold);margin-bottom:12px;font-size:1rem">Dashboard</h4>
+        <ul>
+          <li>Role-based overview</li>
+          <li>Products + Cart</li>
+          <li>Checkout + Orders</li>
+          <li>Board + Settings</li>
+          <li>Global Search</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color:var(--gold);margin-bottom:12px;font-size:1rem">Admin</h4>
+        <ul>
+          <li>Admin dashboard</li>
+          <li>User management</li>
+          <li>All products view</li>
+          <li>CSV export</li>
+        </ul>
+      </div>
+    </div>
+    <p class="small" style="margin-top:24px">Mobile · Tablet · Desktop breakpoints &nbsp;|&nbsp; Luxury Minimal Design System</p>
+  </div>
+
+  <!-- ============ SLIDE 7: User Roles ============ -->
+  <div class="slide center">
+    <h3>RBAC</h3>
+    <h2>3 User Roles</h2>
+    <div class="three-col" style="margin-top:16px;max-width:900px">
+      <div class="feature-card" style="text-align:center">
+        <h4 style="font-size:1.3rem">Buyer</h4>
+        <div class="divider" style="margin:12px auto"></div>
+        <p>Browse products, Add to cart, Checkout, Order history, Board, Settings</p>
+      </div>
+      <div class="feature-card" style="text-align:center;border-color:rgba(200,169,110,0.3)">
+        <h4 style="font-size:1.3rem;color:var(--gold)">Seller</h4>
+        <div class="divider" style="margin:12px auto"></div>
+        <p>Product CRUD, Sales management, Order status flow, Revenue dashboard</p>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <h4 style="font-size:1.3rem">Admin</h4>
+        <div class="divider" style="margin:12px auto"></div>
+        <p>User management, All products, Dashboard stats, CSV export, NOTICE posts</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SLIDE 8: Buyer Flow ============ -->
+  <div class="slide center">
+    <h3>Demo Flow</h3>
+    <h2>Buyer Journey</h2>
+    <div class="flow">
+      <div class="flow-step">Browse</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Filter / Search</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Product Detail</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Add to Cart</div>
+    </div>
+    <div class="flow" style="margin-top:16px">
+      <div class="flow-step">Cart Review</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Checkout</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Payment (QR / Email)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Order Confirmed</div>
+    </div>
+    <p class="small" style="margin-top:32px">Login: <code>buyer@vibe.com</code> / <code>Buyer@123</code></p>
+  </div>
+
+  <!-- ============ SLIDE 9: Seller Flow ============ -->
+  <div class="slide center">
+    <h3>Demo Flow</h3>
+    <h2>Seller Journey</h2>
+    <div class="flow">
+      <div class="flow-step">My Products</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Create / Edit</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">View Sales</div>
+    </div>
+    <div class="flow" style="margin-top:16px">
+      <div class="flow-step">Confirm Order</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Ship + Tracking</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Mark Delivered</div>
+    </div>
+    <p style="margin-top:32px;font-size:1.1rem;color:rgba(255,255,255,0.6)">Bulk actions · Revenue dashboard · Per-item status tracking</p>
+    <p class="small" style="margin-top:12px">Login: <code>minji@vibe.com</code> / <code>Seller@123</code></p>
+  </div>
+
+  <!-- ============ SLIDE 10: Jenkins CI/CD ============ -->
+  <div class="slide center">
+    <h3>DevOps</h3>
+    <h2>Jenkins CI/CD Pipeline</h2>
+    <div class="flow">
+      <div class="flow-step">Git Push</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Checkout</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Install (parallel)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Prisma Generate</div>
+    </div>
+    <div class="flow" style="margin-top:16px">
+      <div class="flow-step">Lint (parallel)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Test (156 tests)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Build (parallel)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:rgba(90,138,106,0.5);color:var(--success)">✓ Deploy Ready</div>
+    </div>
+    <p class="small" style="margin-top:32px">Docker Compose · MongoDB + Jenkins · <code>npm run jenkins:up</code></p>
+  </div>
+
+  <!-- ============ SLIDE 11: Project Stats ============ -->
+  <div class="slide slide-ivory center">
+    <h3 style="color:var(--gold-dark)">Project Summary</h3>
+    <h2>By the Numbers</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Sprints</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">10</div>
+        <div class="stat-label">Blueprints</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">40+</div>
+        <div class="stat-label">API Endpoints</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">26</div>
+        <div class="stat-label">Pages</div>
+      </div>
+    </div>
+    <div class="stat-grid" style="margin-top:16px">
+      <div class="stat-card">
+        <div class="stat-value">156</div>
+        <div class="stat-label">Unit Tests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">46</div>
+        <div class="stat-label">E2E Tests Passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">19</div>
+        <div class="stat-label">DB Collections</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Failures</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SLIDE 12: Live Demo ============ -->
+  <div class="slide center slide-accent">
+    <p class="subtitle">Time for</p>
+    <h1>Live Demo</h1>
+    <div class="gold-line"></div>
+    <div style="margin-top:32px;display:flex;gap:24px;flex-wrap:wrap;justify-content:center">
+      <span class="badge badge-gold">http://localhost:3000</span>
+      <span class="badge badge-white">http://localhost:4000</span>
+      <span class="badge badge-green">http://localhost:8080</span>
+    </div>
+    <table style="margin-top:40px;max-width:600px">
+      <tr><th>Role</th><th>Email</th><th>Password</th></tr>
+      <tr><td>Admin</td><td><code>admin@astratech.vn</code></td><td><code>Admin@123</code></td></tr>
+      <tr><td>Buyer</td><td><code>buyer@vibe.com</code></td><td><code>Buyer@123</code></td></tr>
+      <tr><td>Seller</td><td><code>minji@vibe.com</code></td><td><code>Seller@123</code></td></tr>
+    </table>
+  </div>
+
+  <!-- ============ SLIDE 13: Thank You ============ -->
+  <div class="slide center">
+    <h1>Thank You</h1>
+    <div class="gold-line"></div>
+    <p style="margin-top:16px;font-size:1.3rem;color:var(--muted)">Demo Vibe — E-Commerce Marketplace</p>
+    <p class="small" style="margin-top:32px">
+      Built with ASTRA Methodology<br>
+      Next.js · NestJS · MongoDB · Jenkins
+    </p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button class="nav-btn" id="prev" onclick="navigate(-1)">←</button>
+  <span class="nav-counter" id="counter">1 / 13</span>
+  <button class="nav-btn" id="next" onclick="navigate(1)">→</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+
+  function show(index) {
+    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+    counter.textContent = `${index + 1} / ${total}`;
+    progress.style.width = `${((index + 1) / total) * 100}%`;
+  }
+
+  function navigate(dir) {
+    current = Math.max(0, Math.min(total - 1, current + dir));
+    show(current);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { current = 0; show(current); }
+    if (e.key === 'End') { current = total - 1; show(current); }
+  });
+
+  // Touch support
+  let touchStart = 0;
+  document.addEventListener('touchstart', (e) => { touchStart = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) navigate(diff > 0 ? 1 : -1);
+  });
+
+  show(0);
+</script>
+
+</body>
+</html>
