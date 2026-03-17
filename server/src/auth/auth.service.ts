@@ -10,6 +10,8 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const EMAIL_VERIFICATION_HOURS = 24;
@@ -57,23 +59,26 @@ export class AuthService {
       verificationExpiry.getHours() + EMAIL_VERIFICATION_HOURS,
     );
 
+    const generatedNickname = dto.nickname || `user_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+
     const user = await this.prisma.user.create({
       data: {
         userEmail: dto.email,
         userPswd: hashedPassword,
         userNm: dto.name,
-        userNcnm: dto.nickname ?? null,
+        userNcnm: generatedNickname,
+        useRoleCd: 'BUYER',
         userSttsCd: 'ACTV',
         emailVrfcYn: 'N',
-        emailVrfcTkn: verificationToken,
-        emailVrfcExprDt: verificationExpiry,
+        emlVrfcTkn: verificationToken,
+        emlVrfcExprDt: verificationExpiry,
         lstLgnDt: new Date(),
         rgtrId: 'SYSTEM',
         mdfrId: 'SYSTEM',
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
     await this.logLoginAttempt(user.id, 'EMAIL', 'SUCC', ip, userAgent);
 
@@ -132,7 +137,7 @@ export class AuthService {
       data: { lstLgnDt: new Date() },
     });
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
     await this.logLoginAttempt(user.id, 'EMAIL', 'SUCC', ip, userAgent);
 
@@ -219,7 +224,7 @@ export class AuthService {
       );
     }
 
-    const tokens = await this.generateTokens(user.id, user.userEmail);
+    const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
 
     return {
@@ -231,7 +236,7 @@ export class AuthService {
 
   async verifyEmail(token: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findFirst({
-      where: { emailVrfcTkn: token, delYn: 'N' },
+      where: { emlVrfcTkn: token, delYn: 'N' },
     });
 
     if (!user) {
@@ -250,7 +255,7 @@ export class AuthService {
       );
     }
 
-    if (!user.emailVrfcExprDt || user.emailVrfcExprDt < new Date()) {
+    if (!user.emlVrfcExprDt || user.emlVrfcExprDt < new Date()) {
       throw new BusinessException(
         'VERIFICATION_TOKEN_EXPIRED',
         'Verification token has expired',
@@ -262,8 +267,8 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailVrfcYn: 'Y',
-        emailVrfcTkn: null,
-        emailVrfcExprDt: null,
+        emlVrfcTkn: null,
+        emlVrfcExprDt: null,
       },
     });
 
@@ -341,20 +346,157 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
+  // --- User Settings ---
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check nickname uniqueness (exclude self and soft-deleted users)
+    if (dto.nickname && dto.nickname !== user.userNcnm) {
+      const existingNickname = await this.prisma.user.findFirst({
+        where: {
+          userNcnm: dto.nickname,
+          delYn: 'N',
+          id: { not: userId },
+        },
+      });
+      if (existingNickname) {
+        throw new BusinessException(
+          'NICKNAME_ALREADY_EXISTS',
+          'Nickname is already taken',
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    const updateData: Record<string, unknown> = { mdfrId: userId };
+    if (dto.name !== undefined) updateData.userNm = dto.name;
+    if (dto.nickname !== undefined) updateData.userNcnm = dto.nickname;
+    if (dto.profileImageUrl !== undefined)
+      updateData.prflImgUrl = dto.profileImageUrl;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    return this.formatUserResponse(updated);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user || !user.userPswd) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const isCurrentValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.userPswd,
+    );
+    if (!isCurrentValid) {
+      throw new BusinessException(
+        'INVALID_CURRENT_PASSWORD',
+        'Current password is incorrect',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const isSamePassword = await bcrypt.compare(
+      dto.newPassword,
+      user.userPswd,
+    );
+    if (isSamePassword) {
+      throw new BusinessException(
+        'SAME_PASSWORD',
+        'New password must be different from current password',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      dto.newPassword,
+      BCRYPT_SALT_ROUNDS,
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { userPswd: hashedPassword, mdfrId: userId },
+    });
+
+    // Revoke all refresh tokens for security
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { rvkdYn: 'Y' },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async deleteAccount(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        delYn: 'Y',
+        userSttsCd: 'INAC',
+        mdfrId: userId,
+      },
+    });
+
+    // Revoke all refresh tokens
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { rvkdYn: 'Y' },
+    });
+
+    return { message: 'Account deleted successfully' };
+  }
+
   // --- Token helpers ---
 
   async generateTokens(
     userId: string,
     email: string,
+    role: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessPayload: JwtPayload = {
       sub: userId,
       email,
+      role,
       type: 'access',
     };
     const refreshPayload: JwtPayload = {
       sub: userId,
       email,
+      role,
       type: 'refresh',
     };
 
@@ -399,11 +541,11 @@ export class AuthService {
   }
 
   private getAccessExpiration(): number {
-    return this.configService.get<number>('JWT_ACCESS_EXPIRATION', 900);
+    return Number(this.configService.get('JWT_ACCESS_EXPIRATION', 900));
   }
 
   private getRefreshExpiration(): number {
-    return this.configService.get<number>('JWT_REFRESH_EXPIRATION', 604800);
+    return Number(this.configService.get('JWT_REFRESH_EXPIRATION', 604800));
   }
 
   // --- Login log helpers ---
@@ -458,6 +600,7 @@ export class AuthService {
     userNcnm: string | null;
     emailVrfcYn: string;
     prflImgUrl: string | null;
+    useRoleCd: string;
   }) {
     return {
       id: user.id,
@@ -466,6 +609,7 @@ export class AuthService {
       nickname: user.userNcnm,
       emailVerified: user.emailVrfcYn === 'Y',
       profileImageUrl: user.prflImgUrl,
+      role: user.useRoleCd,
     };
   }
 }

@@ -15,14 +15,14 @@ describe('JwtStrategy', () => {
   });
 
   it('should accept valid access token payload', () => {
-    const payload: JwtPayload = { sub: 'user-1', email: 'test@example.com', type: 'access' };
+    const payload: JwtPayload = { sub: 'user-1', email: 'test@example.com', role: 'BUYER', type: 'access' };
     const result = strategy.validate(payload);
 
     expect(result).toEqual(payload);
   });
 
   it('should reject refresh token payload', () => {
-    const payload: JwtPayload = { sub: 'user-1', email: 'test@example.com', type: 'refresh' };
+    const payload: JwtPayload = { sub: 'user-1', email: 'test@example.com', role: 'BUYER', type: 'refresh' };
 
     expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
     expect(() => strategy.validate(payload)).toThrow('Invalid token type');

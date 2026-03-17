@@ -1,0 +1,331 @@
+/* ==========================================================================
+   Auth Modal — Luxury Minimal
+   ========================================================================== */
+
+/* ── Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(26, 26, 26, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+/* ── Modal ── */
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--ivory);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-elevated);
+  padding: var(--space-2xl) var(--space-2xl) var(--space-xl);
+  animation: scaleIn var(--duration-normal) var(--ease-out);
+}
+
+.closeBtn {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.closeBtn:hover {
+  color: var(--charcoal);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ── Header ── */
+.header {
+  margin-bottom: var(--space-xl);
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--charcoal);
+  margin-bottom: var(--space-xs);
+}
+
+.subtitle {
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+/* ── Social Login ── */
+.socialButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.socialBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  text-decoration: none;
+}
+
+.socialBtn:hover {
+  border-color: var(--charcoal);
+  box-shadow: var(--shadow-subtle);
+  transform: translateY(-1px);
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.google {
+  background: #f3f3f3;
+  color: #4285f4;
+}
+
+.kakao {
+  background: #FEE500;
+  color: #3C1E1E;
+}
+
+.naver {
+  background: #03C75A;
+  color: white;
+}
+
+/* ── Divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.dividerText {
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Form ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  letter-spacing: 0.01em;
+}
+
+.input {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  background: var(--white);
+  transition: all var(--duration-fast) var(--ease-out);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--muted);
+  font-weight: 300;
+}
+
+.input:focus {
+  border-color: var(--charcoal);
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.formOptions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--charcoal);
+  cursor: pointer;
+}
+
+.forgotLink {
+  font-size: 0.8125rem;
+  color: var(--gold-dark);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+.forgotLink:hover {
+  color: var(--gold);
+}
+
+.submitBtn {
+  padding: 0.8rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--charcoal);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  letter-spacing: 0.01em;
+  margin-top: var(--space-xs);
+}
+
+.submitBtn:hover {
+  background: var(--charcoal-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Error ── */
+.errorMessage {
+  padding: 0.7rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  color: #991b1b;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ── Footer ── */
+.formFooter {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-top: var(--space-md);
+}
+
+.switchBtn {
+  color: var(--charcoal);
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  transition: border-color var(--duration-fast);
+}
+
+.switchBtn:hover {
+  border-color: var(--charcoal);
+}
+
+.terms {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: var(--space-xs);
+}
+
+.terms a {
+  color: var(--slate);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.inputHint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .modal {
+    padding: var(--space-xl);
+    max-width: 100%;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

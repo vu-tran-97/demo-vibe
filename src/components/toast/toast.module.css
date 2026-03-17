@@ -1,0 +1,93 @@
+/* ==========================================================================
+   Toast Notification — Luxury Minimal
+   ========================================================================== */
+
+.container {
+  position: fixed;
+  bottom: var(--space-2xl);
+  right: var(--space-2xl);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  background: var(--charcoal);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-elevated);
+  animation: toastIn var(--duration-normal) var(--ease-out);
+  pointer-events: auto;
+  max-width: 360px;
+}
+
+.toast.success {
+  background: var(--charcoal);
+}
+
+.toast.error {
+  background: var(--error);
+}
+
+.toast.info {
+  background: var(--charcoal);
+}
+
+.icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.875rem;
+  transition: color var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  color: var(--white);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .container {
+    bottom: var(--space-lg);
+    right: var(--space-md);
+    left: var(--space-md);
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+}

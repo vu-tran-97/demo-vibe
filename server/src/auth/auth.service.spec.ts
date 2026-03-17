@@ -113,10 +113,10 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
 
-      const tokens = await service.generateTokens(userId, email);
+      const tokens = await service.generateTokens(userId, email, 'BUYER');
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, type: 'access' },
+        { sub: userId, email, role: 'BUYER', type: 'access' },
         { expiresIn: 900 },
       );
       expect(tokens.accessToken).toBe('access-token');
@@ -131,10 +131,10 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-token')
         .mockResolvedValueOnce('refresh-token');
 
-      const tokens = await service.generateTokens(userId, email);
+      const tokens = await service.generateTokens(userId, email, 'BUYER');
 
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, type: 'refresh' },
+        { sub: userId, email, role: 'BUYER', type: 'refresh' },
         { expiresIn: 604800 },
       );
       expect(tokens.refreshToken).toBe('refresh-token');
@@ -182,6 +182,7 @@ describe('AuthService', () => {
         userNcnm: signupDto.nickname,
         emailVrfcYn: 'N',
         prflImgUrl: null,
+        useRoleCd: 'BUYER',
       });
       mockJwtService.signAsync
         .mockResolvedValueOnce('access-token')
@@ -238,6 +239,7 @@ describe('AuthService', () => {
       userSttsCd: 'ACTV',
       emailVrfcYn: 'Y',
       prflImgUrl: null,
+      useRoleCd: 'BUYER',
       delYn: 'N',
     };
 
@@ -409,6 +411,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-id',
         userEmail: 'user@example.com',
+        useRoleCd: 'BUYER',
         delYn: 'N',
       });
       mockJwtService.signAsync
@@ -447,7 +450,7 @@ describe('AuthService', () => {
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-id',
         emailVrfcYn: 'Y',
-        emailVrfcExprDt: new Date(Date.now() + 86400000),
+        emlVrfcExprDt: new Date(Date.now() + 86400000),
       });
 
       await expect(
@@ -462,7 +465,7 @@ describe('AuthService', () => {
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-id',
         emailVrfcYn: 'N',
-        emailVrfcExprDt: new Date(Date.now() - 1000), // expired
+        emlVrfcExprDt: new Date(Date.now() - 1000), // expired
       });
 
       await expect(
@@ -477,7 +480,7 @@ describe('AuthService', () => {
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-id',
         emailVrfcYn: 'N',
-        emailVrfcExprDt: new Date(Date.now() + 86400000),
+        emlVrfcExprDt: new Date(Date.now() + 86400000),
       });
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -488,8 +491,8 @@ describe('AuthService', () => {
         where: { id: 'user-id' },
         data: {
           emailVrfcYn: 'Y',
-          emailVrfcTkn: null,
-          emailVrfcExprDt: null,
+          emlVrfcTkn: null,
+          emlVrfcExprDt: null,
         },
       });
     });

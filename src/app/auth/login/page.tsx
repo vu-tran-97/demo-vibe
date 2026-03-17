@@ -1,50 +1,50 @@
-'use client';
+"use client";
 
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { login, isLoggedIn, AuthError } from '@/lib/auth';
-import styles from '../auth.module.css';
+import { useState, useEffect, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { login, isLoggedIn, AuthError } from "@/lib/auth";
+import styles from "../auth.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace('/dashboard');
+    if (isLoggedIn()) router.replace("/dashboard");
   }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
-          case 'INVALID_CREDENTIALS':
-            setError('Invalid email or password.');
+          case "INVALID_CREDENTIALS":
+            setError("Invalid email or password.");
             break;
-          case 'ACCOUNT_SUSPENDED':
-            setError('Your account has been suspended.');
+          case "ACCOUNT_SUSPENDED":
+            setError("Your account has been suspended.");
             break;
-          case 'ACCOUNT_INACTIVE':
-            setError('Your account is inactive.');
+          case "ACCOUNT_INACTIVE":
+            setError("Your account is inactive.");
             break;
-          case 'VALIDATION_ERROR':
+          case "VALIDATION_ERROR":
             setError(err.message);
             break;
           default:
             setError(err.message);
         }
       } else {
-        setError('Unable to connect to server. Please try again.');
+        setError("Unable to connect to server. Please try again.");
       }
       setLoading(false);
     }
@@ -63,9 +63,7 @@ export default function LoginPage() {
             &ldquo;Shopping should feel like a conversation with a trusted
             friend.&rdquo;
           </p>
-          <p className={styles.brandAttribution}>
-            — The Vibe philosophy
-          </p>
+          <p className={styles.brandAttribution}>— The Vibe philosophy</p>
         </div>
         <p className={styles.brandFooter}>
           &copy; 2026 Vibe. All rights reserved.
@@ -87,14 +85,6 @@ export default function LoginPage() {
             <button type="button" className={styles.socialBtn}>
               <span className={`${styles.socialIcon} ${styles.google}`}>G</span>
               Continue with Google
-            </button>
-            <button type="button" className={styles.socialBtn}>
-              <span className={`${styles.socialIcon} ${styles.kakao}`}>K</span>
-              Continue with Kakao
-            </button>
-            <button type="button" className={styles.socialBtn}>
-              <span className={`${styles.socialIcon} ${styles.naver}`}>N</span>
-              Continue with Naver
             </button>
           </div>
 
@@ -157,12 +147,12 @@ export default function LoginPage() {
               className={styles.submitBtn}
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           <p className={styles.formFooter}>
-            Don&apos;t have an account?{' '}
+            Don&apos;t have an account?{" "}
             <Link href="/auth/signup">Create one</Link>
           </p>
         </div>

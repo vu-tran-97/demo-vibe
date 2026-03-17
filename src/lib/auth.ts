@@ -7,6 +7,7 @@ export interface UserInfo {
   nickname: string | null;
   emailVerified: boolean;
   profileImageUrl: string | null;
+  role: string;
 }
 
 interface AuthResponse {
@@ -31,11 +32,24 @@ export class AuthError extends Error {
   }
 }
 
-async function authFetch<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function authFetch<T>(
+  path: string,
+  body?: Record<string, unknown>,
+  options?: { method?: string },
+): Promise<T> {
+  const method = options?.method ?? 'POST';
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   const json: ApiResponse<T> = await res.json();
@@ -88,6 +102,42 @@ export async function forgotPassword(email: string): Promise<string> {
 
 export async function resetPassword(token: string, newPassword: string): Promise<string> {
   const data = await authFetch<{ message: string }>('/api/auth/reset-password', { token, newPassword });
+  return data.message;
+}
+
+export async function updateProfile(data: {
+  name?: string;
+  nickname?: string;
+  profileImageUrl?: string;
+}): Promise<UserInfo> {
+  const user = await authFetch<UserInfo>(
+    '/api/auth/profile',
+    data as Record<string, unknown>,
+    { method: 'PATCH' },
+  );
+  localStorage.setItem('user', JSON.stringify(user));
+  return user;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<string> {
+  const data = await authFetch<{ message: string }>(
+    '/api/auth/password',
+    { currentPassword, newPassword },
+    { method: 'PATCH' },
+  );
+  return data.message;
+}
+
+export async function deleteAccount(): Promise<string> {
+  const data = await authFetch<{ message: string }>(
+    '/api/auth/account',
+    undefined,
+    { method: 'DELETE' },
+  );
+  clearTokens();
   return data.message;
 }
 

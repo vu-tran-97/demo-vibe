@@ -1,32 +1,30 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './admin/admin.module';
+import { ProductModule } from './product/product.module';
+import { OrderModule } from './order/order.module';
+import { SearchModule } from './search/search.module';
+import { BoardModule } from './board/board.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { JwtAuthGuard } from './auth/auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 60000,
-        limit: 10,
-      },
-      {
-        name: 'long',
-        ttl: 900000,
-        limit: 100,
-      },
-    ]),
     PrismaModule,
     AuthModule,
+    AdminModule,
+    ProductModule,
+    OrderModule,
+    SearchModule,
+    BoardModule,
   ],
   providers: [
     {
@@ -43,7 +41,7 @@ import { JwtAuthGuard } from './auth/auth.guard';
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: RolesGuard,
     },
   ],
 })

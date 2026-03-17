@@ -4,12 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:server": "cd server && npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:seed": "npx tsx prisma/seed.ts",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "db:reset": "docker compose down -v && docker compose up -d && sleep 10 && npx prisma db push && npm run db:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "jenkins:up": "docker compose --profile ci up -d jenkins",
+    "jenkins:down": "docker stop demo-vibe-jenkins",
+    "jenkins:password": "docker exec demo-vibe-jenkins cat /var/jenkins_home/secrets/initialAdminPassword"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

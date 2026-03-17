@@ -1,0 +1,50 @@
+services:
+  # ── MongoDB Replica Set ──
+  mongodb:
+    image: mongo:7
+    container_name: demo-vibe-mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: demo-vibe
+    volumes:
+      - mongo-data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: >
+        mongosh --eval "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - demo-vibe-net
+
+  # ── Jenkins CI/CD (start manually: docker compose up -d jenkins) ──
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: demo-vibe-jenkins
+    profiles: ["ci"]
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Djava.awt.headless=true -Djenkins.install.runSetupWizard=true"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - demo-vibe-net
+
+volumes:
+  mongo-data:
+    driver: local
+  jenkins-data:
+    driver: local
+
+networks:
+  demo-vibe-net:
+    driver: bridge

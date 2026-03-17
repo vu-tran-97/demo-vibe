@@ -77,11 +77,24 @@
         └──1:N──→ TB_COMM_CHAT_MSG ──────────N:1───────┘
                          │
                          └──1:N──→ TB_COMM_CHAT_MSG_ATCH (Message Attachment)
+
+        ├──1:N──→ TB_PROD_PRD (Product — as Seller)
+        │                │
+        │                └──N:1──→ TB_COMM_ORDR_ITEM (Order Item)
+        │
+        ├──1:N──→ TB_COMM_ORDR (Order — as Buyer)
+        │                │
+        │                ├──1:N──→ TB_COMM_ORDR_ITEM (Order Item)
+        │                │
+        │                └──1:N──→ TH_COMM_ORDR_STTS (Order Status History)
+        │
+        └──1:N──→ TL_COMM_USE_ACTV (User Activity Log)
 ```
 
-**Total 14 collections**: TB 6 + TC 2 + TL 1 + TR 2 + Chat-related 3
+**Total 20 collections**: TB 8 + TC 2 + TL 2 + TH 1 + TR 2 + Chat 3 + Product 1 + Order 1
 
 > Auth module fields updated to support password reset flow (PSWD_RST_TKN, PSWD_RST_EXPR_DT in TB_COMM_USER) per blueprint 001-auth.
+> RBAC: USE_ROLE_CD added to TB_COMM_USER, USE_ROLE code group added to TC_COMM_CD per blueprint 002-rbac.
 
 ---
 
@@ -111,6 +124,9 @@
 
 | Code Group (CD_GRP_ID) | Group Name | Code Value (CD_VAL) | Code Name |
 |------------------------|------------|---------------------|-----------|
+| `USE_ROLE` | User Role | `SUPER_ADMIN` | Super Admin |
+| | | `SELLER` | Seller |
+| | | `BUYER` | Buyer |
 | `USER_STTS` | User Status | `ACTV` | Active |
 | | | `INAC` | Inactive |
 | | | `SUSP` | Suspended |
@@ -131,6 +147,32 @@
 | `ATCH_TYPE` | Attachment Type | `IMG` | Image |
 | | | `DOC` | Document |
 | | | `VIDEO` | Video |
+| `PRDT_CTGR` | Product Category | `CERAMICS` | Ceramics & Pottery |
+| | | `TEXTILES` | Textiles & Fabrics |
+| | | `ART` | Art & Prints |
+| | | `JEWELRY` | Jewelry & Accessories |
+| | | `HOME` | Home & Living |
+| | | `FOOD` | Food & Beverages |
+| `PRDT_STTS` | Product Status | `DRAFT` | Draft |
+| | | `ACTV` | Active |
+| | | `SOLD_OUT` | Sold Out |
+| | | `HIDDEN` | Hidden |
+| `ORDR_STTS` | Order Status | `PENDING` | Pending |
+| | | `PAID` | Paid |
+| | | `SHIPPED` | Shipped |
+| | | `DELIVERED` | Delivered |
+| | | `CANCELLED` | Cancelled |
+| | | `REFUNDED` | Refunded |
+| `USE_ACTV_TYPE` | User Activity Type | `ROLE_CHANGE` | Role Change |
+| | | `STTS_CHANGE` | Status Change |
+| | | `PRFL_UPDATE` | Profile Update |
+| | | `LGN` | Login |
+| `PAY_MTHD` | Payment Method | `BANK_TRANSFER` | Bank Transfer |
+| | | `EMAIL_INVOICE` | Email Invoice |
+| `ORDR_ITEM_STTS` | Order Item Status | `PENDING` | Pending |
+| | | `CONFIRMED` | Confirmed |
+| | | `SHIPPED` | Shipped |
+| | | `DELIVERED` | Delivered |
 
 ---
 
@@ -140,16 +182,17 @@
 | Field | Type | Required | Constraint | Description |
 |-------|------|----------|-----------|-------------|
 | _id | ObjectId | PK | | User ID |
-| USE_EMAIL | String | Y | unique, max 100 | Email |
+| USE_EML | String | Y | unique, max 100 | Email |
 | USE_PSWD | String | N | min 60 (bcrypt) | Password (hashed). Null for social-only login |
 | USE_NM | String | Y | max 50 | User name |
 | USE_NCNM | String | N | unique, max 30 | Nickname |
 | PRFL_IMG_URL | String | N | max 500 | Profile image URL |
+| USE_ROLE_CD | String | Y | enum: SUPER_ADMIN/SELLER/BUYER | User role code (default: `BUYER`) |
 | USE_STTS_CD | String | Y | enum: ACTV/INAC/SUSP | User status code (default: `ACTV`) |
 | LST_LGN_DT | DateTime | N | | Last login datetime |
-| EMAIL_VRFC_YN | String(1) | Y | | Email verified flag (default: `N`) |
-| EMAIL_VRFC_TKN | String | N | | Email verification token |
-| EMAIL_VRFC_EXPR_DT | DateTime | N | | Email verification expiry datetime |
+| EML_VRFC_YN | String(1) | Y | | Email verified flag (default: `N`) |
+| EML_VRFC_TKN | String | N | | Email verification token |
+| EML_VRFC_EXPR_DT | DateTime | N | | Email verification expiry datetime |
 | PSWD_RST_TKN | String | N | | Password reset token (UUID v4) |
 | PSWD_RST_EXPR_DT | DateTime | N | | Password reset token expiry datetime (1 hour) |
 
@@ -160,7 +203,7 @@
 | USE_ID | ObjectId | FK | ref: TB_COMM_USER | User ID |
 | SCL_PRVD_CD | String | Y | enum: GOOGLE/KAKAO/NAVER | Social provider code |
 | SCL_PRVD_USE_ID | String | Y | | Social provider user ID |
-| SCL_EMAIL | String | N | max 100 | Social email |
+| SCL_EML | String | N | max 100 | Social email |
 | SCL_PRFL_IMG_URL | String | N | max 500 | Social profile image URL |
 | LNKD_DT | DateTime | Y | | Linked datetime |
 
@@ -294,16 +337,116 @@
 
 ---
 
+## 5. Product Module
+
+### TB_PROD_PRD (Product)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | Product ID |
+| SLLR_ID | ObjectId | FK | ref: TB_COMM_USER | Seller ID |
+| PRD_NM | String | Y | max 200 | Product name |
+| PRD_DC | String | Y | max 10000 | Product description |
+| PRD_PRC | Float | Y | min: 0 | Product price |
+| PRD_SALE_PRC | Float | N | min: 0, < PRD_PRC | Sale price |
+| PRD_CTGR_CD | String | Y | enum: CERAMICS/TEXTILES/ART/JEWELRY/HOME/FOOD | Product category code |
+| PRD_STTS_CD | String | Y | enum: DRAFT/ACTV/SOLD_OUT/HIDDEN | Product status code (default: `ACTV`) |
+| PRD_IMG_URL | String | Y | max 500 | Main product image URL |
+| PRD_IMG_URLS | String[] | N | max 5 items | Additional product image URLs |
+| STCK_QTY | Number | Y | min: 0, default: 0 | Stock quantity |
+| SOLD_CNT | Number | Y | default: 0 | Sold count |
+| VIEW_CNT | Number | Y | default: 0 | View count |
+| AVG_RTNG | Float | Y | 0~5, default: 0 | Average rating |
+| RVW_CNT | Number | Y | default: 0 | Review count |
+| SRCH_TAGS | String[] | N | | Search tags array |
+
+> Auto-status: When STCK_QTY reaches 0 and PRD_STTS_CD is ACTV, auto-set to SOLD_OUT
+
+---
+
+## 6. Order Module
+
+### TB_COMM_ORDR (Order)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | Order ID |
+| ORDR_NO | String | Y | unique, format: VB-YYYY-MMDD-NNN | Order number |
+| BYR_ID | ObjectId | FK | ref: TB_COMM_USER | Buyer ID |
+| ORDR_TOT_AMT | Float | Y | min: 0 | Order total amount |
+| ORDR_STTS_CD | String | Y | enum: PENDING/PAID/SHIPPED/DELIVERED/CANCELLED/REFUNDED | Order status code (default: `PENDING`) |
+| SHIP_ADDR | String | N | max 500 | Shipping address |
+| SHIP_RCVR_NM | String | N | max 50 | Receiver name |
+| SHIP_TELNO | String | N | max 20 | Receiver phone number |
+| SHIP_MEMO | String | N | max 200 | Shipping memo |
+| TRCKG_NO | String | N | max 100 | Tracking number |
+| PAY_MTHD_CD | String | N | enum: BANK_TRANSFER/EMAIL_INVOICE | Payment method code |
+
+> PAY_MTHD_CD added for simple payment method tracking per blueprint 009-payment-order.
+
+### TB_COMM_ORDR_ITEM (Order Item)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | Order item ID |
+| ORDR_ID | ObjectId | FK | ref: TB_COMM_ORDR | Order ID |
+| PRD_ID | ObjectId | FK | ref: TB_PROD_PRD | Product ID |
+| SLLR_ID | ObjectId | FK | ref: TB_COMM_USER | Seller ID |
+| PRD_NM | String | Y | max 200 | Product name (snapshot at order time) |
+| PRD_IMG_URL | String | Y | max 500 | Product image URL (snapshot) |
+| UNIT_PRC | Float | Y | min: 0 | Unit price at order time |
+| ORDR_QTY | Number | Y | min: 1 | Order quantity |
+| SUBTOT_AMT | Float | Y | min: 0 | Subtotal (UNIT_PRC × ORDR_QTY) |
+| ITEM_STTS_CD | String | Y | enum: PENDING/CONFIRMED/SHIPPED/DELIVERED, default: PENDING | Order item status code |
+| TRCKG_NO | String | N | max 100 | Tracking number for this item |
+
+> ITEM_STTS_CD and TRCKG_NO added per blueprint 009-payment-order for per-item status tracking and shipping.
+
+### TH_COMM_ORDR_STTS (Order Status History)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | History ID |
+| ORDR_ID | ObjectId | FK | ref: TB_COMM_ORDR | Order ID |
+| PREV_STTS_CD | String | Y | | Previous status code |
+| NEW_STTS_CD | String | Y | | New status code |
+| CHNG_RSN | String | N | max 500 | Change reason |
+| CHNGR_ID | ObjectId | FK | ref: TB_COMM_USER | Changed by user ID |
+| CHNG_DT | DateTime | Y | | Changed datetime |
+
+> No DEL_YN (history table, TH_ prefix — records are immutable)
+
+---
+
+## 6.5. Admin Enhancement Module
+
+### TL_COMM_USE_ACTV (User Activity Log)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | Activity log ID |
+| USE_ID | ObjectId | FK | ref: TB_COMM_USER | Target user ID |
+| ACTV_TYPE_CD | String | Y | enum: ROLE_CHANGE/STTS_CHANGE/PRFL_UPDATE/LGN | Activity type code |
+| PREV_VAL | String | N | max 200 | Previous value |
+| NEW_VAL | String | N | max 200 | New value |
+| PRFMR_ID | ObjectId | FK | ref: TB_COMM_USER | Performed by user ID |
+| CLNT_IP_ADDR | String | N | max 45 | Client IP address |
+| ACTV_DT | DateTime | Y | | Activity datetime |
+
+> No DEL_YN (log table, TL_ prefix). TTL Index: `ACTV_DT` (auto-delete after 180 days)
+
+---
+
 ## 7. Index Strategy
 
 ### Single Indexes
 | Collection | Field | Type | Purpose |
 |-----------|-------|------|---------|
-| TB_COMM_USER | USE_EMAIL | Unique | Email login |
+| TB_COMM_USER | USE_EML | Unique | Email login |
 | TB_COMM_USER | USE_NCNM | Unique (sparse) | Nickname uniqueness |
+| TB_COMM_USER | USE_ROLE_CD | Single | Admin query filtering by role |
 | TB_COMM_BOARD_POST | POST_CTGR_CD | Single | Category filtering |
 | TB_COMM_RFRSH_TKN | TKN_VAL | Unique | Token validation |
 | TB_COMM_RFRSH_TKN | USE_ID | Single | Revoke all user tokens |
+| TB_PROD_PRD | PRD_CTGR_CD | Single | Category filtering |
+| TB_PROD_PRD | PRD_STTS_CD | Single | Status filtering |
+| TB_COMM_ORDR | ORDR_NO | Unique | Order number lookup |
+| TB_COMM_ORDR | ORDR_STTS_CD | Single | Status filtering |
 
 ### Compound Indexes
 | Collection | Fields | Type | Purpose |
@@ -318,17 +461,27 @@
 | TB_COMM_CHAT_MSG | CHAT_ROOM_ID + SEND_DT(desc) | Compound | Chat message listing |
 | TR_COMM_CHAT_ROOM_MBR | CHAT_ROOM_ID + USE_ID | Compound + Unique | Member deduplication |
 | TR_COMM_CHAT_ROOM_MBR | USE_ID | Single | My chat rooms |
+| TB_PROD_PRD | DEL_YN + SLLR_ID + RGST_DT(desc) | Compound | Seller's products |
+| TB_PROD_PRD | DEL_YN + PRD_CTGR_CD + PRD_STTS_CD + RGST_DT(desc) | Compound | Public product listing |
+| TB_COMM_ORDR | BYR_ID + ORDR_STTS_CD + RGST_DT(desc) | Compound | Buyer order history |
+| TB_COMM_ORDR_ITEM | ORDR_ID | Single | Order items lookup |
+| TB_COMM_ORDR_ITEM | SLLR_ID + RGST_DT(desc) | Compound | Seller sales history |
+| TB_COMM_ORDR_ITEM | SLLR_ID + ITEM_STTS_CD + RGST_DT(desc) | Compound | Seller item status filtering |
+| TH_COMM_ORDR_STTS | ORDR_ID + CHNG_DT(desc) | Compound | Order status timeline |
+| TL_COMM_USE_ACTV | USE_ID + ACTV_DT(desc) | Compound | User activity history |
 
 ### TTL Indexes (Auto-delete)
 | Collection | Field | TTL | Purpose |
 |-----------|-------|-----|---------|
 | TB_COMM_RFRSH_TKN | EXPR_DT | 0s (on expiry) | Auto-delete expired tokens |
 | TL_COMM_LGN_LOG | LGN_DT | 90 days | Log retention management |
+| TL_COMM_USE_ACTV | ACTV_DT | 180 days | Activity log retention |
 
 ### Text Index
 | Collection | Fields | Purpose |
 |-----------|--------|---------|
 | TB_COMM_BOARD_POST | POST_TTL + POST_CN | Full-text post search |
+| TB_PROD_PRD | PRD_NM + PRD_DC + SRCH_TAGS | Full-text product search |
 
 ---
 
@@ -336,7 +489,7 @@
 
 | Rule | Application |
 |------|-------------|
-| Email format | `USE_EMAIL`: RFC 5322 regex |
+| Email format | `USE_EML`: RFC 5322 regex |
 | Password strength | Min 8 chars, uppercase + lowercase + number + special char required (API-level validation) |
 | Nickname format | 2~30 chars, Korean/English/numbers/_ only |
 | Post title | 1~200 chars |
@@ -348,6 +501,17 @@
 | Reply depth | Max 1 depth |
 | DM members | Exactly 2 |
 | Group chat members | Max 100 |
+| Product name | 1~200 chars |
+| Product description | 1~10,000 chars |
+| Product price | > 0 |
+| Product images | Max 5 URLs |
+| Stock quantity | >= 0 |
+| Order quantity | >= 1 |
+| Shipping address | Max 500 chars |
+| Receiver name | 1~50 chars |
+| Tracking number | Max 100 chars |
+| Payment method | enum: BANK_TRANSFER/EMAIL_INVOICE |
+| Item status | enum: PENDING/CONFIRMED/SHIPPED/DELIVERED |
 
 ---
 
@@ -370,7 +534,12 @@ TB_COMM_CHAT_ROOM   →  ChatRoom          →  @@map("TB_COMM_CHAT_ROOM")
 TR_COMM_CHAT_ROOM_MBR → ChatRoomMember   →  @@map("TR_COMM_CHAT_ROOM_MBR")
 TB_COMM_CHAT_MSG    →  ChatMessage       →  @@map("TB_COMM_CHAT_MSG")
 TB_COMM_CHAT_MSG_ATCH → ChatMessageAttachment → @@map("TB_COMM_CHAT_MSG_ATCH")
+TB_PROD_PRD           →  Product              →  @@map("TB_PROD_PRD")
+TB_COMM_ORDR          →  Order                →  @@map("TB_COMM_ORDR")
+TB_COMM_ORDR_ITEM     →  OrderItem            →  @@map("TB_COMM_ORDR_ITEM")
+TH_COMM_ORDR_STTS     →  OrderStatusHistory   →  @@map("TH_COMM_ORDR_STTS")
+TL_COMM_USE_ACTV      →  UserActivity         →  @@map("TL_COMM_USE_ACTV")
 ```
 
 > Field mapping: Prisma fields use `camelCase`, MongoDB actual fields use `UPPER_SNAKE_CASE` → use `@map()`
-> Example: `userEmail String @map("USE_EMAIL")`
+> Example: `userEmail String @map("USE_EML")`
