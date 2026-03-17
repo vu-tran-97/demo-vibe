@@ -57,17 +57,19 @@ export class AuthService {
       verificationExpiry.getHours() + EMAIL_VERIFICATION_HOURS,
     );
 
+    const generatedNickname = dto.nickname || `user_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+
     const user = await this.prisma.user.create({
       data: {
         userEmail: dto.email,
         userPswd: hashedPassword,
         userNm: dto.name,
-        userNcnm: dto.nickname ?? null,
+        userNcnm: generatedNickname,
         useRoleCd: 'BUYER',
         userSttsCd: 'ACTV',
         emailVrfcYn: 'N',
-        emailVrfcTkn: verificationToken,
-        emailVrfcExprDt: verificationExpiry,
+        emlVrfcTkn: verificationToken,
+        emlVrfcExprDt: verificationExpiry,
         lstLgnDt: new Date(),
         rgtrId: 'SYSTEM',
         mdfrId: 'SYSTEM',
@@ -232,7 +234,7 @@ export class AuthService {
 
   async verifyEmail(token: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findFirst({
-      where: { emailVrfcTkn: token, delYn: 'N' },
+      where: { emlVrfcTkn: token, delYn: 'N' },
     });
 
     if (!user) {
@@ -251,7 +253,7 @@ export class AuthService {
       );
     }
 
-    if (!user.emailVrfcExprDt || user.emailVrfcExprDt < new Date()) {
+    if (!user.emlVrfcExprDt || user.emlVrfcExprDt < new Date()) {
       throw new BusinessException(
         'VERIFICATION_TOKEN_EXPIRED',
         'Verification token has expired',
@@ -263,8 +265,8 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailVrfcYn: 'Y',
-        emailVrfcTkn: null,
-        emailVrfcExprDt: null,
+        emlVrfcTkn: null,
+        emlVrfcExprDt: null,
       },
     });
 

@@ -1,16 +1,31 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { AuthModal } from '@/components/auth-modal/AuthModal';
 import styles from './dashboard.module.css';
 
-const NAV_ITEMS = [
-  { label: 'Overview', href: '/dashboard', icon: '◎' },
-  { label: 'Board', href: '/dashboard/board', icon: '☰' },
-  { label: 'Chat', href: '/dashboard/chat', icon: '◉' },
-  { label: 'Products', href: '/dashboard/products', icon: '◇' },
-  { label: 'Cart', href: '/dashboard/cart', icon: '▣' },
-  { label: 'Orders', href: '/dashboard/orders', icon: '□' },
+interface NavItem {
+  label: string;
+  href: string;
+  icon: string;
+  roles: string[];
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Overview', href: '/dashboard', icon: '◎', roles: ['BUYER', 'SELLER', 'SUPER_ADMIN'] },
+  { label: 'Products', href: '/dashboard/products', icon: '◇', roles: ['SELLER', 'SUPER_ADMIN'] },
+  { label: 'My Products', href: '/dashboard/products/my', icon: '◈', roles: ['SELLER'] },
+  { label: 'Cart', href: '/dashboard/cart', icon: '▣', roles: ['BUYER'] },
+  { label: 'Orders', href: '/dashboard/orders', icon: '□', roles: ['BUYER'] },
+  { label: 'Sales', href: '/dashboard/orders/sales', icon: '□', roles: ['SELLER'] },
+];
+
+const ADMIN_ITEMS: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard/admin', icon: '◧', roles: ['SUPER_ADMIN'] },
+  { label: 'Users', href: '/dashboard/admin/users', icon: '▣', roles: ['SUPER_ADMIN'] },
+  { label: 'All Products', href: '/dashboard/products/my', icon: '◈', roles: ['SUPER_ADMIN'] },
 ];
 
 const NAV_BOTTOM = [
@@ -22,7 +37,23 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth(true);
+  const { user, loading, logout, refresh } = useAuth(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    function handleSessionExpired() {
+      setSessionExpired(true);
+    }
+    window.addEventListener('session-expired', handleSessionExpired);
+    return () => window.removeEventListener('session-expired', handleSessionExpired);
+  }, []);
+
+  const handleReauth = useCallback(() => {
+    setSessionExpired(false);
+    refresh();
+    window.dispatchEvent(new CustomEvent('session-restored'));
+  }, [refresh]);
 
   if (loading) {
     return (
@@ -37,19 +68,34 @@ export default function DashboardLayout({
 
   return (
     <div className={styles.layout}>
+      {/* ── Mobile overlay ── */}
+      {mobileMenuOpen && (
+        <div
+          className={styles.mobileOverlay}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarTop}>
           <Link href="/" className={styles.logo}>
             Vibe
           </Link>
+          <button
+            type="button"
+            className={styles.sidebarClose}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            &#x2715;
+          </button>
         </div>
 
         <nav className={styles.nav}>
           <ul className={styles.navList}>
-            {NAV_ITEMS.map((item) => (
+            {NAV_ITEMS.filter((item) => item.roles.includes(user?.role || '')).map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className={styles.navItem}>
+                <Link href={item.href} className={styles.navItem} onClick={() => setMobileMenuOpen(false)}>
                   <span className={styles.navIcon}>{item.icon}</span>
                   <span className={styles.navLabel}>{item.label}</span>
                 </Link>
@@ -57,6 +103,22 @@ export default function DashboardLayout({
             ))}
           </ul>
         </nav>
+
+        {user?.role === 'SUPER_ADMIN' && (
+          <div className={styles.adminSection}>
+            <p className={styles.adminLabel}>Admin</p>
+            <ul className={styles.navList}>
+              {ADMIN_ITEMS.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={styles.navItem} onClick={() => setMobileMenuOpen(false)}>
+                    <span className={styles.navIcon}>{item.icon}</span>
+                    <span className={styles.navLabel}>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className={styles.sidebarBottom}>
           {NAV_BOTTOM.map((item) => (
@@ -90,6 +152,17 @@ export default function DashboardLayout({
         {/* Top Bar */}
         <header className={styles.topBar}>
           <div className={styles.topBarLeft}>
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <h1 className={styles.pageTitle}>Overview</h1>
           </div>
           <div className={styles.topBarRight}>
@@ -112,6 +185,15 @@ export default function DashboardLayout({
         {/* Page Content */}
         <div className={styles.content}>{children}</div>
       </main>
+
+      {/* Session expired re-auth modal */}
+      <AuthModal
+        isOpen={sessionExpired}
+        onClose={() => setSessionExpired(false)}
+        initialView="login"
+        onSuccess={handleReauth}
+        stayOnPage
+      />
     </div>
   );
 }

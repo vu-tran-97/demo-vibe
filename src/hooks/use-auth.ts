@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUser, isLoggedIn, logout as authLogout, type UserInfo } from '@/lib/auth';
 
@@ -21,10 +21,14 @@ export function useAuth(requireAuth = true) {
     setLoading(false);
   }, [requireAuth, router]);
 
+  const refresh = useCallback(() => {
+    setUser(getUser());
+  }, []);
+
   async function handleLogout() {
     await authLogout();
     router.replace('/');
   }
 
-  return { user, loading, logout: handleLogout };
+  return { user, loading, logout: handleLogout, refresh };
 }

@@ -1,0 +1,441 @@
+/* ==========================================================================
+   Settings — Account & Preferences
+   ========================================================================== */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 720px;
+}
+
+/* ── Header ── */
+.pageHeader {
+  margin-bottom: var(--space-sm);
+}
+
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+}
+
+.pageSubtitle {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Toast ── */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.75rem 1rem;
+  background: rgba(90, 138, 106, 0.08);
+  color: var(--success);
+  border: 1px solid rgba(90, 138, 106, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+/* ── Section ── */
+.section {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 2px;
+}
+
+.sectionDesc {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Profile Avatar ── */
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ivory-warm) 0%, var(--border) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--charcoal);
+  flex-shrink: 0;
+}
+
+.avatarInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.avatarName {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.avatarRole {
+  font-size: 0.75rem;
+  color: var(--gold-dark);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Form ── */
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.input {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--charcoal);
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+
+.input:focus {
+  border-color: var(--charcoal);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.inputDisabled {
+  background: var(--ivory);
+  color: var(--slate);
+  cursor: not-allowed;
+}
+
+.inputHint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.inputError {
+  font-size: 0.75rem;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+/* ── Section Actions ── */
+.sectionActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+/* ── Buttons ── */
+.primaryBtn {
+  padding: 0.625rem 1.5rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: var(--charcoal-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.outlineBtn {
+  padding: 0.625rem 1.25rem;
+  background: transparent;
+  color: var(--slate);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.outlineBtn:hover {
+  border-color: var(--charcoal);
+  color: var(--charcoal);
+}
+
+/* ── Password Form ── */
+.passwordForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ── Notifications ── */
+.notificationList {
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+}
+
+.notificationItem + .notificationItem {
+  border-top: 1px solid var(--border-light);
+}
+
+.notificationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notificationLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.notificationDesc {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ── Toggle Switch ── */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--border);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.toggleOn {
+  background: var(--charcoal);
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border-radius: 50%;
+  transition: transform var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-subtle);
+}
+
+.toggleOn .toggleKnob {
+  transform: translateX(20px);
+}
+
+/* ── Danger Zone ── */
+.dangerSection {
+  border-color: rgba(200, 80, 80, 0.15);
+}
+
+.dangerActions {
+  display: flex;
+  flex-direction: column;
+}
+
+.dangerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+}
+
+.dangerItem + .dangerItem {
+  border-top: 1px solid var(--border-light);
+}
+
+.dangerLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.dangerDesc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.dangerBtn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--slate);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast);
+}
+
+.dangerBtn:hover {
+  border-color: var(--charcoal);
+  color: var(--charcoal);
+}
+
+.dangerBtnRed {
+  color: var(--error);
+  border-color: rgba(200, 80, 80, 0.3);
+}
+
+.dangerBtnRed:hover {
+  background: rgba(200, 80, 80, 0.06);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* ── Modal ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+  padding: var(--space-xl);
+}
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-xl);
+  text-align: center;
+  animation: scaleIn var(--duration-normal) var(--ease-out);
+  box-shadow: var(--shadow-elevated);
+}
+
+.modalIcon {
+  color: var(--error);
+  margin-bottom: var(--space-md);
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--charcoal);
+  margin-bottom: var(--space-sm);
+}
+
+.modalDesc {
+  font-size: 0.875rem;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: var(--space-xl);
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .settings {
+    max-width: 100%;
+  }
+
+  .section {
+    padding: var(--space-lg);
+  }
+
+  .profileHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .dangerItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+}

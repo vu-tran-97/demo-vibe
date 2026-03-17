@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { isLoggedIn, getUser, logout as authLogout, type UserInfo } from '@/lib/auth';
-import { PRODUCTS, CATEGORIES, getOnSaleProducts, formatPrice, type Product } from '@/lib/products';
+import { CATEGORIES, fetchProducts, formatPrice, type Product } from '@/lib/products';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { UserMenu } from '@/components/user-menu/UserMenu';
 import styles from './page.module.css';
@@ -24,10 +24,52 @@ export default function HomePage() {
   const [sort, setSort] = useState<SortOption>('popular');
   const [page, setPage] = useState(1);
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+
   useEffect(() => {
     setLoggedIn(isLoggedIn());
     setUser(getUser());
+    // Fetch sale products once
+    fetchProducts({ limit: 4, sort: 'popular' })
+      .then((res) => {
+        setSaleProducts(res.items.filter((p) => p.salePrice !== null).slice(0, 4));
+      })
+      .catch(() => {});
   }, []);
+
+  // Fetch products when filters change
+  useEffect(() => {
+    setLoading(true);
+    const sortMap: Record<SortOption, string> = {
+      popular: 'popular',
+      newest: 'newest',
+      'price-low': 'price-low',
+      'price-high': 'price-high',
+      rating: 'rating',
+    };
+    fetchProducts({
+      page,
+      limit: ITEMS_PER_PAGE,
+      category: activeCategory !== 'ALL' ? activeCategory : undefined,
+      search: search.trim() || undefined,
+      sort: sortMap[sort],
+    })
+      .then((res) => {
+        setProducts(res.items);
+        setTotalPages(res.pagination.totalPages);
+        setTotalCount(res.pagination.total);
+      })
+      .catch(() => {
+        setProducts([]);
+        setTotalPages(1);
+        setTotalCount(0);
+      })
+      .finally(() => setLoading(false));
+  }, [page, activeCategory, search, sort]);
 
   const refreshAuth = useCallback(() => {
     setLoggedIn(isLoggedIn());
@@ -50,59 +92,12 @@ export default function HomePage() {
     setAuthModalOpen(true);
   }
 
-  // Filter & sort products
-  const filtered = useMemo(() => {
-    let result = [...PRODUCTS];
-
-    // Category filter
-    if (activeCategory !== 'ALL') {
-      result = result.filter((p) => p.category === activeCategory);
-    }
-
-    // Search filter
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.toLowerCase().includes(q)) ||
-          p.seller.name.toLowerCase().includes(q) ||
-          p.categoryLabel.toLowerCase().includes(q)
-      );
-    }
-
-    // Sort
-    switch (sort) {
-      case 'popular':
-        result.sort((a, b) => b.sold - a.sold);
-        break;
-      case 'newest':
-        result.sort((a, b) => b.views - a.views);
-        break;
-      case 'price-low':
-        result.sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price));
-        break;
-      case 'price-high':
-        result.sort((a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price));
-        break;
-      case 'rating':
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-    }
-
-    return result;
-  }, [activeCategory, search, sort]);
-
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paged = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [activeCategory, search, sort]);
 
-  const saleProducts = getOnSaleProducts();
+  const paged = products;
 
   function getProductHref(product: Product) {
     return loggedIn ? `/dashboard/products/${product.id}` : '#';
@@ -255,6 +250,9 @@ export default function HomePage() {
                   className={styles.flashCard}
                 >
                   <div className={styles.flashCardImage}>
+                    {product.imageUrl && (
+                      <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
+                    )}
                     <span className={styles.flashBadge}>{getDiscount(product)}% OFF</span>
                   </div>
                   <div className={styles.flashCardBody}>
@@ -282,7 +280,7 @@ export default function HomePage() {
           <div className={styles.sortBar}>
             <div className={styles.sortLeft}>
               <span className={styles.resultCount}>
-                {filtered.length} product{filtered.length !== 1 ? 's' : ''}
+                {totalCount} product{totalCount !== 1 ? 's' : ''}
                 {activeCategory !== 'ALL' && (
                   <> in <strong>{CATEGORIES.find((c) => c.code === activeCategory)?.label}</strong></>
                 )}
@@ -343,13 +341,16 @@ export default function HomePage() {
                   className={styles.productCard}
                 >
                   <div className={styles.productImage}>
+                    {product.imageUrl && (
+                      <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
+                    )}
                     {product.salePrice !== null && (
                       <span className={styles.saleBadge}>{getDiscount(product)}%</span>
                     )}
                   </div>
                   <div className={styles.productBody}>
                     <h3 className={styles.productName}>{product.name}</h3>
-                    <p className={styles.productSeller}>{product.seller.name}</p>
+                    <p className={styles.productSeller}>{product.seller?.name || 'Unknown Seller'}</p>
                     <div className={styles.productPricing}>
                       <span className={styles.productPrice}>
                         {formatPrice(product.salePrice ?? product.price)}
