@@ -1,18 +1,120 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   fetchPosts,
+  deletePost,
   CATEGORIES,
   getCategoryLabel,
   type Post,
   type Pagination,
 } from '@/lib/board';
 import { useAuth } from '@/hooks/use-auth';
+import { showToast, ToastContainer } from '@/components/toast/Toast';
 import styles from './board.module.css';
 
 type SortOption = 'newest' | 'views' | 'comments';
+
+// Kebab menu for post actions (edit/delete)
+function PostKebabMenu({
+  post,
+  onDelete,
+}: {
+  post: Post;
+  onDelete: (postId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setConfirmDelete(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className={styles.kebabContainer} ref={ref}>
+      <button
+        type="button"
+        className={styles.kebabBtn}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+          setConfirmDelete(false);
+        }}
+        aria-label="Post actions"
+      >
+        &#x22EE;
+      </button>
+      {open && !confirmDelete && (
+        <div className={styles.kebabDropdown}>
+          <Link
+            href={`/dashboard/board/${post.id}/edit`}
+            className={styles.kebabDropdownItem}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+            }}
+          >
+            Edit
+          </Link>
+          <button
+            type="button"
+            className={`${styles.kebabDropdownItem} ${styles.kebabDropdownItemDanger}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setConfirmDelete(true);
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+      {open && confirmDelete && (
+        <div className={styles.kebabDropdown}>
+          <p className={styles.kebabConfirmText}>Delete this post?</p>
+          <div className={styles.kebabConfirmActions}>
+            <button
+              type="button"
+              className={styles.kebabConfirmCancel}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setConfirmDelete(false);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.kebabConfirmDelete}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+                setConfirmDelete(false);
+                onDelete(post.id);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function BoardPage() {
   const { user } = useAuth(true);
@@ -66,6 +168,28 @@ export default function BoardPage() {
     setSortBy(value);
     setPage(1);
   };
+
+  function canManagePost(post: Post): boolean {
+    if (!user) return false;
+    if (user.role === 'SUPER_ADMIN') return true;
+    return post.author?.id === user.id;
+  }
+
+  async function handleDeletePost(postId: string) {
+    try {
+      await deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      if (pagination) {
+        setPagination({ ...pagination, total: pagination.total - 1 });
+      }
+      showToast('Post deleted successfully');
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Failed to delete post',
+        'error',
+      );
+    }
+  }
 
   function getCategoryBadgeClass(category: string) {
     switch (category) {
@@ -173,52 +297,59 @@ export default function BoardPage() {
       {!loading && !error && posts.length > 0 && (
         <div className={styles.postList}>
           {posts.map((post) => (
-            <Link
+            <div
               key={post.id}
-              href={`/dashboard/board/${post.id}`}
               className={`${styles.postItem} ${post.pinned ? styles.postPinned : ''}`}
             >
-              <div className={styles.postTop}>
-                <div className={styles.postMeta}>
-                  <span className={`${styles.categoryBadge} ${getCategoryBadgeClass(post.category)}`}>
-                    {getCategoryLabel(post.category)}
-                  </span>
-                  {post.pinned && <span className={styles.pinnedBadge}>Pinned</span>}
+              <Link
+                href={`/dashboard/board/${post.id}`}
+                className={styles.postItemLink}
+              >
+                <div className={styles.postTop}>
+                  <div className={styles.postMeta}>
+                    <span className={`${styles.categoryBadge} ${getCategoryBadgeClass(post.category)}`}>
+                      {getCategoryLabel(post.category)}
+                    </span>
+                    {post.pinned && <span className={styles.pinnedBadge}>Pinned</span>}
+                  </div>
+                  <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
                 </div>
-                <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
-              </div>
-              <h3 className={styles.postTitle}>{post.title}</h3>
-              <p className={styles.postExcerpt}>{post.content}</p>
-              <div className={styles.postBottom}>
-                <span className={styles.postAuthor}>
-                  <span className={styles.authorAvatar}>
-                    {post.author?.name?.charAt(0) || '?'}
+                <h3 className={styles.postTitle}>{post.title}</h3>
+                <p className={styles.postExcerpt}>{post.content}</p>
+                <div className={styles.postBottom}>
+                  <span className={styles.postAuthor}>
+                    <span className={styles.authorAvatar}>
+                      {post.author?.name?.charAt(0) || '?'}
+                    </span>
+                    {post.author?.name || 'Unknown'}
                   </span>
-                  {post.author?.name || 'Unknown'}
-                </span>
-                <div className={styles.postStats}>
-                  <span className={styles.postStat}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    {post.viewCount}
-                  </span>
-                  <span className={styles.postStat}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
-                    {post.likeCount}
-                  </span>
-                  <span className={styles.postStat}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                    </svg>
-                    {post.commentCount}
-                  </span>
+                  <div className={styles.postStats}>
+                    <span className={styles.postStat}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      {post.viewCount}
+                    </span>
+                    <span className={styles.postStat}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                      </svg>
+                      {post.likeCount}
+                    </span>
+                    <span className={styles.postStat}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                      </svg>
+                      {post.commentCount}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              {canManagePost(post) && (
+                <PostKebabMenu post={post} onDelete={handleDeletePost} />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -258,6 +389,8 @@ export default function BoardPage() {
           </button>
         </div>
       )}
+
+      <ToastContainer />
     </div>
   );
 }

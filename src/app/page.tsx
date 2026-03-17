@@ -124,14 +124,11 @@ export default function HomePage() {
   const paged = products;
 
   function getProductHref(product: Product) {
-    return loggedIn ? `/dashboard/products/${product.id}` : '#';
+    return `/products/${product.id}`;
   }
 
-  function handleProductClick(e: React.MouseEvent, product: Product) {
-    if (!loggedIn) {
-      e.preventDefault();
-      openLogin();
-    }
+  function handleProductClick(_e: React.MouseEvent, _product: Product) {
+    // Public product page is accessible to all users
   }
 
   function handleQuickAdd(e: React.MouseEvent, product: Product) {
