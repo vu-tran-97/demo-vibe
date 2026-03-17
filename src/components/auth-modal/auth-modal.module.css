@@ -95,6 +95,7 @@
   color: var(--charcoal);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
+  text-decoration: none;
 }
 
 .socialBtn:hover {

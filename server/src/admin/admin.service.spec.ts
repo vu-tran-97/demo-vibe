@@ -15,6 +15,11 @@ describe('AdminService', () => {
       update: jest.fn(),
       count: jest.fn(),
     },
+    userActivity: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
   };
 
   const adminId = 'admin-id-123';

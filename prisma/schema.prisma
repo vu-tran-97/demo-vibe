@@ -59,7 +59,7 @@ model CommonCode {
 
 model User {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  userEmail        String    @unique @map("USE_EMAIL")
+  userEmail        String    @unique @map("USE_EML")
   userPswd         String?   @map("USE_PSWD")
   userNm           String    @map("USE_NM")
   userNcnm         String?   @unique @map("USE_NCNM")
@@ -67,9 +67,9 @@ model User {
   useRoleCd        String    @default("BUYER") @map("USE_ROLE_CD")
   userSttsCd       String    @default("ACTV") @map("USE_STTS_CD")
   lstLgnDt         DateTime? @map("LST_LGN_DT")
-  emailVrfcYn      String    @default("N") @map("EMAIL_VRFC_YN")
-  emailVrfcTkn     String?   @map("EMAIL_VRFC_TKN")
-  emailVrfcExprDt  DateTime? @map("EMAIL_VRFC_EXPR_DT")
+  emailVrfcYn      String    @default("N") @map("EML_VRFC_YN")
+  emlVrfcTkn       String?   @map("EML_VRFC_TKN")
+  emlVrfcExprDt    DateTime? @map("EML_VRFC_EXPR_DT")
   pswdRstTkn       String?   @map("PSWD_RST_TKN")
   pswdRstExprDt    DateTime? @map("PSWD_RST_EXPR_DT")
   rgstDt           DateTime  @default(now()) @map("RGST_DT")
@@ -85,6 +85,11 @@ model User {
   boardComments  BoardComment[]
   boardLikes     BoardLike[]
   products         Product[]         @relation("SellerProducts")
+  orders           Order[]           @relation("BuyerOrders")
+  orderItems       OrderItem[]       @relation("SellerOrderItems")
+  activities       UserActivity[]    @relation("UserActivities")
+  performedActions UserActivity[]    @relation("PerformerActivities")
+  statusChanges    OrderStatusHistory[] @relation("StatusChanger")
   chatRoomsCreated ChatRoom[]
   chatRoomMembers  ChatRoomMember[]
   chatMessages     ChatMessage[]
@@ -97,7 +102,7 @@ model SocialAccount {
   userId         String   @map("USE_ID") @db.ObjectId
   sclPrvdCd      String   @map("SCL_PRVD_CD")
   sclPrvdUserId  String   @map("SCL_PRVD_USE_ID")
-  sclEmail       String?  @map("SCL_EMAIL")
+  sclEml         String?  @map("SCL_EML")
   sclPrflImgUrl  String?  @map("SCL_PRFL_IMG_URL")
   lnkdDt         DateTime @map("LNKD_DT")
   rgstDt         DateTime @default(now()) @map("RGST_DT")
@@ -259,7 +264,8 @@ model Product {
   mdfrId       String?  @map("MDFR_ID")
   delYn        String   @default("N") @map("DEL_YN")
 
-  seller User @relation("SellerProducts", fields: [sellerId], references: [id])
+  seller     User        @relation("SellerProducts", fields: [sellerId], references: [id])
+  orderItems OrderItem[]
 
   @@map("TB_PROD_PRD")
 }
@@ -337,4 +343,96 @@ model ChatMessageAttachment {
   message ChatMessage @relation(fields: [msgId], references: [id])
 
   @@map("TB_COMM_CHAT_MSG_ATCH")
+}
+
+// ============================================================
+// Order Module
+// ============================================================
+
+model Order {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  ordrNo      String    @unique @map("ORDR_NO")
+  byrId       String    @map("BYR_ID") @db.ObjectId
+  ordrTotAmt  Float     @map("ORDR_TOT_AMT")
+  ordrSttsCd  String    @default("PENDING") @map("ORDR_STTS_CD")
+  shipAddr    String?   @map("SHIP_ADDR")
+  shipRcvrNm  String?   @map("SHIP_RCVR_NM")
+  shipTelno   String?   @map("SHIP_TELNO")
+  shipMemo    String?   @map("SHIP_MEMO")
+  trckgNo     String?   @map("TRCKG_NO")
+  rgstDt      DateTime  @default(now()) @map("RGST_DT")
+  rgtrId      String?   @map("RGTR_ID")
+  mdfcnDt     DateTime  @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId      String?   @map("MDFR_ID")
+  delYn       String    @default("N") @map("DEL_YN")
+
+  buyer         User                 @relation("BuyerOrders", fields: [byrId], references: [id])
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@map("TB_COMM_ORDR")
+}
+
+model OrderItem {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  ordrId     String   @map("ORDR_ID") @db.ObjectId
+  prdId      String   @map("PRD_ID") @db.ObjectId
+  sllrId     String   @map("SLLR_ID") @db.ObjectId
+  prdNm      String   @map("PRD_NM")
+  prdImgUrl  String   @map("PRD_IMG_URL")
+  unitPrc    Float    @map("UNIT_PRC")
+  ordrQty    Int      @map("ORDR_QTY")
+  subtotAmt  Float    @map("SUBTOT_AMT")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+  mdfcnDt    DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+  mdfrId     String?  @map("MDFR_ID")
+  delYn      String   @default("N") @map("DEL_YN")
+
+  order   Order   @relation(fields: [ordrId], references: [id])
+  product Product @relation(fields: [prdId], references: [id])
+  seller  User    @relation("SellerOrderItems", fields: [sllrId], references: [id])
+
+  @@map("TB_COMM_ORDR_ITEM")
+}
+
+model OrderStatusHistory {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  ordrId     String   @map("ORDR_ID") @db.ObjectId
+  prevSttsCd String   @map("PREV_STTS_CD")
+  newSttsCd  String   @map("NEW_STTS_CD")
+  chngRsn    String?  @map("CHNG_RSN")
+  chngrId    String   @map("CHNGR_ID") @db.ObjectId
+  chngDt     DateTime @map("CHNG_DT")
+  rgstDt     DateTime @default(now()) @map("RGST_DT")
+  rgtrId     String?  @map("RGTR_ID")
+
+  order   Order @relation(fields: [ordrId], references: [id])
+  changer User  @relation("StatusChanger", fields: [chngrId], references: [id])
+
+  // No DEL_YN — history records are immutable
+  @@map("TH_COMM_ORDR_STTS")
+}
+
+// ============================================================
+// Admin Enhancement — Activity Log
+// ============================================================
+
+model UserActivity {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @map("USE_ID") @db.ObjectId
+  actvTypeCd  String   @map("ACTV_TYPE_CD")
+  prevVal     String?  @map("PREV_VAL")
+  newVal      String?  @map("NEW_VAL")
+  prfmrId     String   @map("PRFMR_ID") @db.ObjectId
+  clntIpAddr  String?  @map("CLNT_IP_ADDR")
+  actvDt      DateTime @map("ACTV_DT")
+  rgstDt      DateTime @default(now()) @map("RGST_DT")
+  rgtrId      String?  @map("RGTR_ID")
+
+  user      User @relation("UserActivities", fields: [userId], references: [id])
+  performer User @relation("PerformerActivities", fields: [prfmrId], references: [id])
+
+  // No DEL_YN — log records cannot be deleted
+  @@map("TL_COMM_USE_ACTV")
 }

@@ -26,6 +26,52 @@
 .sidebarTop {
   padding: var(--space-xl);
   border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebarClose {
+  display: none;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 1.125rem;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast);
+}
+
+.sidebarClose:hover {
+  color: var(--charcoal);
+  background: var(--ivory);
+}
+
+.menuBtn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--slate);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.menuBtn:hover {
+  border-color: var(--charcoal);
+  color: var(--charcoal);
+}
+
+.mobileOverlay {
+  display: none;
 }
 
 .logo {
@@ -86,6 +132,22 @@
 
 .navLabel {
   letter-spacing: 0.01em;
+}
+
+/* ── Admin Section ── */
+.adminSection {
+  padding: var(--space-sm) var(--space-md);
+  margin-top: auto;
+  border-top: 1px solid var(--border-light);
+}
+
+.adminLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-sm) var(--space-md);
 }
 
 .sidebarBottom {
@@ -605,7 +667,30 @@
 
 @media (max-width: 1023px) {
   .sidebar {
-    display: none;
+    transform: translateX(-100%);
+    transition: transform var(--duration-normal) var(--ease-out);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .sidebarClose {
+    display: flex;
+  }
+
+  .menuBtn {
+    display: flex;
+  }
+
+  .mobileOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 45;
+    animation: fadeIn var(--duration-fast) var(--ease-out);
   }
 
   .main {
@@ -637,4 +722,9 @@
   .searchBox {
     display: none;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

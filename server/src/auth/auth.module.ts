@@ -6,6 +6,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './auth.guard';
+import { SocialAuthController } from './social/social-auth.controller';
+import { SocialAuthService } from './social/social-auth.service';
+import { GoogleProvider } from './social/providers/google.provider';
+import { KakaoProvider } from './social/providers/kakao.provider';
+import { NaverProvider } from './social/providers/naver.provider';
 
 @Module({
   imports: [
@@ -21,8 +26,16 @@ import { JwtAuthGuard } from './auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  controllers: [AuthController, SocialAuthController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtAuthGuard,
+    SocialAuthService,
+    GoogleProvider,
+    KakaoProvider,
+    NaverProvider,
+  ],
   exports: [AuthService, JwtAuthGuard],
 })
 export class AuthModule {}
