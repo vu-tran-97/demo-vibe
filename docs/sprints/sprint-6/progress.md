@@ -88,4 +88,14 @@
 | 2026-03-17 17:07 | implementation | src/app/dashboard/board/page.tsx | page |
 | 2026-03-17 17:07 | implementation | src/app/dashboard/board/page.tsx | page |
 | 2026-03-17 17:08 | implementation | src/app/dashboard/board/page.tsx | page |
+| 2026-03-17 17:14 | implementation | server/src/board/dto/update-banner.dto.ts | update-banner.dto |
+| 2026-03-17 17:14 | implementation | server/src/board/board.controller.ts | board.controller |
+| 2026-03-17 17:14 | implementation | server/src/board/board.service.ts | board.service |
+| 2026-03-17 17:14 | implementation | server/src/board/board.service.ts | board.service |
+| 2026-03-17 17:14 | implementation | src/lib/board.ts | board |
+| 2026-03-17 17:14 | implementation | src/lib/board.ts | board |
+| 2026-03-17 17:15 | implementation | src/app/dashboard/board/page.tsx | page |
+| 2026-03-17 17:15 | implementation | src/app/dashboard/board/page.tsx | page |
+| 2026-03-17 17:15 | implementation | src/app/dashboard/board/page.tsx | page |
+| 2026-03-17 17:15 | implementation | src/app/dashboard/board/page.tsx | page |
 <!-- ACTIVITY_LOG_END -->

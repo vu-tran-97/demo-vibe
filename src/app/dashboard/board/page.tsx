@@ -5,10 +5,14 @@ import Link from 'next/link';
 import {
   fetchPosts,
   deletePost,
+  fetchBanner,
+  updateBanner as updateBannerApi,
   CATEGORIES,
   getCategoryLabel,
   type Post,
   type Pagination,
+  type Banner,
+  type UpdateBannerData,
 } from '@/lib/board';
 import { useAuth } from '@/hooks/use-auth';
 import { showToast, ToastContainer } from '@/components/toast/Toast';
@@ -116,6 +120,128 @@ function PostKebabMenu({
   );
 }
 
+// Banner settings modal for SUPER_ADMIN
+function BannerSettingsModal({
+  banner,
+  onClose,
+  onSave,
+}: {
+  banner: Banner | null;
+  onClose: () => void;
+  onSave: (data: UpdateBannerData) => void;
+}) {
+  const [imageUrl, setImageUrl] = useState(banner?.imageUrl || '');
+  const [title, setTitle] = useState(banner?.title || '');
+  const [subtitle, setSubtitle] = useState(banner?.subtitle || '');
+  const [linkUrl, setLinkUrl] = useState(banner?.linkUrl || '');
+  const [enabled, setEnabled] = useState(banner?.enabled ?? true);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      onSave({
+        imageUrl,
+        title: title || undefined,
+        subtitle: subtitle || undefined,
+        linkUrl: linkUrl || undefined,
+        enabled,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Banner Settings</h3>
+          <button
+            type="button"
+            className={styles.modalCloseBtn}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className={styles.bannerForm}>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Image URL *</label>
+            <input
+              type="url"
+              className={styles.formInput}
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/banner.jpg"
+              required
+            />
+            {imageUrl && (
+              <div className={styles.bannerPreview}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="Banner preview" className={styles.bannerPreviewImg} />
+              </div>
+            )}
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Title</label>
+            <input
+              type="text"
+              className={styles.formInput}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Banner title"
+              maxLength={100}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Subtitle</label>
+            <input
+              type="text"
+              className={styles.formInput}
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder="Banner subtitle"
+              maxLength={200}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Link URL</label>
+            <input
+              type="url"
+              className={styles.formInput}
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+            />
+          </div>
+          <div className={styles.formGroupRow}>
+            <label className={styles.formLabel}>Enable Banner</label>
+            <button
+              type="button"
+              className={`${styles.toggleSwitch} ${enabled ? styles.toggleOn : ''}`}
+              onClick={() => setEnabled(!enabled)}
+              aria-label="Toggle banner"
+            >
+              <span className={styles.toggleKnob} />
+            </button>
+          </div>
+          <div className={styles.modalActions}>
+            <button type="button" className={styles.cancelBtn} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className={styles.saveBtn} disabled={saving || !imageUrl}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function BoardPage() {
   const { user } = useAuth(true);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -128,6 +254,34 @@ export default function BoardPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
+
+  // Banner state
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [showBannerModal, setShowBannerModal] = useState(false);
+
+  const isAdmin = user?.role === 'SUPER_ADMIN';
+
+  useEffect(() => {
+    fetchBanner()
+      .then(setBanner)
+      .catch(() => {
+        // Banner fetch failure is non-critical
+      });
+  }, []);
+
+  const handleBannerSave = async (data: UpdateBannerData) => {
+    try {
+      const updated = await updateBannerApi(data);
+      setBanner(updated);
+      setShowBannerModal(false);
+      showToast('Banner updated successfully');
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Failed to update banner',
+        'error',
+      );
+    }
+  };
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -211,6 +365,67 @@ export default function BoardPage() {
 
   return (
     <div className={styles.board}>
+      {/* Banner */}
+      {banner && banner.enabled && (
+        <div className={styles.bannerWrapper}>
+          {banner.linkUrl ? (
+            <a
+              href={banner.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.bannerLink}
+            >
+              <div className={styles.banner}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={banner.imageUrl} alt={banner.title || 'Banner'} className={styles.bannerImage} />
+                <div className={styles.bannerOverlay}>
+                  {banner.title && <h2 className={styles.bannerTitle}>{banner.title}</h2>}
+                  {banner.subtitle && <p className={styles.bannerSubtitle}>{banner.subtitle}</p>}
+                </div>
+              </div>
+            </a>
+          ) : (
+            <div className={styles.banner}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={banner.imageUrl} alt={banner.title || 'Banner'} className={styles.bannerImage} />
+              <div className={styles.bannerOverlay}>
+                {banner.title && <h2 className={styles.bannerTitle}>{banner.title}</h2>}
+                {banner.subtitle && <p className={styles.bannerSubtitle}>{banner.subtitle}</p>}
+              </div>
+            </div>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              className={styles.editBannerBtn}
+              onClick={() => setShowBannerModal(true)}
+            >
+              Edit Banner
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Admin: show banner settings button when no banner */}
+      {isAdmin && (!banner || !banner.enabled) && (
+        <button
+          type="button"
+          className={styles.addBannerBtn}
+          onClick={() => setShowBannerModal(true)}
+        >
+          + Add Banner
+        </button>
+      )}
+
+      {/* Banner Settings Modal */}
+      {showBannerModal && (
+        <BannerSettingsModal
+          banner={banner}
+          onClose={() => setShowBannerModal(false)}
+          onSave={handleBannerSave}
+        />
+      )}
+
       {/* Header */}
       <div className={styles.pageHeader}>
         <div>

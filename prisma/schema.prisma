@@ -223,6 +223,21 @@ model BoardAttachment {
   @@map("TB_COMM_BOARD_ATCH")
 }
 
+model BoardBanner {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  imgUrl    String   @map("IMG_URL")
+  ttl       String?  @map("TTL")
+  subTtl    String?  @map("SUB_TTL")
+  lnkUrl    String?  @map("LNK_URL")
+  useYn     String   @default("Y") @map("USE_YN")
+  rgtrId    String   @map("RGTR_ID")
+  mdfrId    String   @map("MDFR_ID")
+  rgstDt    DateTime @default(now()) @map("RGST_DT")
+  mdfcnDt   DateTime @default(now()) @updatedAt @map("MDFCN_DT")
+
+  @@map("TB_COMM_BOARD_BANNER")
+}
+
 model BoardLike {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   postId String @map("POST_ID") @db.ObjectId

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BusinessException } from '../common/filters/business.exception';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
 import { ListPostsQueryDto } from './dto/list-posts-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -13,6 +14,69 @@ export class BoardService {
   private readonly logger = new Logger(BoardService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // ── Banner ──
+
+  async getBanner() {
+    const banner = await this.prisma.boardBanner.findFirst({
+      where: { useYn: 'Y' },
+      orderBy: { rgstDt: 'desc' },
+    });
+
+    if (!banner) {
+      return null;
+    }
+
+    return {
+      id: banner.id,
+      imageUrl: banner.imgUrl,
+      title: banner.ttl || null,
+      subtitle: banner.subTtl || null,
+      linkUrl: banner.lnkUrl || null,
+      enabled: banner.useYn === 'Y',
+    };
+  }
+
+  async updateBanner(dto: UpdateBannerDto, userId: string) {
+    const existing = await this.prisma.boardBanner.findFirst({
+      orderBy: { rgstDt: 'desc' },
+    });
+
+    const data = {
+      imgUrl: dto.imageUrl,
+      ttl: dto.title || null,
+      subTtl: dto.subtitle || null,
+      lnkUrl: dto.linkUrl || null,
+      useYn: dto.enabled ? 'Y' : 'N',
+      mdfrId: userId,
+    };
+
+    let banner;
+    if (existing) {
+      banner = await this.prisma.boardBanner.update({
+        where: { id: existing.id },
+        data,
+      });
+    } else {
+      banner = await this.prisma.boardBanner.create({
+        data: {
+          ...data,
+          rgtrId: userId,
+        },
+      });
+    }
+
+    this.logger.log(`User ${userId} updated board banner ${banner.id}`);
+
+    return {
+      id: banner.id,
+      imageUrl: banner.imgUrl,
+      title: banner.ttl || null,
+      subtitle: banner.subTtl || null,
+      linkUrl: banner.lnkUrl || null,
+      enabled: banner.useYn === 'Y',
+    };
+  }
 
   // ── Posts ──
 

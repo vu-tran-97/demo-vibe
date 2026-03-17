@@ -73,6 +73,23 @@ export interface UpdatePostData {
   srchTags?: string[];
 }
 
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  title: string | null;
+  subtitle: string | null;
+  linkUrl: string | null;
+  enabled: boolean;
+}
+
+export interface UpdateBannerData {
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  linkUrl?: string;
+  enabled: boolean;
+}
+
 // ── Static Data ──
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -147,6 +164,30 @@ function mapComment(raw: any): Comment {
     updatedAt: raw.updatedAt,
     author: raw.author || null,
   };
+}
+
+// ── API Functions — Banner ──
+
+export async function fetchBanner(): Promise<Banner | null> {
+  const res = await fetch(`${API_BASE}/api/posts/banner`);
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error || 'Failed to fetch banner');
+  }
+  return json.data || null;
+}
+
+export async function updateBanner(data: UpdateBannerData): Promise<Banner> {
+  const res = await fetch(`${API_BASE}/api/posts/banner`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error || json.message || 'Failed to update banner');
+  }
+  return json.data;
 }
 
 // ── API Functions — Posts ──
