@@ -15,6 +15,7 @@ import styles from './orders.module.css';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Pending',
+  PAID: 'Paid',
   CONFIRMED: 'Confirmed',
   SHIPPED: 'Shipped',
   DELIVERED: 'Delivered',
@@ -24,6 +25,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 const STATUS_FILTERS = [
   'ALL',
   'PENDING',
+  'PAID',
   'CONFIRMED',
   'SHIPPED',
   'DELIVERED',
@@ -60,9 +62,9 @@ export default function OrdersPage() {
       if (endDate) params.endDate = endDate;
 
       const data: OrderListResponse = await fetchBuyerOrders(params);
-      setOrders(data.orders);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.total);
+      setOrders(data.items);
+      setTotalPages(data.pagination.totalPages);
+      setTotalCount(data.pagination.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {
@@ -113,6 +115,8 @@ export default function OrdersPage() {
     switch (status) {
       case 'PENDING':
         return styles.statusPending;
+      case 'PAID':
+        return styles.statusPaid;
       case 'CONFIRMED':
         return styles.statusConfirmed;
       case 'SHIPPED':
@@ -269,7 +273,7 @@ export default function OrdersPage() {
                 <div className={styles.orderTop}>
                   <div className={styles.orderMeta}>
                     <span className={styles.orderNumber}>
-                      {order.orderNumber}
+                      {order.orderNo}
                     </span>
                     <span className={styles.orderDate}>
                       {formatDate(order.createdAt)}
@@ -305,7 +309,7 @@ export default function OrdersPage() {
                         </span>
                       </div>
                       <span className={styles.itemPrice}>
-                        ${item.totalPrice.toFixed(2)}
+                        ${item.subtotalAmount.toFixed(2)}
                       </span>
                     </div>
                   ))}
@@ -368,7 +372,7 @@ export default function OrdersPage() {
                   <div>
                     <h2 className={styles.modalTitle}>Order Details</h2>
                     <p className={styles.modalOrderNum}>
-                      {selectedOrder.orderNumber}
+                      {selectedOrder.orderNo}
                     </p>
                   </div>
                   <button
@@ -395,11 +399,11 @@ export default function OrdersPage() {
                 {selectedOrder.status !== 'CANCELLED' && (
                   <div className={styles.progressBar}>
                     {(
-                      ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED'] as const
+                      ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED'] as const
                     ).map((step, idx) => {
                       const steps = [
                         'PENDING',
-                        'CONFIRMED',
+                        'PAID',
                         'SHIPPED',
                         'DELIVERED',
                       ];
@@ -433,12 +437,12 @@ export default function OrdersPage() {
                           <div className={styles.timelineDot} />
                           <div className={styles.timelineContent}>
                             <span
-                              className={`${styles.statusBadge} ${getStatusClass(entry.status)}`}
+                              className={`${styles.statusBadge} ${getStatusClass(entry.newStatus as OrderStatus)}`}
                             >
-                              {STATUS_LABELS[entry.status]}
+                              {STATUS_LABELS[entry.newStatus as OrderStatus] || entry.newStatus}
                             </span>
                             <span className={styles.timelineDate}>
-                              {formatDate(entry.createdAt)}
+                              {formatDate(entry.changedAt)}
                             </span>
                             {entry.reason && (
                               <p className={styles.timelineReason}>
@@ -476,35 +480,35 @@ export default function OrdersPage() {
                         </span>
                       </div>
                       <span className={styles.modalItemPrice}>
-                        ${item.totalPrice.toFixed(2)}
+                        ${item.subtotalAmount.toFixed(2)}
                       </span>
                     </div>
                   ))}
                 </div>
 
                 <div className={styles.modalSummary}>
-                  {selectedOrder.shipAddr && (
+                  {selectedOrder.shippingAddress && (
                     <div className={styles.summaryRow}>
                       <span>Shipping Address</span>
-                      <span>{selectedOrder.shipAddr}</span>
+                      <span>{selectedOrder.shippingAddress}</span>
                     </div>
                   )}
-                  {selectedOrder.shipRcvrNm && (
+                  {selectedOrder.receiverName && (
                     <div className={styles.summaryRow}>
                       <span>Receiver</span>
-                      <span>{selectedOrder.shipRcvrNm}</span>
+                      <span>{selectedOrder.receiverName}</span>
                     </div>
                   )}
-                  {selectedOrder.shipTelno && (
+                  {selectedOrder.receiverPhone && (
                     <div className={styles.summaryRow}>
                       <span>Phone</span>
-                      <span>{selectedOrder.shipTelno}</span>
+                      <span>{selectedOrder.receiverPhone}</span>
                     </div>
                   )}
-                  {selectedOrder.shipMemo && (
+                  {selectedOrder.shippingMemo && (
                     <div className={styles.summaryRow}>
                       <span>Memo</span>
-                      <span>{selectedOrder.shipMemo}</span>
+                      <span>{selectedOrder.shippingMemo}</span>
                     </div>
                   )}
                   <div

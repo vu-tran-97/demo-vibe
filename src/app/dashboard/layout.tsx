@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
+import { GlobalSearchBar } from '@/components/global-search/GlobalSearchBar';
 import styles from './dashboard.module.css';
 
 interface NavItem {
@@ -20,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Cart', href: '/dashboard/cart', icon: '▣', roles: ['BUYER'] },
   { label: 'Orders', href: '/dashboard/orders', icon: '□', roles: ['BUYER'] },
   { label: 'Sales', href: '/dashboard/orders/sales', icon: '□', roles: ['SELLER'] },
+  { label: 'Board', href: '/dashboard/board', icon: '☰', roles: ['BUYER', 'SELLER', 'SUPER_ADMIN'] },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
@@ -166,15 +168,7 @@ export default function DashboardLayout({
             <h1 className={styles.pageTitle}>Overview</h1>
           </div>
           <div className={styles.topBarRight}>
-            <div className={styles.searchBox}>
-              <span className={styles.searchIcon}>⌕</span>
-              <input
-                type="text"
-                className={styles.searchInput}
-                placeholder="Search anything..."
-              />
-              <kbd className={styles.searchKbd}>⌘K</kbd>
-            </div>
+            <GlobalSearchBar />
             <button type="button" className={styles.notifBtn}>
               <span className={styles.notifDot} />
               ◎

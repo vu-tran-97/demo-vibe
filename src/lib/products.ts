@@ -49,10 +49,13 @@ export interface FetchProductsParams {
   page?: number;
   limit?: number;
   category?: string;
+  categories?: string;
   search?: string;
   sort?: string;
   minPrice?: number;
   maxPrice?: number;
+  minRating?: number;
+  inStock?: boolean;
 }
 
 export interface CreateProductData {

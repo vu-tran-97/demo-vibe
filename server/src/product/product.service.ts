@@ -58,12 +58,23 @@ export class ProductService {
     // Public listing only shows active products
     where.prdSttsCd = 'ACTV';
 
+    // Single category filter (backward compatible)
     if (query.category) {
       where.prdCtgrCd = query.category;
     }
+
+    // Multi-category filter (comma-separated)
+    if (query.categories) {
+      const categoryList = query.categories.split(',').map((c) => c.trim()).filter(Boolean);
+      if (categoryList.length > 0) {
+        where.prdCtgrCd = { in: categoryList };
+      }
+    }
+
     if (query.search) {
       where.prdNm = { contains: query.search, mode: 'insensitive' };
     }
+
     if (query.minPrice || query.maxPrice) {
       const priceFilter: Record<string, number> = {};
       if (query.minPrice) {
@@ -73,6 +84,16 @@ export class ProductService {
         priceFilter.lte = parseFloat(query.maxPrice);
       }
       where.prdPrc = priceFilter;
+    }
+
+    // Rating filter
+    if (query.minRating) {
+      where.avgRtng = { gte: parseFloat(query.minRating) };
+    }
+
+    // In-stock filter
+    if (query.inStock === 'true') {
+      where.stckQty = { gt: 0 };
     }
 
     let orderBy: Record<string, string>;

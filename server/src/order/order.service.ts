@@ -2,6 +2,7 @@ import { Injectable, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessException } from '../common/filters/business.exception';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CheckoutOrderDto } from './dto/checkout-order.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 
 @Injectable()
@@ -98,6 +99,7 @@ export class OrderService {
           unitPrc: item.unitPrc,
           ordrQty: item.ordrQty,
           subtotAmt: item.subtotAmt,
+          itemSttsCd: 'PENDING',
           rgtrId: buyerId,
           mdfrId: buyerId,
         },
@@ -139,6 +141,438 @@ export class OrderService {
     this.logger.log(`Order ${orderNumber} created by buyer ${buyerId}`);
 
     return this.getOrderById(order.id, buyerId, 'BUYER');
+  }
+
+  async checkoutOrder(dto: CheckoutOrderDto, buyerId: string) {
+    // Validate all products and calculate totals
+    const orderItems: {
+      prdId: string;
+      sllrId: string;
+      prdNm: string;
+      prdImgUrl: string;
+      unitPrc: number;
+      ordrQty: number;
+      subtotAmt: number;
+    }[] = [];
+
+    for (const item of dto.items) {
+      const product = await this.prisma.product.findFirst({
+        where: { id: item.productId, delYn: 'N' },
+      });
+
+      if (!product) {
+        throw new BusinessException(
+          'PRODUCT_NOT_FOUND',
+          `Product ${item.productId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (product.prdSttsCd !== 'ACTV') {
+        throw new BusinessException(
+          'PRODUCT_NOT_ACTIVE',
+          `Product "${product.prdNm}" is not available for purchase`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (product.stckQty < item.quantity) {
+        throw new BusinessException(
+          'INSUFFICIENT_STOCK',
+          `Product "${product.prdNm}" has insufficient stock (available: ${product.stckQty}, requested: ${item.quantity})`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const unitPrice = product.prdSalePrc ?? product.prdPrc;
+      const subtotal = unitPrice * item.quantity;
+
+      orderItems.push({
+        prdId: product.id,
+        sllrId: product.sellerId,
+        prdNm: product.prdNm,
+        prdImgUrl: product.prdImgUrl,
+        unitPrc: unitPrice,
+        ordrQty: item.quantity,
+        subtotAmt: subtotal,
+      });
+    }
+
+    const totalAmount = orderItems.reduce((sum, i) => sum + i.subtotAmt, 0);
+    const orderNumber = await this.generateOrderNumber();
+
+    // Create order with payment method
+    const order = await this.prisma.order.create({
+      data: {
+        ordrNo: orderNumber,
+        byrId: buyerId,
+        ordrTotAmt: totalAmount,
+        ordrSttsCd: 'PENDING',
+        payMthdCd: dto.paymentMethod,
+        shipAddr: dto.shipAddr,
+        shipRcvrNm: dto.shipRcvrNm,
+        shipTelno: dto.shipTelno,
+        shipMemo: dto.shipMemo,
+        rgtrId: buyerId,
+        mdfrId: buyerId,
+      },
+    });
+
+    // Create order items with PENDING item status
+    for (const item of orderItems) {
+      await this.prisma.orderItem.create({
+        data: {
+          ordrId: order.id,
+          prdId: item.prdId,
+          sllrId: item.sllrId,
+          prdNm: item.prdNm,
+          prdImgUrl: item.prdImgUrl,
+          unitPrc: item.unitPrc,
+          ordrQty: item.ordrQty,
+          subtotAmt: item.subtotAmt,
+          itemSttsCd: 'PENDING',
+          rgtrId: buyerId,
+          mdfrId: buyerId,
+        },
+      });
+    }
+
+    // Deduct stock
+    for (const item of orderItems) {
+      const updated = await this.prisma.product.update({
+        where: { id: item.prdId },
+        data: {
+          stckQty: { decrement: item.ordrQty },
+          soldCnt: { increment: item.ordrQty },
+        },
+      });
+
+      if (updated.stckQty <= 0) {
+        await this.prisma.product.update({
+          where: { id: item.prdId },
+          data: { prdSttsCd: 'SOLD_OUT' },
+        });
+      }
+    }
+
+    // Record initial status history
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        ordrId: order.id,
+        prevSttsCd: '',
+        newSttsCd: 'PENDING',
+        chngRsn: `Order created with payment method: ${dto.paymentMethod}`,
+        chngrId: buyerId,
+        chngDt: new Date(),
+        rgtrId: buyerId,
+      },
+    });
+
+    this.logger.log(
+      `Checkout order ${orderNumber} created by buyer ${buyerId} with ${dto.paymentMethod}`,
+    );
+
+    return this.getOrderById(order.id, buyerId, 'BUYER');
+  }
+
+  async payOrder(orderId: string, paymentMethod: string, buyerId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, delYn: 'N' },
+    });
+
+    if (!order) {
+      throw new BusinessException(
+        'ORDER_NOT_FOUND',
+        'Order not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Only the buyer who owns the order can pay
+    if (order.byrId !== buyerId) {
+      throw new BusinessException(
+        'ORDER_ACCESS_DENIED',
+        'You do not have access to this order',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Only PENDING orders can be paid
+    if (order.ordrSttsCd !== 'PENDING') {
+      throw new BusinessException(
+        'INVALID_STATUS_TRANSITION',
+        `Cannot pay an order with status ${order.ordrSttsCd}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Update order to PAID
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        ordrSttsCd: 'PAID',
+        payMthdCd: paymentMethod,
+        mdfrId: buyerId,
+      },
+    });
+
+    // Record status history
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        ordrId: orderId,
+        prevSttsCd: 'PENDING',
+        newSttsCd: 'PAID',
+        chngRsn: `Payment via ${paymentMethod}`,
+        chngrId: buyerId,
+        chngDt: new Date(),
+        rgtrId: buyerId,
+      },
+    });
+
+    this.logger.log(
+      `Order ${order.ordrNo} paid by buyer ${buyerId} via ${paymentMethod}`,
+    );
+
+    return this.getOrderById(orderId, buyerId, 'BUYER');
+  }
+
+  async updateItemStatus(
+    orderId: string,
+    itemId: string,
+    newStatus: string,
+    trackingNumber: string | undefined,
+    sellerId: string,
+  ) {
+    const item = await this.prisma.orderItem.findFirst({
+      where: { id: itemId, ordrId: orderId, delYn: 'N' },
+      include: { order: true },
+    });
+
+    if (!item) {
+      throw new BusinessException(
+        'ORDER_ITEM_NOT_FOUND',
+        'Order item not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Verify seller owns this item
+    if (item.sllrId !== sellerId) {
+      throw new BusinessException(
+        'ORDER_ACCESS_DENIED',
+        'You do not have access to this order item',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Validate item status transition
+    const currentStatus = item.itemSttsCd;
+    this.validateItemStatusTransition(currentStatus, newStatus);
+
+    // Update item status and optionally tracking number
+    const updateData: Record<string, unknown> = {
+      itemSttsCd: newStatus,
+      mdfrId: sellerId,
+    };
+
+    if (trackingNumber !== undefined && newStatus === 'SHIPPED') {
+      updateData.trckgNo = trackingNumber;
+    }
+
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: updateData,
+    });
+
+    // Record status history (using order ID for the history entry)
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        ordrId: orderId,
+        prevSttsCd: currentStatus,
+        newSttsCd: newStatus,
+        chngRsn: `Item "${item.prdNm}" status updated${trackingNumber ? ` (tracking: ${trackingNumber})` : ''}`,
+        chngrId: sellerId,
+        chngDt: new Date(),
+        rgtrId: sellerId,
+      },
+    });
+
+    this.logger.log(
+      `Order item ${itemId} status changed from ${currentStatus} to ${newStatus} by seller ${sellerId}`,
+    );
+
+    // Return updated item with order info
+    const updatedItem = await this.prisma.orderItem.findFirst({
+      where: { id: itemId },
+      include: { order: true },
+    });
+
+    return {
+      id: updatedItem!.id,
+      orderId: updatedItem!.ordrId,
+      orderNo: updatedItem!.order.ordrNo,
+      productId: updatedItem!.prdId,
+      productName: updatedItem!.prdNm,
+      productImageUrl: updatedItem!.prdImgUrl,
+      unitPrice: updatedItem!.unitPrc,
+      quantity: updatedItem!.ordrQty,
+      subtotalAmount: updatedItem!.subtotAmt,
+      itemStatus: updatedItem!.itemSttsCd,
+      trackingNumber: updatedItem!.trckgNo,
+    };
+  }
+
+  async bulkUpdateItemStatus(
+    itemIds: string[],
+    newStatus: string,
+    trackingNumber: string | undefined,
+    sellerId: string,
+  ) {
+    let updated = 0;
+    let failed = 0;
+
+    for (const itemId of itemIds) {
+      try {
+        const item = await this.prisma.orderItem.findFirst({
+          where: { id: itemId, delYn: 'N' },
+        });
+
+        if (!item) {
+          failed++;
+          continue;
+        }
+
+        // Check ownership
+        if (item.sllrId !== sellerId) {
+          failed++;
+          continue;
+        }
+
+        // Validate transition
+        const validTransitions: Record<string, string[]> = {
+          PENDING: ['CONFIRMED'],
+          CONFIRMED: ['SHIPPED'],
+          SHIPPED: ['DELIVERED'],
+          DELIVERED: [],
+        };
+
+        const allowed = validTransitions[item.itemSttsCd] || [];
+        if (!allowed.includes(newStatus)) {
+          failed++;
+          continue;
+        }
+
+        const updateData: Record<string, unknown> = {
+          itemSttsCd: newStatus,
+          mdfrId: sellerId,
+        };
+
+        if (trackingNumber !== undefined && newStatus === 'SHIPPED') {
+          updateData.trckgNo = trackingNumber;
+        }
+
+        await this.prisma.orderItem.update({
+          where: { id: itemId },
+          data: updateData,
+        });
+
+        // Record status history
+        await this.prisma.orderStatusHistory.create({
+          data: {
+            ordrId: item.ordrId,
+            prevSttsCd: item.itemSttsCd,
+            newSttsCd: newStatus,
+            chngRsn: `Bulk update: item "${item.prdNm}"${trackingNumber ? ` (tracking: ${trackingNumber})` : ''}`,
+            chngrId: sellerId,
+            chngDt: new Date(),
+            rgtrId: sellerId,
+          },
+        });
+
+        updated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    this.logger.log(
+      `Bulk status update by seller ${sellerId}: ${updated} updated, ${failed} failed`,
+    );
+
+    return { updated, failed };
+  }
+
+  async getSellerOrderDetail(orderId: string, sellerId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, delYn: 'N' },
+      include: {
+        items: {
+          where: { delYn: 'N' },
+        },
+        statusHistory: {
+          orderBy: { chngDt: 'desc' },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new BusinessException(
+        'ORDER_NOT_FOUND',
+        'Order not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check that seller has items in this order
+    const sellerItems = order.items.filter((item) => item.sllrId === sellerId);
+    if (sellerItems.length === 0) {
+      throw new BusinessException(
+        'ORDER_ACCESS_DENIED',
+        'You do not have items in this order',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Get buyer info
+    const buyer = await this.prisma.user.findFirst({
+      where: { id: order.byrId },
+      select: { id: true, userNm: true, userEmail: true },
+    });
+
+    return {
+      id: order.id,
+      orderNo: order.ordrNo,
+      buyer: buyer
+        ? { id: buyer.id, name: buyer.userNm, email: buyer.userEmail }
+        : null,
+      totalAmount: order.ordrTotAmt,
+      status: order.ordrSttsCd,
+      paymentMethod: order.payMthdCd,
+      shippingAddress: order.shipAddr,
+      receiverName: order.shipRcvrNm,
+      receiverPhone: order.shipTelno,
+      shippingMemo: order.shipMemo,
+      createdAt: order.rgstDt,
+      items: sellerItems.map((item) => ({
+        id: item.id,
+        productId: item.prdId,
+        productName: item.prdNm,
+        productImageUrl: item.prdImgUrl,
+        unitPrice: item.unitPrc,
+        quantity: item.ordrQty,
+        subtotalAmount: item.subtotAmt,
+        itemStatus: item.itemSttsCd,
+        trackingNumber: item.trckgNo,
+      })),
+      statusHistory: order.statusHistory.map((h) => ({
+        id: h.id,
+        previousStatus: h.prevSttsCd,
+        newStatus: h.newSttsCd,
+        reason: h.chngRsn,
+        changedBy: h.chngrId,
+        changedAt: h.chngDt,
+      })),
+    };
   }
 
   async listBuyerOrders(buyerId: string, query: ListOrdersQueryDto) {
@@ -357,7 +791,8 @@ export class OrderService {
     // Build order-level filters
     const orderWhere: Record<string, unknown> = { delYn: 'N' };
     if (query.status) {
-      orderWhere.ordrSttsCd = query.status;
+      // Filter by item status instead of order status for seller view
+      where.itemSttsCd = query.status;
     }
     if (query.startDate || query.endDate) {
       const dateFilter: Record<string, Date> = {};
@@ -399,7 +834,10 @@ export class OrderService {
         unitPrice: item.unitPrc,
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
+        itemStatus: item.itemSttsCd,
+        trackingNumber: item.trckgNo,
         buyerId: item.order.byrId,
+        paymentMethod: item.order.payMthdCd,
         shipAddr: item.order.shipAddr,
         shipReceiverName: item.order.shipRcvrNm,
         shipPhone: item.order.shipTelno,
@@ -420,10 +858,7 @@ export class OrderService {
       where: {
         sllrId: sellerId,
         delYn: 'N',
-        order: {
-          ordrSttsCd: 'DELIVERED',
-          delYn: 'N',
-        },
+        itemSttsCd: 'DELIVERED',
       },
       include: {
         order: true,
@@ -531,12 +966,31 @@ export class OrderService {
     }
   }
 
+  private validateItemStatusTransition(current: string, next: string) {
+    const validTransitions: Record<string, string[]> = {
+      PENDING: ['CONFIRMED'],
+      CONFIRMED: ['SHIPPED'],
+      SHIPPED: ['DELIVERED'],
+      DELIVERED: [],
+    };
+
+    const allowed = validTransitions[current] || [];
+    if (!allowed.includes(next)) {
+      throw new BusinessException(
+        'INVALID_STATUS_TRANSITION',
+        `Cannot transition item from ${current} to ${next}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   private formatOrderResponse(order: {
     id: string;
     ordrNo: string;
     byrId: string;
     ordrTotAmt: number;
     ordrSttsCd: string;
+    payMthdCd: string | null;
     shipAddr: string | null;
     shipRcvrNm: string | null;
     shipTelno: string | null;
@@ -551,6 +1005,8 @@ export class OrderService {
       unitPrc: number;
       ordrQty: number;
       subtotAmt: number;
+      itemSttsCd: string;
+      trckgNo: string | null;
     }[];
   }) {
     return {
@@ -559,6 +1015,7 @@ export class OrderService {
       buyerId: order.byrId,
       totalAmount: order.ordrTotAmt,
       status: order.ordrSttsCd,
+      paymentMethod: order.payMthdCd,
       shippingAddress: order.shipAddr,
       receiverName: order.shipRcvrNm,
       receiverPhone: order.shipTelno,
@@ -573,6 +1030,8 @@ export class OrderService {
         unitPrice: item.unitPrc,
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
+        itemStatus: item.itemSttsCd,
+        trackingNumber: item.trckgNo,
       })),
     };
   }
@@ -583,6 +1042,7 @@ export class OrderService {
     byrId: string;
     ordrTotAmt: number;
     ordrSttsCd: string;
+    payMthdCd: string | null;
     shipAddr: string | null;
     shipRcvrNm: string | null;
     shipTelno: string | null;
@@ -598,6 +1058,8 @@ export class OrderService {
       unitPrc: number;
       ordrQty: number;
       subtotAmt: number;
+      itemSttsCd: string;
+      trckgNo: string | null;
     }[];
     statusHistory: {
       id: string;
@@ -614,6 +1076,7 @@ export class OrderService {
       buyerId: order.byrId,
       totalAmount: order.ordrTotAmt,
       status: order.ordrSttsCd,
+      paymentMethod: order.payMthdCd,
       shippingAddress: order.shipAddr,
       receiverName: order.shipRcvrNm,
       receiverPhone: order.shipTelno,
@@ -629,6 +1092,8 @@ export class OrderService {
         unitPrice: item.unitPrc,
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
+        itemStatus: item.itemSttsCd,
+        trackingNumber: item.trckgNo,
       })),
       statusHistory: order.statusHistory.map((h) => ({
         id: h.id,

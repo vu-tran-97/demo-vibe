@@ -10,7 +10,15 @@ export class ListOrdersQueryDto {
   limit?: string;
 
   @IsOptional()
-  @IsIn(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'])
+  @IsIn([
+    'PENDING',
+    'PAID',
+    'CONFIRMED',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'REFUNDED',
+  ])
   status?: string;
 
   @IsOptional()

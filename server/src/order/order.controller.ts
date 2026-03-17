@@ -11,7 +11,11 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CheckoutOrderDto } from './dto/checkout-order.dto';
+import { PayOrderDto } from './dto/pay-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdateItemStatusDto } from './dto/update-item-status.dto';
+import { BulkStatusDto } from './dto/bulk-status.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
@@ -27,6 +31,23 @@ export class OrderController {
     return this.orderService.createOrder(dto, req.user.sub);
   }
 
+  @Post('checkout')
+  async checkoutOrder(
+    @Body() dto: CheckoutOrderDto,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.checkoutOrder(dto, req.user.sub);
+  }
+
+  @Patch(':id/pay')
+  async payOrder(
+    @Param('id') id: string,
+    @Body() dto: PayOrderDto,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.payOrder(id, dto.paymentMethod, req.user.sub);
+  }
+
   @Get('sales')
   @Roles('SELLER', 'SUPER_ADMIN')
   async listSellerSales(
@@ -40,6 +61,46 @@ export class OrderController {
   @Roles('SELLER', 'SUPER_ADMIN')
   async getSellerSummary(@Request() req: { user: JwtPayload }) {
     return this.orderService.getSellerSummary(req.user.sub);
+  }
+
+  @Get('sales/:id')
+  @Roles('SELLER', 'SUPER_ADMIN')
+  async getSellerOrderDetail(
+    @Param('id') id: string,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.getSellerOrderDetail(id, req.user.sub);
+  }
+
+  @Patch('sales/:orderId/items/:itemId/status')
+  @Roles('SELLER', 'SUPER_ADMIN')
+  async updateItemStatus(
+    @Param('orderId') orderId: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemStatusDto,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.updateItemStatus(
+      orderId,
+      itemId,
+      dto.status,
+      dto.trackingNumber,
+      req.user.sub,
+    );
+  }
+
+  @Post('sales/bulk-status')
+  @Roles('SELLER', 'SUPER_ADMIN')
+  async bulkUpdateStatus(
+    @Body() dto: BulkStatusDto,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.bulkUpdateItemStatus(
+      dto.itemIds,
+      dto.status,
+      dto.trackingNumber,
+      req.user.sub,
+    );
   }
 
   @Get()

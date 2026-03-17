@@ -167,6 +167,12 @@
 | | | `STTS_CHANGE` | Status Change |
 | | | `PRFL_UPDATE` | Profile Update |
 | | | `LGN` | Login |
+| `PAY_MTHD` | Payment Method | `BANK_TRANSFER` | Bank Transfer |
+| | | `EMAIL_INVOICE` | Email Invoice |
+| `ORDR_ITEM_STTS` | Order Item Status | `PENDING` | Pending |
+| | | `CONFIRMED` | Confirmed |
+| | | `SHIPPED` | Shipped |
+| | | `DELIVERED` | Delivered |
 
 ---
 
@@ -372,6 +378,9 @@
 | SHIP_TELNO | String | N | max 20 | Receiver phone number |
 | SHIP_MEMO | String | N | max 200 | Shipping memo |
 | TRCKG_NO | String | N | max 100 | Tracking number |
+| PAY_MTHD_CD | String | N | enum: BANK_TRANSFER/EMAIL_INVOICE | Payment method code |
+
+> PAY_MTHD_CD added for simple payment method tracking per blueprint 009-payment-order.
 
 ### TB_COMM_ORDR_ITEM (Order Item)
 | Field | Type | Required | Constraint | Description |
@@ -385,6 +394,10 @@
 | UNIT_PRC | Float | Y | min: 0 | Unit price at order time |
 | ORDR_QTY | Number | Y | min: 1 | Order quantity |
 | SUBTOT_AMT | Float | Y | min: 0 | Subtotal (UNIT_PRC × ORDR_QTY) |
+| ITEM_STTS_CD | String | Y | enum: PENDING/CONFIRMED/SHIPPED/DELIVERED, default: PENDING | Order item status code |
+| TRCKG_NO | String | N | max 100 | Tracking number for this item |
+
+> ITEM_STTS_CD and TRCKG_NO added per blueprint 009-payment-order for per-item status tracking and shipping.
 
 ### TH_COMM_ORDR_STTS (Order Status History)
 | Field | Type | Required | Constraint | Description |
@@ -453,6 +466,7 @@
 | TB_COMM_ORDR | BYR_ID + ORDR_STTS_CD + RGST_DT(desc) | Compound | Buyer order history |
 | TB_COMM_ORDR_ITEM | ORDR_ID | Single | Order items lookup |
 | TB_COMM_ORDR_ITEM | SLLR_ID + RGST_DT(desc) | Compound | Seller sales history |
+| TB_COMM_ORDR_ITEM | SLLR_ID + ITEM_STTS_CD + RGST_DT(desc) | Compound | Seller item status filtering |
 | TH_COMM_ORDR_STTS | ORDR_ID + CHNG_DT(desc) | Compound | Order status timeline |
 | TL_COMM_USE_ACTV | USE_ID + ACTV_DT(desc) | Compound | User activity history |
 
@@ -496,6 +510,8 @@
 | Shipping address | Max 500 chars |
 | Receiver name | 1~50 chars |
 | Tracking number | Max 100 chars |
+| Payment method | enum: BANK_TRANSFER/EMAIL_INVOICE |
+| Item status | enum: PENDING/CONFIRMED/SHIPPED/DELIVERED |
 
 ---
 

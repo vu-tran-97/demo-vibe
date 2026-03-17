@@ -240,50 +240,7 @@
   gap: var(--space-md);
 }
 
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 0.5rem 0.875rem;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-width: 260px;
-  transition: border-color var(--duration-fast);
-}
-
-.searchBox:focus-within {
-  border-color: var(--charcoal);
-}
-
-.searchIcon {
-  font-size: 1rem;
-  color: var(--muted);
-}
-
-.searchInput {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: var(--charcoal);
-  outline: none;
-}
-
-.searchInput::placeholder {
-  color: var(--muted);
-}
-
-.searchKbd {
-  font-family: var(--font-body);
-  font-size: 0.6875rem;
-  color: var(--muted);
-  background: var(--ivory);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-}
+/* Search box styles moved to global-search component */
 
 .notifBtn {
   position: relative;
@@ -719,9 +676,7 @@
     padding: var(--space-md) var(--space-lg);
   }
 
-  .searchBox {
-    display: none;
-  }
+  /* Search box hides itself on mobile via its own module CSS */
 }
 
 @keyframes fadeIn {
