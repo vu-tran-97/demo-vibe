@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCart } from '@/hooks/use-cart';
 import { formatPrice } from '@/lib/products';
+import { showToast } from '@/components/toast/Toast';
 import styles from './cart.module.css';
 
 export default function CartPage() {
@@ -44,7 +45,7 @@ export default function CartPage() {
             {totalItems} item{totalItems !== 1 ? 's' : ''}
           </p>
         </div>
-        <button type="button" className={styles.clearBtn} onClick={clearCart}>
+        <button type="button" className={styles.clearBtn} onClick={() => { clearCart(); showToast('Cart cleared'); }}>
           Clear all
         </button>
       </div>
@@ -56,7 +57,15 @@ export default function CartPage() {
             const price = item.product.salePrice ?? item.product.price;
             return (
               <div key={item.product.id} className={styles.cartItem}>
-                <div className={styles.cartItemImage} />
+                <div className={styles.cartItemImage}>
+                  {item.product.imageUrl && (
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      className={styles.cartItemImg}
+                    />
+                  )}
+                </div>
                 <div className={styles.cartItemInfo}>
                   <div className={styles.cartItemTop}>
                     <div>
@@ -75,9 +84,12 @@ export default function CartPage() {
                     <button
                       type="button"
                       className={styles.removeBtn}
-                      onClick={() => removeItem(item.product.id)}
+                      onClick={() => {
+                        removeItem(item.product.id);
+                        showToast(`Removed "${item.product.name}" from cart`);
+                      }}
                     >
-                      ✕
+                      &#x2715;
                     </button>
                   </div>
                   <div className={styles.cartItemBottom}>

@@ -11,6 +11,8 @@ import {
   type Pagination,
 } from '@/lib/products';
 import { useAuth } from '@/hooks/use-auth';
+import { useCart } from '@/hooks/use-cart';
+import { showToast } from '@/components/toast/Toast';
 import styles from './products.module.css';
 
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
@@ -27,6 +29,7 @@ const RATING_OPTIONS = [4, 3, 2, 1];
 
 function ProductsContent() {
   const { user } = useAuth(false);
+  const { addItem } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -157,6 +160,13 @@ function ProductsContent() {
     // Triggers re-fetch via useEffect dependency
   };
 
+  const handlePriceKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handlePriceApply();
+    }
+  };
+
   const hasActiveFilters = selectedCategories.length > 0 || minPrice || maxPrice || minRating !== null || inStock;
 
   return (
@@ -257,6 +267,7 @@ function ProductsContent() {
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               onBlur={handlePriceApply}
+              onKeyDown={handlePriceKeyDown}
               min="0"
               step="0.01"
             />
@@ -268,6 +279,7 @@ function ProductsContent() {
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               onBlur={handlePriceApply}
+              onKeyDown={handlePriceKeyDown}
               min="0"
               step="0.01"
             />
@@ -355,45 +367,65 @@ function ProductsContent() {
       {!loading && !error && products.length > 0 && (
         <div className={styles.productGrid}>
           {products.map((product) => (
-            <Link
-              key={product.id}
-              href={`/dashboard/products/${product.id}`}
-              className={styles.productCard}
-            >
-              <div className={styles.productImage}>
-                {product.imageUrl && (
-                  <img src={product.imageUrl} alt={product.name} className={styles.productImg} />
-                )}
-                {product.salePrice !== null && (
-                  <span className={styles.saleBadge}>Sale</span>
-                )}
-              </div>
-              <div className={styles.productBody}>
-                <p className={styles.productCategory}>
-                  {product.categoryLabel}
-                </p>
-                <h3 className={styles.productName}>{product.name}</h3>
-                <p className={styles.productSeller}>
-                  by {product.seller.name}
-                </p>
-                <div className={styles.productMeta}>
-                  <div>
-                    <span className={styles.productPrice}>
-                      {formatPrice(product.salePrice ?? product.price)}
-                    </span>
-                    {product.salePrice !== null && (
-                      <span className={styles.originalPrice}>
-                        {formatPrice(product.price)}
-                      </span>
-                    )}
-                  </div>
-                  <span className={styles.productRating}>
-                    <span className={styles.ratingStar}>&#9733;</span>
-                    {product.rating}
-                  </span>
+            <div key={product.id} className={styles.productCard}>
+              <Link
+                href={`/dashboard/products/${product.id}`}
+                className={styles.productCardLink}
+              >
+                <div className={styles.productImage}>
+                  {product.imageUrl && (
+                    <img src={product.imageUrl} alt={product.name} className={styles.productImg} />
+                  )}
+                  {product.salePrice !== null && (
+                    <span className={styles.saleBadge}>Sale</span>
+                  )}
                 </div>
-              </div>
-            </Link>
+                <div className={styles.productBody}>
+                  <p className={styles.productCategory}>
+                    {product.categoryLabel}
+                  </p>
+                  <h3 className={styles.productName}>{product.name}</h3>
+                  <p className={styles.productSeller}>
+                    by {product.seller.name}
+                  </p>
+                  <div className={styles.productMeta}>
+                    <div>
+                      <span className={styles.productPrice}>
+                        {formatPrice(product.salePrice ?? product.price)}
+                      </span>
+                      {product.salePrice !== null && (
+                        <span className={styles.originalPrice}>
+                          {formatPrice(product.price)}
+                        </span>
+                      )}
+                    </div>
+                    <span className={styles.productRating}>
+                      <span className={styles.ratingStar}>&#9733;</span>
+                      {product.rating}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+              {user?.role === 'BUYER' && product.stock > 0 && (
+                <button
+                  type="button"
+                  className={styles.quickAddBtn}
+                  onClick={() => {
+                    const result = addItem(product);
+                    if (result.success) {
+                      showToast(result.message);
+                    } else {
+                      showToast(result.message, 'error');
+                    }
+                  }}
+                >
+                  + Add to Cart
+                </button>
+              )}
+              {product.stock === 0 && (
+                <span className={styles.outOfStockLabel}>Out of Stock</span>
+              )}
+            </div>
           ))}
         </div>
       )}

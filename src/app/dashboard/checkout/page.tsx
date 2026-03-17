@@ -118,7 +118,15 @@ export default function CheckoutPage() {
             const price = item.product.salePrice ?? item.product.price;
             return (
               <div key={item.product.id} className={styles.summaryItem}>
-                <div className={styles.itemImage} />
+                <div className={styles.itemImage}>
+                  {item.product.imageUrl && (
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      className={styles.itemImg}
+                    />
+                  )}
+                </div>
                 <div className={styles.itemDetails}>
                   <p className={styles.itemName}>{item.product.name}</p>
                   <p className={styles.itemMeta}>

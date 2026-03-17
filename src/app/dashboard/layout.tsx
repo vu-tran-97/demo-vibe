@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { GlobalSearchBar } from '@/components/global-search/GlobalSearchBar';
+import { ToastContainer } from '@/components/toast/Toast';
 import styles from './dashboard.module.css';
 
 interface NavItem {
@@ -34,12 +37,53 @@ const NAV_BOTTOM = [
   { label: 'Settings', href: '/dashboard/settings', icon: '⚙' },
 ];
 
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Overview',
+  '/dashboard/products': 'Products',
+  '/dashboard/products/my': 'My Products',
+  '/dashboard/cart': 'Cart',
+  '/dashboard/orders': 'Orders',
+  '/dashboard/orders/sales': 'Sales',
+  '/dashboard/board': 'Board',
+  '/dashboard/settings': 'Settings',
+  '/dashboard/admin': 'Admin',
+  '/dashboard/admin/users': 'Users',
+  '/dashboard/search': 'Search',
+  '/dashboard/chat': 'Chat',
+  '/dashboard/checkout': 'Checkout',
+};
+
+function getPageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) {
+    return PAGE_TITLES[pathname];
+  }
+  // Check prefix matches for nested routes like /dashboard/products/[id]
+  const segments = pathname.split('/').filter(Boolean);
+  while (segments.length > 1) {
+    segments.pop();
+    const prefix = '/' + segments.join('/');
+    if (PAGE_TITLES[prefix]) {
+      return PAGE_TITLES[prefix];
+    }
+  }
+  return 'Overview';
+}
+
+function isNavActive(pathname: string, href: string): boolean {
+  if (href === '/dashboard') {
+    return pathname === '/dashboard';
+  }
+  return pathname === href || pathname.startsWith(href + '/');
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { user, loading, logout, refresh } = useAuth(true);
+  const { totalItems: cartCount } = useCart();
+  const pathname = usePathname();
   const [sessionExpired, setSessionExpired] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -50,6 +94,11 @@ export default function DashboardLayout({
     window.addEventListener('session-expired', handleSessionExpired);
     return () => window.removeEventListener('session-expired', handleSessionExpired);
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleReauth = useCallback(() => {
     setSessionExpired(false);
@@ -97,9 +146,16 @@ export default function DashboardLayout({
           <ul className={styles.navList}>
             {NAV_ITEMS.filter((item) => item.roles.includes(user?.role || '')).map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className={styles.navItem} onClick={() => setMobileMenuOpen(false)}>
+                <Link
+                  href={item.href}
+                  className={`${styles.navItem} ${isNavActive(pathname, item.href) ? styles.navItemActive : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <span className={styles.navIcon}>{item.icon}</span>
                   <span className={styles.navLabel}>{item.label}</span>
+                  {item.label === 'Cart' && cartCount > 0 && (
+                    <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
+                  )}
                 </Link>
               </li>
             ))}
@@ -112,7 +168,11 @@ export default function DashboardLayout({
             <ul className={styles.navList}>
               {ADMIN_ITEMS.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className={styles.navItem} onClick={() => setMobileMenuOpen(false)}>
+                  <Link
+                    href={item.href}
+                    className={`${styles.navItem} ${isNavActive(pathname, item.href) ? styles.navItemActive : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     <span className={styles.navIcon}>{item.icon}</span>
                     <span className={styles.navLabel}>{item.label}</span>
                   </Link>
@@ -124,7 +184,11 @@ export default function DashboardLayout({
 
         <div className={styles.sidebarBottom}>
           {NAV_BOTTOM.map((item) => (
-            <Link key={item.href} href={item.href} className={styles.navItem}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`${styles.navItem} ${isNavActive(pathname, item.href) ? styles.navItemActive : ''}`}
+            >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
             </Link>
@@ -165,7 +229,7 @@ export default function DashboardLayout({
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <h1 className={styles.pageTitle}>Overview</h1>
+            <h1 className={styles.pageTitle}>{getPageTitle(pathname)}</h1>
           </div>
           <div className={styles.topBarRight}>
             <GlobalSearchBar />
@@ -188,6 +252,9 @@ export default function DashboardLayout({
         onSuccess={handleReauth}
         stayOnPage
       />
+
+      {/* Global toast notifications */}
+      <ToastContainer />
     </div>
   );
 }

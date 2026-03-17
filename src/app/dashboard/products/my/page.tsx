@@ -157,7 +157,15 @@ export default function MyProductsPage() {
         <div className={styles.productList}>
           {products.map((product) => (
             <div key={product.id} className={styles.productRow}>
-              <div className={styles.productThumb} />
+              <div className={styles.productThumb}>
+                {product.imageUrl && (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className={styles.productThumbImg}
+                  />
+                )}
+              </div>
               <div className={styles.productInfo}>
                 <Link
                   href={`/dashboard/products/${product.id}`}

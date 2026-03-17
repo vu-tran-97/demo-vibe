@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { fetchProductById, deleteProduct, formatPrice, type Product } from '@/lib/products';
 import { useAuth } from '@/hooks/use-auth';
 import { useCart } from '@/hooks/use-cart';
+import { showToast } from '@/components/toast/Toast';
 import styles from './detail.module.css';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,7 +26,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [showAdded, setShowAdded] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const isOwnerOrAdmin =
@@ -78,9 +78,12 @@ export default function ProductDetailPage() {
     product.stock > 10 ? 'inStock' : product.stock > 0 ? 'lowStock' : 'out';
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
-    setShowAdded(true);
-    setTimeout(() => setShowAdded(false), 2000);
+    const result = addItem(product, quantity);
+    if (result.success) {
+      showToast(result.message);
+    } else {
+      showToast(result.message, 'error');
+    }
   };
 
   const handleDelete = async () => {
@@ -279,12 +282,6 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Added to cart feedback */}
-      {showAdded && (
-        <div className={styles.addedFeedback}>
-          Added {quantity} item{quantity > 1 ? 's' : ''} to cart
-        </div>
-      )}
     </div>
   );
 }

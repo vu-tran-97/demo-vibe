@@ -17,9 +17,11 @@ export function GlobalSearchBar() {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -123,122 +125,269 @@ export function GlobalSearchBar() {
 
   const showDropdown = isOpen && (
     (query.trim().length === 0 && recentSearches.length > 0) ||
-    (query.trim().length > 0 && (suggestions.length > 0 || loading))
+    query.trim().length > 0
   );
 
+  const handleMobileSearch = (searchQuery: string) => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    addRecentSearch(trimmed);
+    setRecentSearches(getRecentSearches());
+    setMobileOpen(false);
+    setQuery('');
+    router.push(`/dashboard/search?q=${encodeURIComponent(trimmed)}`);
+  };
+
+  const handleMobileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleMobileSearch(query);
+  };
+
   return (
-    <div className={styles.container} ref={containerRef}>
-      <form onSubmit={handleSubmit} className={styles.searchBox}>
-        <span className={styles.searchIcon}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-        </span>
-        <input
-          ref={inputRef}
-          type="text"
-          className={styles.searchInput}
-          placeholder="Search anything..."
-          value={query}
-          onChange={handleInputChange}
-          onFocus={() => {
-            setIsOpen(true);
-            setRecentSearches(getRecentSearches());
-          }}
-          onKeyDown={handleKeyDown}
-          autoComplete="off"
-        />
-        <kbd className={styles.searchKbd}>
-          {typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent) ? '\u2318' : 'Ctrl+'}K
-        </kbd>
-      </form>
+    <>
+      {/* Desktop search bar */}
+      <div className={styles.container} ref={containerRef}>
+        <form onSubmit={handleSubmit} className={styles.searchBox}>
+          <span className={styles.searchIcon}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            className={styles.searchInput}
+            placeholder="Search anything..."
+            value={query}
+            onChange={handleInputChange}
+            onFocus={() => {
+              setIsOpen(true);
+              setRecentSearches(getRecentSearches());
+            }}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+          />
+          <kbd className={styles.searchKbd}>
+            {typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent) ? '\u2318' : 'Ctrl+'}K
+          </kbd>
+        </form>
 
-      {showDropdown && (
-        <div className={styles.dropdown}>
-          {/* Recent Searches */}
-          {query.trim().length === 0 && recentSearches.length > 0 && (
-            <div className={styles.dropdownSection}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.sectionTitle}>Recent Searches</span>
-                <button
-                  type="button"
-                  className={styles.clearBtn}
-                  onClick={handleClearRecent}
-                >
-                  Clear
-                </button>
-              </div>
-              {recentSearches.map((search, index) => (
-                <button
-                  key={search}
-                  type="button"
-                  className={`${styles.dropdownItem} ${activeIndex === index ? styles.dropdownItemActive : ''}`}
-                  onClick={() => handleSearch(search)}
-                >
-                  <span className={styles.itemIcon}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                  </span>
-                  <span className={styles.itemText}>{search}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Loading */}
-          {query.trim().length > 0 && loading && (
-            <div className={styles.loadingRow}>
-              <div className={styles.miniSpinner} />
-              <span>Searching...</span>
-            </div>
-          )}
-
-          {/* Suggestions */}
-          {query.trim().length > 0 && !loading && suggestions.length > 0 && (
-            <div className={styles.dropdownSection}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.sectionTitle}>Suggestions</span>
-              </div>
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={`${suggestion.type}-${suggestion.id}`}
-                  type="button"
-                  className={`${styles.dropdownItem} ${activeIndex === index ? styles.dropdownItemActive : ''}`}
-                  onClick={() => handleSearch(suggestion.title)}
-                >
-                  <span className={styles.itemIcon}>
-                    {suggestion.type === 'product' ? (
+        {showDropdown && (
+          <div className={styles.dropdown}>
+            {/* Recent Searches */}
+            {query.trim().length === 0 && recentSearches.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionTitle}>Recent Searches</span>
+                  <button
+                    type="button"
+                    className={styles.clearBtn}
+                    onClick={handleClearRecent}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {recentSearches.map((search, index) => (
+                  <button
+                    key={search}
+                    type="button"
+                    className={`${styles.dropdownItem} ${activeIndex === index ? styles.dropdownItemActive : ''}`}
+                    onClick={() => handleSearch(search)}
+                  >
+                    <span className={styles.itemIcon}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                       </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                      </svg>
-                    )}
-                  </span>
-                  <span className={styles.itemText}>{suggestion.title}</span>
-                  <span className={styles.itemType}>{suggestion.type === 'product' ? 'Product' : 'Post'}</span>
-                </button>
-              ))}
-            </div>
-          )}
+                    </span>
+                    <span className={styles.itemText}>{search}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {/* No results */}
-          {query.trim().length > 0 && !loading && suggestions.length === 0 && (
-            <div className={styles.emptyRow}>
-              No suggestions found. Press Enter to search.
-            </div>
-          )}
+            {/* Loading */}
+            {query.trim().length > 0 && loading && (
+              <div className={styles.loadingRow}>
+                <div className={styles.miniSpinner} />
+                <span>Searching...</span>
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {query.trim().length > 0 && !loading && suggestions.length > 0 && (
+              <div className={styles.dropdownSection}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionTitle}>Suggestions</span>
+                </div>
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.type}-${suggestion.id}`}
+                    type="button"
+                    className={`${styles.dropdownItem} ${activeIndex === index ? styles.dropdownItemActive : ''}`}
+                    onClick={() => handleSearch(suggestion.title)}
+                  >
+                    <span className={styles.itemIcon}>
+                      {suggestion.type === 'product' ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                          <line x1="7" y1="7" x2="7.01" y2="7" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className={styles.itemText}>{suggestion.title}</span>
+                    <span className={styles.itemType}>{suggestion.type === 'product' ? 'Product' : 'Post'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* No results */}
+            {query.trim().length > 0 && !loading && suggestions.length === 0 && (
+              <div className={styles.emptyRow}>
+                No suggestions found. Press Enter to search.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile search trigger button */}
+      <button
+        type="button"
+        className={styles.mobileSearchBtn}
+        onClick={() => {
+          setMobileOpen(true);
+          setRecentSearches(getRecentSearches());
+          setTimeout(() => mobileInputRef.current?.focus(), 100);
+        }}
+        aria-label="Search"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+      </button>
+
+      {/* Mobile search overlay */}
+      {mobileOpen && (
+        <div className={styles.mobileOverlay}>
+          <div className={styles.mobileSearchPanel}>
+            <form onSubmit={handleMobileSubmit} className={styles.mobileSearchForm}>
+              <span className={styles.searchIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </span>
+              <input
+                ref={mobileInputRef}
+                type="text"
+                className={styles.mobileSearchInput}
+                placeholder="Search anything..."
+                value={query}
+                onChange={handleInputChange}
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className={styles.mobileCloseBtn}
+                onClick={() => {
+                  setMobileOpen(false);
+                  setQuery('');
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+
+            {/* Recent searches in mobile */}
+            {query.trim().length === 0 && recentSearches.length > 0 && (
+              <div className={styles.mobileResults}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionTitle}>Recent Searches</span>
+                  <button type="button" className={styles.clearBtn} onClick={handleClearRecent}>
+                    Clear
+                  </button>
+                </div>
+                {recentSearches.map((search) => (
+                  <button
+                    key={search}
+                    type="button"
+                    className={styles.dropdownItem}
+                    onClick={() => handleMobileSearch(search)}
+                  >
+                    <span className={styles.itemIcon}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </span>
+                    <span className={styles.itemText}>{search}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Suggestions in mobile */}
+            {query.trim().length > 0 && loading && (
+              <div className={styles.mobileResults}>
+                <div className={styles.loadingRow}>
+                  <div className={styles.miniSpinner} />
+                  <span>Searching...</span>
+                </div>
+              </div>
+            )}
+
+            {query.trim().length > 0 && !loading && suggestions.length > 0 && (
+              <div className={styles.mobileResults}>
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={`m-${suggestion.type}-${suggestion.id}`}
+                    type="button"
+                    className={styles.dropdownItem}
+                    onClick={() => handleMobileSearch(suggestion.title)}
+                  >
+                    <span className={styles.itemIcon}>
+                      {suggestion.type === 'product' ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                          <line x1="7" y1="7" x2="7.01" y2="7" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className={styles.itemText}>{suggestion.title}</span>
+                    <span className={styles.itemType}>{suggestion.type === 'product' ? 'Product' : 'Post'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {query.trim().length > 0 && !loading && suggestions.length === 0 && (
+              <div className={styles.mobileResults}>
+                <div className={styles.emptyRow}>
+                  No suggestions found. Press Enter to search.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

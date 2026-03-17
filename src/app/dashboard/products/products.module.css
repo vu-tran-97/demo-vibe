@@ -449,16 +449,55 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--duration-normal) var(--ease-out);
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 .productCard:hover {
   border-color: var(--border);
   box-shadow: var(--shadow-soft);
   transform: translateY(-4px);
+}
+
+.productCardLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  flex: 1;
+}
+
+.quickAddBtn {
+  display: block;
+  width: 100%;
+  padding: 0.625rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--ivory);
+  border: none;
+  border-top: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.quickAddBtn:hover {
+  background: var(--charcoal);
+  color: var(--white);
+}
+
+.outOfStockLabel {
+  display: block;
+  width: 100%;
+  padding: 0.625rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--ivory);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
 }
 
 .productImage {
@@ -652,15 +691,30 @@
     display: flex;
   }
 
-  /* Hide filter panel by default on mobile */
+  /* Collapsible filter panel on mobile with smooth animation */
   .filterPanel {
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: var(--space-md);
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 var(--space-lg);
+    margin-bottom: 0;
+    border: 1px solid transparent;
+    opacity: 0;
+    transition: max-height 0.3s var(--ease-out),
+                padding 0.3s var(--ease-out),
+                margin-bottom 0.3s var(--ease-out),
+                opacity 0.2s var(--ease-out),
+                border-color 0.3s var(--ease-out);
   }
 
   .filterPanelOpen {
-    display: flex;
+    max-height: 800px;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    border-color: var(--border-light);
+    opacity: 1;
   }
 
   .desktopSort {

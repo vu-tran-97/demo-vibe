@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { isLoggedIn, getUser, logout as authLogout, type UserInfo } from '@/lib/auth';
 import { CATEGORIES, fetchProducts, formatPrice, type Product } from '@/lib/products';
+import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { UserMenu } from '@/components/user-menu/UserMenu';
+import { ToastContainer, showToast } from '@/components/toast/Toast';
 import styles from './page.module.css';
 
 const ITEMS_PER_PAGE = 8;
@@ -13,10 +16,13 @@ const ITEMS_PER_PAGE = 8;
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
 export default function HomePage() {
+  const router = useRouter();
+  const { addItem: cartAddItem, totalItems: cartCount } = useCart();
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState<'login' | 'signup'>('login');
+  const [headerSearch, setHeaderSearch] = useState('');
 
   // Filters
   const [search, setSearch] = useState('');
@@ -92,6 +98,24 @@ export default function HomePage() {
     setAuthModalOpen(true);
   }
 
+  function handleHeaderSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = headerSearch.trim();
+    if (!trimmed) return;
+    if (loggedIn) {
+      router.push(`/dashboard/search?q=${encodeURIComponent(trimmed)}`);
+    } else {
+      // For non-logged-in users, filter products on the home page
+      setSearch(trimmed);
+    }
+  }
+
+  function handleHeaderSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') {
+      handleHeaderSearch(e);
+    }
+  }
+
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
@@ -107,6 +131,21 @@ export default function HomePage() {
     if (!loggedIn) {
       e.preventDefault();
       openLogin();
+    }
+  }
+
+  function handleQuickAdd(e: React.MouseEvent, product: Product) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!loggedIn) {
+      openLogin();
+      return;
+    }
+    const result = cartAddItem(product);
+    if (result.success) {
+      showToast(result.message);
+    } else {
+      showToast(result.message, 'error');
     }
   }
 
@@ -151,21 +190,28 @@ export default function HomePage() {
           </Link>
 
           {/* Search */}
-          <div className={styles.searchWrapper}>
+          <form className={styles.searchWrapper} onSubmit={handleHeaderSearch}>
             <input
               type="text"
               className={styles.searchInput}
               placeholder="Search for products, brands, and more..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={headerSearch}
+              onChange={(e) => {
+                setHeaderSearch(e.target.value);
+                // Also update local filter for non-logged-in users
+                if (!loggedIn) {
+                  setSearch(e.target.value);
+                }
+              }}
+              onKeyDown={handleHeaderSearchKeyDown}
             />
-            <button type="button" className={styles.searchBtn}>
+            <button type="submit" className={styles.searchBtn}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
               </svg>
             </button>
-          </div>
+          </form>
 
           {/* Cart + User */}
           <div className={styles.headerActions}>
@@ -177,6 +223,9 @@ export default function HomePage() {
                     <line x1="3" y1="6" x2="21" y2="6" />
                     <path d="M16 10a4 4 0 01-8 0" />
                   </svg>
+                  {cartCount > 0 && (
+                    <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
+                  )}
                 </Link>
                 <UserMenu user={user!} onLogout={handleLogout} />
               </>
@@ -334,41 +383,51 @@ export default function HomePage() {
           ) : (
             <div className={styles.productGrid}>
               {paged.map((product) => (
-                <Link
-                  key={product.id}
-                  href={getProductHref(product)}
-                  onClick={(e) => handleProductClick(e, product)}
-                  className={styles.productCard}
-                >
-                  <div className={styles.productImage}>
-                    {product.imageUrl && (
-                      <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
-                    )}
-                    {product.salePrice !== null && (
-                      <span className={styles.saleBadge}>{getDiscount(product)}%</span>
-                    )}
-                  </div>
-                  <div className={styles.productBody}>
-                    <h3 className={styles.productName}>{product.name}</h3>
-                    <p className={styles.productSeller}>{product.seller?.name || 'Unknown Seller'}</p>
-                    <div className={styles.productPricing}>
-                      <span className={styles.productPrice}>
-                        {formatPrice(product.salePrice ?? product.price)}
-                      </span>
+                <div key={product.id} className={styles.productCard}>
+                  <Link
+                    href={getProductHref(product)}
+                    onClick={(e) => handleProductClick(e, product)}
+                    className={styles.productCardLink}
+                  >
+                    <div className={styles.productImage}>
+                      {product.imageUrl && (
+                        <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
+                      )}
                       {product.salePrice !== null && (
-                        <span className={styles.productOriginal}>
-                          {formatPrice(product.price)}
-                        </span>
+                        <span className={styles.saleBadge}>{getDiscount(product)}%</span>
                       )}
                     </div>
-                    <div className={styles.productMeta}>
-                      <span className={styles.productRating}>
-                        <span className={styles.star}>★</span> {product.rating}
-                      </span>
-                      <span className={styles.productSold}>{product.sold} sold</span>
+                    <div className={styles.productBody}>
+                      <h3 className={styles.productName}>{product.name}</h3>
+                      <p className={styles.productSeller}>{product.seller?.name || 'Unknown Seller'}</p>
+                      <div className={styles.productPricing}>
+                        <span className={styles.productPrice}>
+                          {formatPrice(product.salePrice ?? product.price)}
+                        </span>
+                        {product.salePrice !== null && (
+                          <span className={styles.productOriginal}>
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
+                      </div>
+                      <div className={styles.productMeta}>
+                        <span className={styles.productRating}>
+                          <span className={styles.star}>&#9733;</span> {product.rating}
+                        </span>
+                        <span className={styles.productSold}>{product.sold} sold</span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                  {product.stock > 0 && (
+                    <button
+                      type="button"
+                      className={styles.quickAddBtn}
+                      onClick={(e) => handleQuickAdd(e, product)}
+                    >
+                      + Add to Cart
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -449,6 +508,9 @@ export default function HomePage() {
           <p>&copy; 2026 Vibe. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Toast notifications */}
+      <ToastContainer />
     </div>
   );
 }
