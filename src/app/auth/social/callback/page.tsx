@@ -26,10 +26,12 @@ function SocialCallbackContent() {
     if (accessToken && refreshToken) {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      let role = '';
       if (user) {
         localStorage.setItem('user', user);
+        try { role = JSON.parse(user).role; } catch { /* ignore */ }
       }
-      router.push('/dashboard');
+      router.push(role === 'BUYER' ? '/' : '/dashboard');
       return;
     }
 

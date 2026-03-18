@@ -396,34 +396,35 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Progress bar for non-cancelled orders */}
-                {selectedOrder.status !== 'CANCELLED' && (
-                  <div className={styles.progressBar}>
-                    {(
-                      ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED'] as const
-                    ).map((step, idx) => {
-                      const steps = [
-                        'PENDING',
-                        'PAID',
-                        'SHIPPED',
-                        'DELIVERED',
-                      ];
-                      const currentIdx = steps.indexOf(selectedOrder.status);
-                      const isCompleted = idx <= currentIdx;
-                      const isCurrent = idx === currentIdx;
-                      return (
+                {selectedOrder.status !== 'CANCELLED' && (() => {
+                  const steps = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED'] as const;
+                  let maxIdx = steps.indexOf(selectedOrder.status as typeof steps[number]);
+                  for (const item of selectedOrder.items) {
+                    const itemIdx = steps.indexOf(item.itemStatus as typeof steps[number]);
+                    if (itemIdx > maxIdx) maxIdx = itemIdx;
+                  }
+                  if (selectedOrder.statusHistory) {
+                    for (const entry of selectedOrder.statusHistory) {
+                      const histIdx = steps.indexOf(entry.newStatus as typeof steps[number]);
+                      if (histIdx > maxIdx) maxIdx = histIdx;
+                    }
+                  }
+                  return (
+                    <div className={styles.progressBar}>
+                      {steps.map((step, idx) => (
                         <div
                           key={step}
-                          className={`${styles.progressStep} ${isCompleted ? styles.stepCompleted : ''} ${isCurrent ? styles.stepCurrent : ''}`}
+                          className={`${styles.progressStep} ${idx <= maxIdx ? styles.stepCompleted : ''} ${idx === maxIdx ? styles.stepCurrent : ''}`}
                         >
                           <div className={styles.stepDot} />
                           <span className={styles.stepLabel}>
                             {STATUS_LABELS[step]}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 {/* Status History Timeline */}
                 {selectedOrder.statusHistory &&

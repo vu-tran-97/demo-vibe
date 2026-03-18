@@ -23,7 +23,10 @@ export interface OrderItem {
   unitPrice: number;
   subtotalAmount: number;
   itemStatus: ItemStatus;
+  paymentStatus?: 'UNPAID' | 'PAID';
   trackingNumber: string | null;
+  sellerId?: string;
+  sellerName?: string;
 }
 
 export interface OrderStatusHistory {
@@ -72,6 +75,7 @@ export interface SellerSaleItem {
   quantity: number;
   subtotalAmount: number;
   itemStatus: ItemStatus;
+  paymentStatus: 'UNPAID' | 'PAID';
   trackingNumber: string | null;
   buyerId: string;
   paymentMethod: PaymentMethod | null;
@@ -136,6 +140,8 @@ export interface FetchOrdersParams {
   page?: number;
   limit?: number;
   status?: string;
+  itemStatus?: string;
+  paymentStatus?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -164,6 +170,16 @@ async function apiFetch<T>(
       ...(options.headers as Record<string, string> | undefined),
     },
   });
+
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+    throw new Error('Session expired');
+  }
 
   const json = await res.json();
 
@@ -219,6 +235,15 @@ export async function payOrder(
   return apiFetch<Order>(`/api/orders/${id}/pay`, {
     method: 'PATCH',
     body: JSON.stringify({ paymentMethod }),
+  });
+}
+
+export async function confirmItemPayment(
+  orderId: string,
+  itemId: string,
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/orders/sales/${orderId}/items/${itemId}/payment`, {
+    method: 'PATCH',
   });
 }
 

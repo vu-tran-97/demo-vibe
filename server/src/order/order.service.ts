@@ -316,6 +316,20 @@ export class OrderService {
       },
     });
 
+    // Sync item-level payment status
+    const itemsToSync = await this.prisma.orderItem.findMany({
+      where: { ordrId: orderId },
+      select: { id: true, payStts: true },
+    });
+    for (const it of itemsToSync) {
+      if (it.payStts !== 'PAID') {
+        await this.prisma.orderItem.update({
+          where: { id: it.id },
+          data: { payStts: 'PAID', mdfrId: buyerId },
+        });
+      }
+    }
+
     // Record status history
     await this.prisma.orderStatusHistory.create({
       data: {
@@ -334,6 +348,71 @@ export class OrderService {
     );
 
     return this.getOrderById(orderId, buyerId, 'BUYER');
+  }
+
+  async confirmItemPayment(orderId: string, itemId: string, sellerId: string) {
+    const item = await this.prisma.orderItem.findFirst({
+      where: { id: itemId, ordrId: orderId, delYn: 'N' },
+      include: { order: true },
+    });
+
+    if (!item) {
+      throw new BusinessException(
+        'ORDER_ITEM_NOT_FOUND',
+        'Order item not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (item.sllrId !== sellerId) {
+      throw new BusinessException(
+        'ORDER_ACCESS_DENIED',
+        'You do not have access to this order item',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (item.payStts === 'PAID') {
+      throw new BusinessException(
+        'ALREADY_PAID',
+        'Payment already confirmed for this item',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: { payStts: 'PAID', mdfrId: sellerId },
+    });
+
+    // Record in status history
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        ordrId: orderId,
+        prevSttsCd: 'UNPAID',
+        newSttsCd: 'PAID',
+        chngRsn: `Payment confirmed by seller for "${item.prdNm}"`,
+        chngrId: sellerId,
+        chngDt: new Date(),
+        rgtrId: sellerId,
+      },
+    });
+
+    // If all items are paid, update order status to PAID
+    const allItems = await this.prisma.orderItem.findMany({
+      where: { ordrId: orderId, delYn: 'N' },
+    });
+    const allPaid = allItems.every((i) => i.payStts === 'PAID' || i.id === itemId);
+    if (allPaid && item.order.ordrSttsCd === 'PENDING') {
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { ordrSttsCd: 'PAID', mdfrId: sellerId },
+      });
+    }
+
+    this.logger.log(`Seller ${sellerId} confirmed payment for item ${itemId} in order ${orderId}`);
+
+    return { success: true, message: 'Payment confirmed' };
   }
 
   async updateItemStatus(
@@ -586,6 +665,11 @@ export class OrderService {
       where.ordrSttsCd = query.status;
     }
 
+    // Filter by item-level fulfillment status
+    if (query.itemStatus) {
+      where.items = { some: { itemSttsCd: query.itemStatus, delYn: 'N' } };
+    }
+
     if (query.startDate || query.endDate) {
       const dateFilter: Record<string, Date> = {};
       if (query.startDate) {
@@ -595,6 +679,37 @@ export class OrderService {
         dateFilter.lte = new Date(query.endDate);
       }
       where.rgstDt = dateFilter;
+    }
+
+    // If filtering by payment status, we need post-query filtering
+    // because MongoDB may have documents without the payStts field
+    if (query.paymentStatus) {
+      const allOrders = await this.prisma.order.findMany({
+        where,
+        orderBy: { rgstDt: 'desc' },
+        include: { items: true },
+      });
+
+      const filtered = allOrders.filter((order) => {
+        const targetPaid = query.paymentStatus === 'PAID';
+        return order.items.some((item) => {
+          const itemPaid = item.payStts === 'PAID';
+          return targetPaid ? itemPaid : !itemPaid;
+        });
+      });
+
+      const total = filtered.length;
+      const paged = filtered.slice(skip, skip + limit);
+
+      return {
+        items: paged.map((order) => this.formatOrderResponse(order)),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     }
 
     const [orders, total] = await Promise.all([
@@ -625,7 +740,11 @@ export class OrderService {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, delYn: 'N' },
       include: {
-        items: true,
+        items: {
+          include: {
+            seller: { select: { id: true, userNm: true, userNcnm: true } },
+          },
+        },
         statusHistory: {
           orderBy: { chngDt: 'desc' },
         },
@@ -711,7 +830,8 @@ export class OrderService {
       }
 
       const allowedSellerTransitions: Record<string, string[]> = {
-        PENDING: ['SHIPPED'],
+        PENDING: ['PAID', 'SHIPPED'],
+        PAID: ['SHIPPED'],
         SHIPPED: ['DELIVERED'],
       };
 
@@ -760,6 +880,22 @@ export class OrderService {
         mdfrId: userId,
       },
     });
+
+    // Sync item-level payment status when order is marked PAID
+    if (newStatus === 'PAID') {
+      const itemsToSync = await this.prisma.orderItem.findMany({
+        where: { ordrId: orderId },
+        select: { id: true, payStts: true },
+      });
+      for (const it of itemsToSync) {
+        if (it.payStts !== 'PAID') {
+          await this.prisma.orderItem.update({
+            where: { id: it.id },
+            data: { payStts: 'PAID', mdfrId: userId },
+          });
+        }
+      }
+    }
 
     // Record status history
     await this.prisma.orderStatusHistory.create({
@@ -835,6 +971,7 @@ export class OrderService {
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
         itemStatus: item.itemSttsCd,
+        paymentStatus: item.payStts,
         trackingNumber: item.trckgNo,
         buyerId: item.order.byrId,
         paymentMethod: item.order.payMthdCd,
@@ -1006,6 +1143,7 @@ export class OrderService {
       ordrQty: number;
       subtotAmt: number;
       itemSttsCd: string;
+      payStts?: string;
       trckgNo: string | null;
     }[];
   }) {
@@ -1031,6 +1169,7 @@ export class OrderService {
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
         itemStatus: item.itemSttsCd,
+        paymentStatus: item.payStts || 'UNPAID',
         trackingNumber: item.trckgNo,
       })),
     };
@@ -1059,7 +1198,9 @@ export class OrderService {
       ordrQty: number;
       subtotAmt: number;
       itemSttsCd: string;
+      payStts?: string;
       trckgNo: string | null;
+      seller?: { id: string; userNm: string; userNcnm: string | null } | null;
     }[];
     statusHistory: {
       id: string;
@@ -1087,12 +1228,14 @@ export class OrderService {
         id: item.id,
         productId: item.prdId,
         sellerId: item.sllrId,
+        sellerName: item.seller?.userNcnm || item.seller?.userNm || 'Unknown',
         productName: item.prdNm,
         productImageUrl: item.prdImgUrl,
         unitPrice: item.unitPrc,
         quantity: item.ordrQty,
         subtotalAmount: item.subtotAmt,
         itemStatus: item.itemSttsCd,
+        paymentStatus: item.payStts || 'UNPAID',
         trackingNumber: item.trckgNo,
       })),
       statusHistory: order.statusHistory.map((h) => ({

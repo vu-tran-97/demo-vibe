@@ -53,11 +53,8 @@ export default function CheckoutPage() {
         ...(shipMemo ? { shipMemo } : {}),
       };
 
-      // Create order with payment method
+      // Create order — stays PENDING until seller updates
       const order = await checkoutOrder(payload);
-
-      // Mark order as paid
-      await payOrder(order.id, paymentMethod);
 
       clearCart();
 

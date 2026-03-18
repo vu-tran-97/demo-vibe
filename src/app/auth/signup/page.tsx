@@ -1,49 +1,52 @@
-'use client';
+"use client";
 
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { signup, isLoggedIn, AuthError } from '@/lib/auth';
-import styles from '../auth.module.css';
+import { useState, useEffect, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { signup, isLoggedIn, getUser, AuthError } from "@/lib/auth";
+import styles from "../auth.module.css";
 
 export default function SignupPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace('/dashboard');
+    if (isLoggedIn()) {
+      const user = getUser();
+      router.replace(user?.role === "BUYER" ? "/" : "/dashboard");
+    }
   }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      await signup(email, password, name, nickname || undefined);
-      router.push('/dashboard');
+      const result = await signup(email, password, name, nickname || undefined);
+      router.push(result.user.role === "BUYER" ? "/" : "/dashboard");
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
-          case 'EMAIL_ALREADY_EXISTS':
-            setError('This email is already registered.');
+          case "EMAIL_ALREADY_EXISTS":
+            setError("This email is already registered.");
             break;
-          case 'NICKNAME_ALREADY_EXISTS':
-            setError('This nickname is already taken.');
+          case "NICKNAME_ALREADY_EXISTS":
+            setError("This nickname is already taken.");
             break;
-          case 'VALIDATION_ERROR':
+          case "VALIDATION_ERROR":
             setError(err.message);
             break;
           default:
             setError(err.message);
         }
       } else {
-        setError('Unable to connect to server. Please try again.');
+        setError("Unable to connect to server. Please try again.");
       }
       setLoading(false);
     }
@@ -62,9 +65,7 @@ export default function SignupPage() {
             &ldquo;Join a community where every interaction is meaningful and
             every product tells a story.&rdquo;
           </p>
-          <p className={styles.brandAttribution}>
-            — 12,000+ happy members
-          </p>
+          <p className={styles.brandAttribution}>— 12,000+ happy members</p>
         </div>
         <p className={styles.brandFooter}>
           &copy; 2026 Vibe. All rights reserved.
@@ -82,7 +83,7 @@ export default function SignupPage() {
           </div>
 
           {/* Social Login */}
-          <div className={styles.socialButtons}>
+          {/* <div className={styles.socialButtons}>
             <button type="button" className={styles.socialBtn}>
               <span className={`${styles.socialIcon} ${styles.google}`}>G</span>
               Sign up with Google
@@ -95,7 +96,7 @@ export default function SignupPage() {
               <span className={`${styles.socialIcon} ${styles.naver}`}>N</span>
               Sign up with Naver
             </button>
-          </div>
+          </div> */}
 
           {/* Divider */}
           <div className={styles.divider}>
@@ -181,19 +182,17 @@ export default function SignupPage() {
               className={styles.submitBtn}
               disabled={loading}
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
           <p className={styles.terms}>
-            By signing up, you agree to our{' '}
-            <a href="#">Terms of Service</a> and{' '}
+            By signing up, you agree to our <a href="#">Terms of Service</a> and{" "}
             <a href="#">Privacy Policy</a>.
           </p>
 
           <p className={styles.formFooter}>
-            Already have an account?{' '}
-            <Link href="/auth/login">Sign in</Link>
+            Already have an account? <Link href="/auth/login">Sign in</Link>
           </p>
         </div>
       </div>

@@ -51,7 +51,11 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
         className={styles.trigger}
         onClick={() => setOpen(!open)}
       >
-        <div className={styles.avatar}>{initials}</div>
+        <div className={styles.avatar}>
+          {user.profileImageUrl ? (
+            <img src={user.profileImageUrl} alt={displayName} className={styles.avatarImg} />
+          ) : initials}
+        </div>
         <span className={styles.triggerName}>{displayName}</span>
         <span className={`${styles.triggerArrow} ${open ? styles.triggerArrowOpen : ''}`}>
           ▾
@@ -69,17 +73,19 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
             </span>
           </div>
 
-          {/* Common Links */}
-          <div className={styles.menuSection}>
-            <Link
-              href="/dashboard"
-              className={styles.menuItem}
-              onClick={() => setOpen(false)}
-            >
-              <span className={styles.menuIcon}>◎</span>
-              <span className={styles.menuLabel}>Dashboard</span>
-            </Link>
-          </div>
+          {/* Dashboard — admin & seller only */}
+          {role !== 'BUYER' && (
+            <div className={styles.menuSection}>
+              <Link
+                href="/dashboard"
+                className={styles.menuItem}
+                onClick={() => setOpen(false)}
+              >
+                <span className={styles.menuIcon}>◎</span>
+                <span className={styles.menuLabel}>Dashboard</span>
+              </Link>
+            </div>
+          )}
 
           {/* Admin-specific */}
           {role === 'SUPER_ADMIN' && (
@@ -103,46 +109,44 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
             </div>
           )}
 
+          {/* Shopping — all roles */}
+          <div className={styles.menuSection}>
+            <Link
+              href="/orders"
+              className={styles.menuItem}
+              onClick={() => setOpen(false)}
+            >
+              <span className={styles.menuIcon}>□</span>
+              <span className={styles.menuLabel}>My Orders</span>
+            </Link>
+            <Link
+              href="/cart"
+              className={styles.menuItem}
+              onClick={() => setOpen(false)}
+            >
+              <span className={styles.menuIcon}>▣</span>
+              <span className={styles.menuLabel}>Cart</span>
+            </Link>
+          </div>
+
           {/* Seller-specific */}
           {role === 'SELLER' && (
             <div className={styles.menuSection}>
               <Link
-                href="/dashboard/orders"
-                className={styles.menuItem}
-                onClick={() => setOpen(false)}
-              >
-                <span className={styles.menuIcon}>□</span>
-                <span className={styles.menuLabel}>Purchase History</span>
-              </Link>
-              <Link
-                href="/dashboard/products"
+                href="/dashboard/products/my"
                 className={styles.menuItem}
                 onClick={() => setOpen(false)}
               >
                 <span className={styles.menuIcon}>◇</span>
                 <span className={styles.menuLabel}>My Products</span>
               </Link>
-            </div>
-          )}
-
-          {/* Buyer-specific */}
-          {role === 'BUYER' && (
-            <div className={styles.menuSection}>
               <Link
-                href="/dashboard/orders"
+                href="/dashboard/orders/sales"
                 className={styles.menuItem}
                 onClick={() => setOpen(false)}
               >
                 <span className={styles.menuIcon}>□</span>
-                <span className={styles.menuLabel}>My Orders</span>
-              </Link>
-              <Link
-                href="/dashboard/cart"
-                className={styles.menuItem}
-                onClick={() => setOpen(false)}
-              >
-                <span className={styles.menuIcon}>▣</span>
-                <span className={styles.menuLabel}>Cart</span>
+                <span className={styles.menuLabel}>Sales</span>
               </Link>
             </div>
           )}
@@ -150,7 +154,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           {/* Settings & Logout */}
           <div className={styles.menuSection}>
             <Link
-              href="/dashboard/settings"
+              href={role === 'BUYER' ? '/settings' : '/dashboard/settings'}
               className={styles.menuItem}
               onClick={() => setOpen(false)}
             >

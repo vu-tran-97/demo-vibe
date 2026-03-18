@@ -129,6 +129,7 @@
   align-items: center;
   gap: var(--space-md);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .cartBtn {
@@ -144,6 +145,7 @@
   color: var(--charcoal);
   cursor: pointer;
   transition: all var(--duration-fast);
+  white-space: nowrap;
 }
 
 .cartBtn:hover {

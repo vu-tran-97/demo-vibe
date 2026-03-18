@@ -541,11 +541,15 @@ export class AuthService {
   }
 
   private getAccessExpiration(): number {
-    return Number(this.configService.get('JWT_ACCESS_EXPIRATION', 900));
+    return Number(
+      this.configService.get('JWT_ACCESS_EXPIRATION')
+      || this.configService.get('JWT_EXPIRATION')
+      || 2592000, // 30 days
+    );
   }
 
   private getRefreshExpiration(): number {
-    return Number(this.configService.get('JWT_REFRESH_EXPIRATION', 604800));
+    return Number(this.configService.get('JWT_REFRESH_EXPIRATION') || 2592000); // 30 days
   }
 
   // --- Login log helpers ---

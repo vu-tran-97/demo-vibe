@@ -81,10 +81,13 @@ export function AuthModal({
     setLoading(true);
 
     try {
-      await login(email, password);
+      const result = await login(email, password);
       onClose();
       if (onSuccess) onSuccess();
-      if (!stayOnPage) router.push("/dashboard");
+      if (!stayOnPage) {
+        const role = result.user.role;
+        router.push(role === "BUYER" ? "/" : "/dashboard");
+      }
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
@@ -113,7 +116,7 @@ export function AuthModal({
     setLoading(true);
 
     try {
-      await signup(
+      const result = await signup(
         signupEmail,
         signupPassword,
         signupName,
@@ -121,7 +124,10 @@ export function AuthModal({
       );
       onClose();
       if (onSuccess) onSuccess();
-      if (!stayOnPage) router.push("/dashboard");
+      if (!stayOnPage) {
+        const role = result.user.role;
+        router.push(role === "BUYER" ? "/" : "/dashboard");
+      }
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
@@ -160,7 +166,7 @@ export function AuthModal({
             </div>
 
             {/* Social Login */}
-            <div className={styles.socialButtons}>
+            {/* <div className={styles.socialButtons}>
               <a
                 href={`${API_BASE}/api/auth/social/google`}
                 className={styles.socialBtn}
@@ -170,13 +176,13 @@ export function AuthModal({
                 </span>
                 Continue with Google
               </a>
-            </div>
+            </div> */}
 
-            <div className={styles.divider}>
+            {/* <div className={styles.divider}>
               <div className={styles.dividerLine} />
               <span className={styles.dividerText}>or</span>
               <div className={styles.dividerLine} />
-            </div>
+            </div> */}
 
             {error && <div className={styles.errorMessage}>{error}</div>}
 
@@ -253,7 +259,7 @@ export function AuthModal({
             </div>
 
             {/* Social Login */}
-            <div className={styles.socialButtons}>
+            {/* <div className={styles.socialButtons}>
               <a
                 href={`${API_BASE}/api/auth/social/google`}
                 className={styles.socialBtn}
@@ -289,10 +295,12 @@ export function AuthModal({
               <div className={styles.dividerLine} />
             </div>
 
+            {error && <div className={styles.errorMessage}>{error}</div>} */}
+
             {error && <div className={styles.errorMessage}>{error}</div>}
 
             <form className={styles.form} onSubmit={handleSignup}>
-              <div className={styles.formRow}>
+              <div>
                 <div className={styles.inputGroup}>
                   <label htmlFor="signup-name" className={styles.label}>
                     Full Name
@@ -308,19 +316,20 @@ export function AuthModal({
                     required
                   />
                 </div>
-                <div className={styles.inputGroup}>
-                  <label htmlFor="signup-nickname" className={styles.label}>
-                    Nickname
-                  </label>
-                  <input
-                    id="signup-nickname"
-                    type="text"
-                    className={styles.input}
-                    placeholder="Display name"
-                    value={signupNickname}
-                    onChange={(e) => setSignupNickname(e.target.value)}
-                  />
-                </div>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label htmlFor="signup-nickname" className={styles.label}>
+                  Nickname
+                </label>
+                <input
+                  id="signup-nickname"
+                  type="text"
+                  className={styles.input}
+                  placeholder="Display name"
+                  value={signupNickname}
+                  onChange={(e) => setSignupNickname(e.target.value)}
+                />
               </div>
 
               <div className={styles.inputGroup}>

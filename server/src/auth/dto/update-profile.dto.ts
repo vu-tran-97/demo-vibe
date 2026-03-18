@@ -18,9 +18,9 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(2)
   @MaxLength(30)
-  @Matches(/^[a-zA-Z0-9가-힣_]+$/, {
+  @Matches(/^[a-zA-Z0-9가-힣_ ]+$/, {
     message:
-      'Nickname can only contain Korean, English, numbers, and underscore',
+      'Nickname can only contain Korean, English, numbers, underscore, and space',
   })
   nickname?: string;
 

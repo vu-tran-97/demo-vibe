@@ -400,6 +400,7 @@ model OrderItem {
   ordrQty    Int      @map("ORDR_QTY")
   subtotAmt  Float    @map("SUBTOT_AMT")
   itemSttsCd String   @default("PENDING") @map("ITEM_STTS_CD")
+  payStts    String   @default("UNPAID") @map("PAY_STTS")
   trckgNo    String?  @map("TRCKG_NO")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
