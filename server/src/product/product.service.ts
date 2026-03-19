@@ -204,11 +204,11 @@ export class ProductService {
       );
     }
 
-    // Increment view count
-    await this.prisma.product.update({
+    // Increment view count (non-blocking, skip if replica set not available)
+    this.prisma.product.update({
       where: { id: productId },
       data: { viewCnt: { increment: 1 } },
-    });
+    }).catch(() => {});
 
     return this.formatProductResponse({
       ...product,
