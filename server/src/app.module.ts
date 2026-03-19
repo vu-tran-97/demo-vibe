@@ -6,6 +6,8 @@ import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { ProductModule } from './product/product.module';
 import { OrderModule } from './order/order.module';
+import { SearchModule } from './search/search.module';
+import { BoardModule } from './board/board.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { JwtAuthGuard } from './auth/auth.guard';
@@ -21,6 +23,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AdminModule,
     ProductModule,
     OrderModule,
+    SearchModule,
+    BoardModule,
   ],
   providers: [
     {

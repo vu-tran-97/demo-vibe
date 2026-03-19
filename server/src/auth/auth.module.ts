@@ -21,7 +21,7 @@ import { NaverProvider } from './social/providers/naver.provider';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: Number(configService.get('JWT_ACCESS_EXPIRATION', 900)),
+          expiresIn: Number(configService.get('JWT_ACCESS_EXPIRATION') || configService.get('JWT_EXPIRATION') || 2592000),
         },
       }),
     }),

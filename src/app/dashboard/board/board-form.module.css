@@ -1,0 +1,244 @@
+/* ==========================================================================
+   Board Form — Luxury Minimal (shared by create & edit)
+   ========================================================================== */
+
+.container {
+  max-width: 720px;
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--slate);
+  margin-bottom: var(--space-xl);
+  transition: color var(--duration-fast);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--charcoal);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--charcoal);
+  margin-bottom: var(--space-2xl);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  letter-spacing: 0.02em;
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+
+.input:focus {
+  border-color: var(--charcoal);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.textarea {
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--duration-fast);
+  resize: vertical;
+  min-height: 200px;
+  line-height: 1.7;
+}
+
+.textarea:focus {
+  border-color: var(--charcoal);
+}
+
+.textarea::placeholder {
+  color: var(--muted);
+}
+
+.select {
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.select:focus {
+  border-color: var(--charcoal);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-light);
+}
+
+.submitBtn {
+  flex: 1;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--charcoal);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--charcoal-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--slate);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  text-decoration: none;
+  text-align: center;
+}
+
+.cancelBtn:hover {
+  border-color: var(--charcoal);
+  color: var(--charcoal);
+}
+
+.errorMsg {
+  padding: var(--space-md) var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--error);
+  background: rgba(196, 91, 91, 0.06);
+  border: 1px solid rgba(196, 91, 91, 0.15);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5xl) var(--space-xl);
+  color: var(--muted);
+  font-size: 0.9375rem;
+  gap: var(--space-md);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-light);
+  border-top-color: var(--charcoal);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.accessDenied {
+  text-align: center;
+  padding: var(--space-5xl) var(--space-xl);
+}
+
+.accessDeniedTitle {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--charcoal);
+  margin-bottom: var(--space-sm);
+}
+
+.accessDeniedDesc {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  margin-bottom: var(--space-xl);
+}
+
+.accessDeniedLink {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gold-dark);
+  transition: color var(--duration-fast);
+  text-decoration: none;
+}
+
+.accessDeniedLink:hover {
+  color: var(--gold);
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .formActions {
+    flex-direction: column;
+  }
+}

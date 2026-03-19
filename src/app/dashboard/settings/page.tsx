@@ -1,75 +1,185 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import {
+  updateProfile,
+  changePassword,
+  deleteAccount,
+  AuthError,
+} from '@/lib/auth';
 import styles from './settings.module.css';
 
-interface NotificationSetting {
-  id: string;
-  label: string;
-  description: string;
-  enabled: boolean;
+type ToastVariant = 'success' | 'error';
+
+interface ToastState {
+  message: string;
+  variant: ToastVariant;
 }
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth(true);
+  const router = useRouter();
+  const { user, loading, logout, refresh } = useAuth(true);
 
-  const [name, setName] = useState(user?.name ?? '');
-  const [nickname, setNickname] = useState(user?.nickname ?? '');
-  const [email] = useState(user?.email ?? '');
+  const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [savedMessage, setSavedMessage] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const [notifications, setNotifications] = useState<NotificationSetting[]>([
-    { id: 'order_updates', label: 'Order Updates', description: 'Get notified when your order status changes', enabled: true },
-    { id: 'new_messages', label: 'New Messages', description: 'Receive alerts for new chat messages', enabled: true },
-    { id: 'promotions', label: 'Promotions & Offers', description: 'Special deals and discount notifications', enabled: false },
-    { id: 'community', label: 'Community Activity', description: 'Replies to your posts and mentions', enabled: true },
-    { id: 'newsletter', label: 'Weekly Newsletter', description: 'Curated picks and artisan stories', enabled: false },
-  ]);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
-  function toggleNotification(id: string) {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, enabled: !n.enabled } : n))
-    );
+  // Initialize form values from user data
+  useEffect(() => {
+    if (user) {
+      setName(user.name ?? '');
+      setNickname(user.nickname ?? '');
+      setProfileImageUrl(user.profileImageUrl ?? '');
+    }
+  }, [user]);
+
+  const showToast = useCallback(
+    (message: string, variant: ToastVariant = 'success') => {
+      setToast({ message, variant });
+      setTimeout(() => setToast(null), 4000);
+    },
+    [],
+  );
+
+  function getErrorMessage(err: unknown): string {
+    if (err instanceof AuthError) return err.message;
+    return 'An unexpected error occurred';
   }
 
-  function handleSaveProfile() {
-    if (!name.trim()) return;
-    setSavedMessage('Profile updated successfully');
-    setTimeout(() => setSavedMessage(''), 3000);
+  async function handleSaveProfile() {
+    if (!name.trim()) {
+      showToast('Name cannot be empty', 'error');
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      await updateProfile({
+        name: name.trim(),
+        nickname: nickname.trim() || undefined,
+        profileImageUrl: profileImageUrl.trim() || undefined,
+      });
+      refresh();
+      showToast('Profile updated successfully');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
-  function handleChangePassword() {
-    if (!currentPassword || !newPassword || newPassword !== confirmPassword) return;
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowPasswordSection(false);
-    setSavedMessage('Password changed successfully');
-    setTimeout(() => setSavedMessage(''), 3000);
+  async function handleChangePassword() {
+    if (!currentPassword || !newPassword) return;
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordSection(false);
+      showToast('Password changed successfully');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPasswordSaving(false);
+    }
   }
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true);
+    try {
+      await deleteAccount();
+      router.replace('/');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err), 'error');
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
+  function formatDate(dateStr: string | undefined): string {
+    if (!dateStr) return '--';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return '--';
+    }
+  }
+
+  function getRoleBadgeClass(role: string): string {
+    switch (role) {
+      case 'ADMIN':
+        return styles.roleBadgeAdmin;
+      case 'SELLER':
+        return styles.roleBadgeSeller;
+      default:
+        return styles.roleBadgeBuyer;
+    }
+  }
+
+  if (loading) return null;
 
   return (
     <div className={styles.settings}>
       {/* Header */}
       <div className={styles.pageHeader}>
         <h2 className={styles.pageTitle}>Settings</h2>
-        <p className={styles.pageSubtitle}>Manage your account and preferences</p>
+        <p className={styles.pageSubtitle}>
+          Manage your account and preferences
+        </p>
       </div>
 
       {/* Toast */}
-      {savedMessage && (
-        <div className={styles.toast}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
+      {toast && (
+        <div
+          className={`${styles.toast} ${toast.variant === 'error' ? styles.toastError : ''}`}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            {toast.variant === 'success' ? (
+              <>
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </>
+            ) : (
+              <>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </>
+            )}
           </svg>
-          {savedMessage}
+          {toast.message}
         </div>
       )}
 
@@ -80,7 +190,15 @@ export default function SettingsPage() {
 
         <div className={styles.profileHeader}>
           <div className={styles.avatar}>
-            {(user?.name ?? 'U').charAt(0)}
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt="Profile"
+                className={styles.avatarImage}
+              />
+            ) : (
+              (user?.name ?? 'U').charAt(0)
+            )}
           </div>
           <div className={styles.avatarInfo}>
             <p className={styles.avatarName}>{user?.name ?? 'User'}</p>
@@ -96,6 +214,7 @@ export default function SettingsPage() {
               className={styles.input}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="Your full name"
             />
           </div>
           <div className={styles.formGroup}>
@@ -109,29 +228,37 @@ export default function SettingsPage() {
             />
           </div>
           <div className={styles.formGroup}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label}>Profile Image URL</label>
             <input
-              type="email"
-              className={`${styles.input} ${styles.inputDisabled}`}
-              value={email}
-              disabled
+              type="url"
+              className={styles.input}
+              value={profileImageUrl}
+              onChange={(e) => setProfileImageUrl(e.target.value)}
+              placeholder="https://example.com/avatar.jpg"
             />
-            <p className={styles.inputHint}>Contact support to change your email</p>
+            <p className={styles.inputHint}>
+              Paste a direct link to your profile image
+            </p>
           </div>
         </div>
 
         <div className={styles.sectionActions}>
-          <button type="button" className={styles.primaryBtn} onClick={handleSaveProfile}>
-            Save Changes
+          <button
+            type="button"
+            className={styles.primaryBtn}
+            onClick={handleSaveProfile}
+            disabled={profileSaving}
+          >
+            {profileSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </section>
 
-      {/* Password Section */}
+      {/* Security Section */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
-            <h3 className={styles.sectionTitle}>Password</h3>
+            <h3 className={styles.sectionTitle}>Security</h3>
             <p className={styles.sectionDesc}>Change your account password</p>
           </div>
           {!showPasswordSection && (
@@ -166,6 +293,10 @@ export default function SettingsPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
               />
+              <p className={styles.inputHint}>
+                Min 8 characters with uppercase, lowercase, number, and special
+                character
+              </p>
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>Confirm New Password</label>
@@ -176,9 +307,11 @@ export default function SettingsPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
               />
-              {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                <p className={styles.inputError}>Passwords do not match</p>
-              )}
+              {newPassword &&
+                confirmPassword &&
+                newPassword !== confirmPassword && (
+                  <p className={styles.inputError}>Passwords do not match</p>
+                )}
             </div>
             <div className={styles.sectionActions}>
               <button
@@ -197,37 +330,50 @@ export default function SettingsPage() {
                 type="button"
                 className={styles.primaryBtn}
                 onClick={handleChangePassword}
-                disabled={!currentPassword || !newPassword || newPassword !== confirmPassword}
+                disabled={
+                  passwordSaving ||
+                  !currentPassword ||
+                  !newPassword ||
+                  newPassword !== confirmPassword
+                }
               >
-                Update Password
+                {passwordSaving ? 'Updating...' : 'Update Password'}
               </button>
             </div>
           </div>
         )}
       </section>
 
-      {/* Notifications Section */}
+      {/* Account Section */}
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Notifications</h3>
-        <p className={styles.sectionDesc}>Choose what you want to be notified about</p>
+        <h3 className={styles.sectionTitle}>Account</h3>
+        <p className={styles.sectionDesc}>Your account information</p>
 
-        <div className={styles.notificationList}>
-          {notifications.map((notif) => (
-            <div key={notif.id} className={styles.notificationItem}>
-              <div className={styles.notificationInfo}>
-                <span className={styles.notificationLabel}>{notif.label}</span>
-                <span className={styles.notificationDesc}>{notif.description}</span>
-              </div>
-              <button
-                type="button"
-                className={`${styles.toggle} ${notif.enabled ? styles.toggleOn : ''}`}
-                onClick={() => toggleNotification(notif.id)}
-                aria-label={`Toggle ${notif.label}`}
-              >
-                <span className={styles.toggleKnob} />
-              </button>
-            </div>
-          ))}
+        <div className={styles.accountInfoGrid}>
+          <div className={styles.accountInfoItem}>
+            <span className={styles.accountInfoLabel}>Email</span>
+            <span className={styles.accountInfoValue}>
+              {user?.email ?? '--'}
+            </span>
+          </div>
+          <div className={styles.accountInfoItem}>
+            <span className={styles.accountInfoLabel}>Role</span>
+            <span
+              className={`${styles.roleBadge} ${getRoleBadgeClass(user?.role ?? 'BUYER')}`}
+            >
+              {user?.role ?? 'BUYER'}
+            </span>
+          </div>
+          <div className={styles.accountInfoItem}>
+            <span className={styles.accountInfoLabel}>Member Since</span>
+            <span className={styles.accountInfoValue}>
+              {formatDate(
+                (user as Record<string, unknown> | null)?.createdAt as
+                  | string
+                  | undefined,
+              )}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -249,7 +395,9 @@ export default function SettingsPage() {
           <div className={styles.dangerItem}>
             <div>
               <p className={styles.dangerLabel}>Delete account</p>
-              <p className={styles.dangerDesc}>Permanently remove your account and all data</p>
+              <p className={styles.dangerDesc}>
+                Permanently remove your account and all data
+              </p>
             </div>
             <button
               type="button"
@@ -264,10 +412,20 @@ export default function SettingsPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className={styles.modalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => !deleteLoading && setShowDeleteConfirm(false)}
+        >
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalIcon}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -275,18 +433,25 @@ export default function SettingsPage() {
             </div>
             <h3 className={styles.modalTitle}>Delete your account?</h3>
             <p className={styles.modalDesc}>
-              This action cannot be undone. All your data, orders, and messages will be permanently deleted.
+              This action cannot be undone. All your data, orders, and messages
+              will be permanently deleted.
             </p>
             <div className={styles.modalActions}>
               <button
                 type="button"
                 className={styles.outlineBtn}
                 onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleteLoading}
               >
                 Cancel
               </button>
-              <button type="button" className={`${styles.dangerBtn} ${styles.dangerBtnRed}`}>
-                Yes, Delete My Account
+              <button
+                type="button"
+                className={`${styles.dangerBtn} ${styles.dangerBtnRed}`}
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Yes, Delete My Account'}
               </button>
             </div>
           </div>

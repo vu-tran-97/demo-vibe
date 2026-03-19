@@ -10,6 +10,8 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const EMAIL_VERIFICATION_HOURS = 24;
@@ -344,6 +346,140 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
+  // --- User Settings ---
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check nickname uniqueness (exclude self and soft-deleted users)
+    if (dto.nickname && dto.nickname !== user.userNcnm) {
+      const existingNickname = await this.prisma.user.findFirst({
+        where: {
+          userNcnm: dto.nickname,
+          delYn: 'N',
+          id: { not: userId },
+        },
+      });
+      if (existingNickname) {
+        throw new BusinessException(
+          'NICKNAME_ALREADY_EXISTS',
+          'Nickname is already taken',
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    const updateData: Record<string, unknown> = { mdfrId: userId };
+    if (dto.name !== undefined) updateData.userNm = dto.name;
+    if (dto.nickname !== undefined) updateData.userNcnm = dto.nickname;
+    if (dto.profileImageUrl !== undefined)
+      updateData.prflImgUrl = dto.profileImageUrl;
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    return this.formatUserResponse(updated);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user || !user.userPswd) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const isCurrentValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.userPswd,
+    );
+    if (!isCurrentValid) {
+      throw new BusinessException(
+        'INVALID_CURRENT_PASSWORD',
+        'Current password is incorrect',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const isSamePassword = await bcrypt.compare(
+      dto.newPassword,
+      user.userPswd,
+    );
+    if (isSamePassword) {
+      throw new BusinessException(
+        'SAME_PASSWORD',
+        'New password must be different from current password',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      dto.newPassword,
+      BCRYPT_SALT_ROUNDS,
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { userPswd: hashedPassword, mdfrId: userId },
+    });
+
+    // Revoke all refresh tokens for security
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { rvkdYn: 'Y' },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async deleteAccount(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, delYn: 'N' },
+    });
+
+    if (!user) {
+      throw new BusinessException(
+        'USER_NOT_FOUND',
+        'User not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        delYn: 'Y',
+        userSttsCd: 'INAC',
+        mdfrId: userId,
+      },
+    });
+
+    // Revoke all refresh tokens
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { rvkdYn: 'Y' },
+    });
+
+    return { message: 'Account deleted successfully' };
+  }
+
   // --- Token helpers ---
 
   async generateTokens(
@@ -405,11 +541,15 @@ export class AuthService {
   }
 
   private getAccessExpiration(): number {
-    return Number(this.configService.get('JWT_ACCESS_EXPIRATION', 900));
+    return Number(
+      this.configService.get('JWT_ACCESS_EXPIRATION')
+      || this.configService.get('JWT_EXPIRATION')
+      || 2592000, // 30 days
+    );
   }
 
   private getRefreshExpiration(): number {
-    return Number(this.configService.get('JWT_REFRESH_EXPIRATION', 604800));
+    return Number(this.configService.get('JWT_REFRESH_EXPIRATION') || 2592000); // 30 days
   }
 
   // --- Login log helpers ---

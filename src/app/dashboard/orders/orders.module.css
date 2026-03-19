@@ -115,6 +115,13 @@
   color: var(--muted);
 }
 
+.orderTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* ── Status Badge ── */
 .statusBadge {
   font-size: 0.6875rem;
@@ -147,6 +154,11 @@
 .statusCancelled {
   color: var(--error);
   background: rgba(200, 80, 80, 0.08);
+}
+
+.statusPaid {
+  color: #2E7D32;
+  background: rgba(46, 125, 50, 0.08);
 }
 
 /* ── Order Items ── */
@@ -399,6 +411,146 @@
 .stepCompleted .stepLabel {
   color: var(--charcoal);
   font-weight: 500;
+}
+
+/* ── Seller Group ── */
+.sellerGroup {
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.sellerGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ivory);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.sellerGroupName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.sellerGroupIcon {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+.sellerGroupStatus {
+  flex-shrink: 0;
+}
+
+.sellerGroupItems {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.itemStatusBadge {
+  composes: statusBadge;
+  margin-left: var(--space-sm);
+}
+
+/* ── Item Tabs ── */
+.itemTabs {
+  display: flex;
+  gap: 2px;
+  background: var(--ivory-warm);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  margin-bottom: var(--space-lg);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.itemTab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--slate);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast);
+}
+
+.itemTab:hover {
+  color: var(--charcoal);
+}
+
+.itemTabActive {
+  background: var(--white);
+  color: var(--charcoal);
+  font-weight: 500;
+  box-shadow: var(--shadow-subtle);
+}
+
+.itemTabImg {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--ivory);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.itemTabName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Item Detail ── */
+.itemDetail {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background: var(--ivory);
+  border-radius: var(--radius-lg);
+}
+
+.itemDetail .modalItem {
+  padding: 0 0 var(--space-md) 0;
+}
+
+.itemDetail .progressBar {
+  margin-bottom: var(--space-md);
+}
+
+.trackingInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+
+.trackingLabel {
+  color: var(--slate);
+  font-weight: 500;
+}
+
+.trackingValue {
+  color: var(--charcoal);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* ── Modal Items ── */

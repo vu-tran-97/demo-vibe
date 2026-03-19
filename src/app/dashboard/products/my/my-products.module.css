@@ -6,7 +6,106 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Search & Filter Toolbar ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.searchForm {
+  display: flex;
+  flex: 1;
+  min-width: 200px;
+  max-width: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color var(--duration-fast);
+}
+
+.searchForm:focus-within {
+  border-color: var(--gold);
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  border: none;
+  outline: none;
+  background: var(--white);
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.searchBtn {
+  padding: 0.5rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--charcoal);
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.searchBtn:hover {
+  background: var(--charcoal-light);
+}
+
+.statusSelect {
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.statusSelect:focus {
+  border-color: var(--gold);
+}
+
+.clearFiltersBtn {
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--error);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--duration-fast);
+}
+
+.clearFiltersBtn:hover {
+  opacity: 0.7;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchForm {
+    max-width: 100%;
+  }
 }
 
 .pageTitle {
@@ -151,6 +250,16 @@
   border-radius: var(--radius-md);
   background: linear-gradient(145deg, #E8E4DE, #D4CFC6);
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.productThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
 }
 
 .productInfo {
@@ -170,6 +279,17 @@
 
 .productName:hover {
   color: var(--gold-dark);
+}
+
+.productSeller {
+  font-size: 0.8125rem;
+  color: var(--slate);
+  margin-bottom: 4px;
+}
+
+.productSeller strong {
+  color: var(--charcoal);
+  font-weight: 600;
 }
 
 .productMeta {

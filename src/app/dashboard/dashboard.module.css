@@ -117,10 +117,14 @@
   color: var(--charcoal);
 }
 
-.navItem:first-child {
+.navItemActive {
   background: var(--ivory-warm);
   color: var(--charcoal);
   font-weight: 500;
+}
+
+.navItemActive .navIcon {
+  opacity: 1;
 }
 
 .navIcon {
@@ -132,6 +136,22 @@
 
 .navLabel {
   letter-spacing: 0.01em;
+}
+
+.cartBadge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--gold-dark);
+  border-radius: 10px;
+  line-height: 1;
 }
 
 /* ── Admin Section ── */
@@ -181,6 +201,13 @@
   font-size: 0.875rem;
   font-weight: 500;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.userAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .userInfo {
@@ -240,50 +267,7 @@
   gap: var(--space-md);
 }
 
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 0.5rem 0.875rem;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-width: 260px;
-  transition: border-color var(--duration-fast);
-}
-
-.searchBox:focus-within {
-  border-color: var(--charcoal);
-}
-
-.searchIcon {
-  font-size: 1rem;
-  color: var(--muted);
-}
-
-.searchInput {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: var(--charcoal);
-  outline: none;
-}
-
-.searchInput::placeholder {
-  color: var(--muted);
-}
-
-.searchKbd {
-  font-family: var(--font-body);
-  font-size: 0.6875rem;
-  color: var(--muted);
-  background: var(--ivory);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-}
+/* Search box styles moved to global-search component */
 
 .notifBtn {
   position: relative;
@@ -630,6 +614,117 @@
   color: var(--charcoal);
 }
 
+/* ── Quick Actions ── */
+.quickActions {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.quickActionBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.625rem var(--space-lg);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  text-decoration: none;
+}
+
+.quickActionBtn:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow-subtle);
+  color: var(--gold-dark);
+}
+
+.quickActionIcon {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+/* ── Stat Icon ── */
+.statIcon {
+  font-size: 1.25rem;
+  color: var(--gold);
+  margin-bottom: var(--space-sm);
+  opacity: 0.8;
+}
+
+/* ── Empty Card ── */
+.emptyCard {
+  padding: var(--space-2xl) var(--space-xl);
+  text-align: center;
+}
+
+.emptyText {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-bottom: var(--space-md);
+}
+
+.emptyLink {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gold-dark);
+  transition: color var(--duration-fast);
+}
+
+.emptyLink:hover {
+  color: var(--gold);
+}
+
+/* ── Activity List ── */
+.activityList {
+  padding: var(--space-sm) 0;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+}
+
+.activityDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityDesc {
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  line-height: 1.5;
+}
+
+.activityTime {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  margin-top: 2px;
+  display: block;
+}
+
+/* ── Status: Cancelled ── */
+.statusCancelled {
+  color: var(--error);
+  background: rgba(196, 91, 91, 0.08);
+}
+
 /* ── Loading Screen ── */
 .loadingScreen {
   min-height: 100vh;
@@ -719,9 +814,19 @@
     padding: var(--space-md) var(--space-lg);
   }
 
-  .searchBox {
-    display: none;
+  .quickActions {
+    flex-direction: column;
   }
+
+  .quickActionBtn {
+    justify-content: center;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+
+  /* Search box hides itself on mobile via its own module CSS */
 }
 
 @keyframes fadeIn {

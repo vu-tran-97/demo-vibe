@@ -10,7 +10,7 @@ export class ListProductsQueryDto {
   limit?: string;
 
   @IsOptional()
-  @IsIn(['CERAMICS', 'TEXTILES', 'ART', 'JEWELRY', 'HOME', 'FOOD'])
+  @IsString()
   category?: string;
 
   @IsOptional()
@@ -22,7 +22,7 @@ export class ListProductsQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsIn(['newest', 'price-low', 'price-high', 'popular'])
+  @IsIn(['newest', 'price-low', 'price-high', 'popular', 'rating'])
   sort?: string;
 
   @IsOptional()
@@ -32,4 +32,16 @@ export class ListProductsQueryDto {
   @IsOptional()
   @IsNumberString()
   maxPrice?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  minRating?: string;
+
+  @IsOptional()
+  @IsString()
+  inStock?: string;
+
+  @IsOptional()
+  @IsString()
+  categories?: string;
 }

@@ -112,54 +112,244 @@
   background: var(--charcoal-light);
 }
 
-/* ── Filters ── */
-.filters {
+/* ── Mobile Filter Toggle ── */
+.mobileFilterToggle {
+  display: none;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  align-items: center;
+}
+
+.filterToggleBtn {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
-}
-
-.categoryFilters {
-  display: flex;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-}
-
-.categoryBtn {
+  gap: var(--space-sm);
   padding: 0.5rem 1rem;
   font-family: var(--font-body);
   font-size: 0.8125rem;
-  font-weight: 400;
-  color: var(--slate);
+  font-weight: 500;
+  color: var(--charcoal);
   background: var(--white);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: all var(--duration-fast);
+}
+
+.filterToggleBtn:hover {
+  border-color: var(--charcoal);
+}
+
+/* ── Filter Panel ── */
+.filterPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+}
+
+.filterGroup {
+  min-width: 160px;
+}
+
+.filterGroupTitle {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Category Checkboxes ── */
+.categoryCheckboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.375rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--slate);
+  cursor: pointer;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
   white-space: nowrap;
 }
 
-.categoryBtn:hover {
+.checkboxLabel:hover {
   border-color: var(--border);
   color: var(--charcoal);
 }
 
-.categoryBtnActive {
+.checkboxLabel:has(.checkbox:checked) {
   background: var(--charcoal);
   color: var(--white);
   border-color: var(--charcoal);
 }
 
-.categoryBtnActive:hover {
-  background: var(--charcoal-light);
-  color: var(--white);
-  border-color: var(--charcoal-light);
+.checkbox {
+  display: none;
 }
 
-.sortSelect {
+.checkboxText {
+  pointer-events: none;
+}
+
+/* ── Price Range ── */
+.priceRange {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.priceInput {
+  width: 90px;
+  padding: 0.5rem 0.625rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+
+.priceInput:focus {
+  border-color: var(--charcoal);
+}
+
+.priceInput::placeholder {
+  color: var(--muted);
+}
+
+.priceSep {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* ── Rating Buttons ── */
+.ratingButtons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.ratingBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.375rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--slate);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.ratingBtn:hover {
+  border-color: var(--border);
+  color: var(--charcoal);
+}
+
+.ratingBtnActive {
+  background: var(--charcoal);
+  color: var(--white);
+  border-color: var(--charcoal);
+}
+
+.ratingBtnActive .ratingStar {
+  color: var(--gold);
+}
+
+/* ── Toggle Switch ── */
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  cursor: pointer;
+}
+
+.toggleText {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--border);
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  padding: 0;
+}
+
+.toggleSwitchOn {
+  background: var(--charcoal);
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: var(--white);
+  border-radius: 50%;
+  transition: transform var(--duration-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggleSwitchOn .toggleKnob {
+  transform: translateX(18px);
+}
+
+/* ── Clear Filters ── */
+.clearFiltersBtn {
+  padding: 0.5rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  align-self: flex-end;
+}
+
+.clearFiltersBtn:hover {
+  color: var(--charcoal);
+  border-color: var(--charcoal);
+}
+
+/* ── Desktop Sort (inside filter panel) ── */
+.desktopSort {
   margin-left: auto;
+}
+
+.sortSelectInline {
   padding: 0.5rem 0.875rem;
   font-family: var(--font-body);
   font-size: 0.8125rem;
@@ -170,6 +360,25 @@
   cursor: pointer;
   outline: none;
   transition: border-color var(--duration-fast);
+}
+
+.sortSelectInline:focus {
+  border-color: var(--charcoal);
+}
+
+/* Legacy sort select (hidden on desktop, visible on mobile via toggle row) */
+.sortSelect {
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--slate);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--duration-fast);
+  margin-left: auto;
 }
 
 .sortSelect:focus {
@@ -240,16 +449,55 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--duration-normal) var(--ease-out);
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 .productCard:hover {
   border-color: var(--border);
   box-shadow: var(--shadow-soft);
   transform: translateY(-4px);
+}
+
+.productCardLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  flex: 1;
+}
+
+.quickAddBtn {
+  display: block;
+  width: 100%;
+  padding: 0.625rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--ivory);
+  border: none;
+  border-top: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.quickAddBtn:hover {
+  background: var(--charcoal);
+  color: var(--white);
+}
+
+.outOfStockLabel {
+  display: block;
+  width: 100%;
+  padding: 0.625rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--ivory);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
 }
 
 .productImage {
@@ -405,10 +653,25 @@
   color: var(--muted);
 }
 
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* ── Responsive ── */
 @media (max-width: 1023px) {
   .productGrid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .filterPanel {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .desktopSort {
+    margin-left: 0;
   }
 }
 
@@ -423,13 +686,39 @@
     width: 100%;
   }
 
-  .filters {
-    flex-direction: column;
-    align-items: flex-start;
+  /* Show mobile filter toggle */
+  .mobileFilterToggle {
+    display: flex;
   }
 
-  .sortSelect {
-    margin-left: 0;
+  /* Collapsible filter panel on mobile with smooth animation */
+  .filterPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 var(--space-lg);
+    margin-bottom: 0;
+    border: 1px solid transparent;
+    opacity: 0;
+    transition: max-height 0.3s var(--ease-out),
+                padding 0.3s var(--ease-out),
+                margin-bottom 0.3s var(--ease-out),
+                opacity 0.2s var(--ease-out),
+                border-color 0.3s var(--ease-out);
+  }
+
+  .filterPanelOpen {
+    max-height: 800px;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    border-color: var(--border-light);
+    opacity: 1;
+  }
+
+  .desktopSort {
+    display: none;
   }
 
   .productGrid {
@@ -439,5 +728,10 @@
 
   .searchForm {
     flex-direction: column;
+  }
+
+  .priceInput {
+    width: 100%;
+    flex: 1;
   }
 }

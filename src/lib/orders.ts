@@ -1,13 +1,18 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-// ── Types ──
+// -- Types --
 
 export type OrderStatus =
   | 'PENDING'
+  | 'PAID'
   | 'CONFIRMED'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED';
+
+export type ItemStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED';
+
+export type PaymentMethod = 'BANK_TRANSFER' | 'EMAIL_INVOICE';
 
 export interface OrderItem {
   id: string;
@@ -16,49 +21,68 @@ export interface OrderItem {
   productImageUrl: string | null;
   quantity: number;
   unitPrice: number;
-  totalPrice: number;
+  subtotalAmount: number;
+  itemStatus: ItemStatus;
+  paymentStatus?: 'UNPAID' | 'PAID';
+  trackingNumber: string | null;
+  sellerId?: string;
+  sellerName?: string;
 }
 
 export interface OrderStatusHistory {
   id: string;
-  status: OrderStatus;
+  previousStatus: string;
+  newStatus: string;
   reason: string | null;
-  createdAt: string;
+  changedBy: string;
+  changedAt: string;
 }
 
 export interface Order {
   id: string;
-  orderNumber: string;
+  orderNo: string;
   status: OrderStatus;
   totalAmount: number;
-  shipAddr: string | null;
-  shipRcvrNm: string | null;
-  shipTelno: string | null;
-  shipMemo: string | null;
+  paymentMethod: PaymentMethod | null;
+  shippingAddress: string | null;
+  receiverName: string | null;
+  receiverPhone: string | null;
+  shippingMemo: string | null;
   createdAt: string;
-  updatedAt: string;
   items: OrderItem[];
   statusHistory?: OrderStatusHistory[];
 }
 
 export interface OrderListResponse {
-  orders: Order[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  items: Order[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface SellerSaleItem {
   id: string;
-  orderNumber: string;
-  status: OrderStatus;
-  buyerName: string;
+  orderId: string;
+  orderNo: string;
+  orderStatus: OrderStatus;
+  productId: string;
   productName: string;
-  quantity: number;
+  productImageUrl: string | null;
   unitPrice: number;
-  totalPrice: number;
-  createdAt: string;
+  quantity: number;
+  subtotalAmount: number;
+  itemStatus: ItemStatus;
+  paymentStatus: 'UNPAID' | 'PAID';
+  trackingNumber: string | null;
+  buyerId: string;
+  paymentMethod: PaymentMethod | null;
+  shipAddr: string | null;
+  shipReceiverName: string | null;
+  shipPhone: string | null;
+  orderedAt: string;
 }
 
 export interface SellerSalesResponse {
@@ -79,8 +103,33 @@ export interface SellerSummary {
   }[];
 }
 
+export interface SellerOrderDetail {
+  id: string;
+  orderNo: string;
+  buyer: { id: string; name: string; email: string } | null;
+  totalAmount: number;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod | null;
+  shippingAddress: string | null;
+  receiverName: string | null;
+  receiverPhone: string | null;
+  shippingMemo: string | null;
+  createdAt: string;
+  items: OrderItem[];
+  statusHistory: OrderStatusHistory[];
+}
+
 export interface CreateOrderPayload {
   items: { productId: string; quantity: number }[];
+  shipAddr?: string;
+  shipRcvrNm?: string;
+  shipTelno?: string;
+  shipMemo?: string;
+}
+
+export interface CheckoutPayload {
+  items: { productId: string; quantity: number }[];
+  paymentMethod: PaymentMethod;
   shipAddr?: string;
   shipRcvrNm?: string;
   shipTelno?: string;
@@ -90,12 +139,14 @@ export interface CreateOrderPayload {
 export interface FetchOrdersParams {
   page?: number;
   limit?: number;
-  status?: OrderStatus;
+  status?: string;
+  itemStatus?: string;
+  paymentStatus?: string;
   startDate?: string;
   endDate?: string;
 }
 
-// ── Helpers ──
+// -- Helpers --
 
 function getAuthHeaders(): Record<string, string> {
   const token =
@@ -120,6 +171,16 @@ async function apiFetch<T>(
     },
   });
 
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+    throw new Error('Session expired');
+  }
+
   const json = await res.json();
 
   if (!json.success) {
@@ -140,7 +201,7 @@ function buildQueryString(params: object): string {
   return qs ? `?${qs}` : '';
 }
 
-// ── API Functions ──
+// -- API Functions --
 
 export async function fetchBuyerOrders(
   params: FetchOrdersParams = {},
@@ -160,6 +221,32 @@ export async function createOrder(data: CreateOrderPayload): Promise<Order> {
   });
 }
 
+export async function checkoutOrder(data: CheckoutPayload): Promise<Order> {
+  return apiFetch<Order>('/api/orders/checkout', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function payOrder(
+  id: string,
+  paymentMethod: PaymentMethod,
+): Promise<Order> {
+  return apiFetch<Order>(`/api/orders/${id}/pay`, {
+    method: 'PATCH',
+    body: JSON.stringify({ paymentMethod }),
+  });
+}
+
+export async function confirmItemPayment(
+  orderId: string,
+  itemId: string,
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch(`/api/orders/sales/${orderId}/items/${itemId}/payment`, {
+    method: 'PATCH',
+  });
+}
+
 export async function updateOrderStatus(
   id: string,
   status: OrderStatus,
@@ -172,12 +259,65 @@ export async function updateOrderStatus(
 }
 
 export async function fetchSellerSales(
-  params: FetchOrdersParams = {},
+  params: FetchOrdersParams | Record<string, unknown> = {},
 ): Promise<SellerSalesResponse> {
   const qs = buildQueryString(params);
-  return apiFetch<SellerSalesResponse>(`/api/orders/sales${qs}`);
+  const raw = await apiFetch<{
+    items: SellerSaleItem[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }>(`/api/orders/sales${qs}`);
+
+  return {
+    sales: raw.items,
+    total: raw.pagination.total,
+    page: raw.pagination.page,
+    limit: raw.pagination.limit,
+    totalPages: raw.pagination.totalPages,
+  };
 }
 
 export async function fetchSellerSummary(): Promise<SellerSummary> {
   return apiFetch<SellerSummary>('/api/orders/sales/summary');
+}
+
+export async function fetchSellerOrderDetail(
+  id: string,
+): Promise<SellerOrderDetail> {
+  return apiFetch<SellerOrderDetail>(`/api/orders/sales/${id}`);
+}
+
+export async function updateItemStatus(
+  orderId: string,
+  itemId: string,
+  status: ItemStatus,
+  trackingNumber?: string,
+): Promise<OrderItem> {
+  return apiFetch<OrderItem>(
+    `/api/orders/sales/${orderId}/items/${itemId}/status`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status,
+        ...(trackingNumber ? { trackingNumber } : {}),
+      }),
+    },
+  );
+}
+
+export async function bulkUpdateItemStatus(
+  itemIds: string[],
+  status: ItemStatus,
+  trackingNumber?: string,
+): Promise<{ updated: number; failed: number }> {
+  return apiFetch<{ updated: number; failed: number }>(
+    '/api/orders/sales/bulk-status',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        itemIds,
+        status,
+        ...(trackingNumber ? { trackingNumber } : {}),
+      }),
+    },
+  );
 }

@@ -6,20 +6,25 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   fetchSellerSales,
   fetchSellerSummary,
-  updateOrderStatus,
-  type OrderStatus,
+  fetchSellerOrderDetail,
+  updateItemStatus,
+  confirmItemPayment,
+  bulkUpdateItemStatus,
+  type ItemStatus,
   type SellerSaleItem,
   type SellerSalesResponse,
   type SellerSummary,
+  type SellerOrderDetail,
 } from '@/lib/orders';
 import styles from './sales.module.css';
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
+const ITEM_STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
   CONFIRMED: 'Confirmed',
   SHIPPED: 'Shipped',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
+  PAID: 'Paid',
 };
 
 const STATUS_FILTERS = [
@@ -28,8 +33,12 @@ const STATUS_FILTERS = [
   'CONFIRMED',
   'SHIPPED',
   'DELIVERED',
-  'CANCELLED',
 ] as const;
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  BANK_TRANSFER: 'Bank Transfer',
+  EMAIL_INVOICE: 'Email Invoice',
+};
 
 export default function SalesPage() {
   const { user } = useAuth(true);
@@ -48,6 +57,16 @@ export default function SalesPage() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkTracking, setBulkTracking] = useState('');
+
+  // Detail modal
+  const [detailOrder, setDetailOrder] = useState<SellerOrderDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -55,7 +74,7 @@ export default function SalesPage() {
       const data = await fetchSellerSummary();
       setSummary(data);
     } catch {
-      // Summary is optional; do not block the page
+      // Summary is optional
     } finally {
       setSummaryLoading(false);
     }
@@ -95,15 +114,18 @@ export default function SalesPage() {
 
   useEffect(() => {
     setPage(1);
+    setSelectedIds(new Set());
   }, [statusFilter, startDate, endDate]);
 
-  async function handleUpdateStatus(
-    orderId: string,
-    newStatus: OrderStatus,
+  async function handleUpdateItemStatus(
+    sale: SellerSaleItem,
+    newStatus: ItemStatus,
   ) {
-    setUpdatingId(orderId);
+    setUpdatingId(sale.id);
     try {
-      await updateOrderStatus(orderId, newStatus);
+      const tracking =
+        newStatus === 'SHIPPED' ? trackingInputs[sale.id] : undefined;
+      await updateItemStatus(sale.orderId, sale.id, newStatus, tracking);
       loadSales();
       loadSummary();
     } catch (err) {
@@ -113,7 +135,77 @@ export default function SalesPage() {
     }
   }
 
-  function getStatusClass(status: OrderStatus) {
+  async function handleBulkAction(newStatus: ItemStatus) {
+    if (selectedIds.size === 0) return;
+    setBulkProcessing(true);
+    try {
+      const tracking =
+        newStatus === 'SHIPPED' && bulkTracking ? bulkTracking : undefined;
+      const result = await bulkUpdateItemStatus(
+        Array.from(selectedIds),
+        newStatus,
+        tracking,
+      );
+      alert(`Updated: ${result.updated}, Failed: ${result.failed}`);
+      setSelectedIds(new Set());
+      setBulkTracking('');
+      loadSales();
+      loadSummary();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Bulk update failed');
+    } finally {
+      setBulkProcessing(false);
+    }
+  }
+
+  async function handleOpenDetail(orderId: string) {
+    setDetailLoading(true);
+    try {
+      const detail = await fetchSellerOrderDetail(orderId);
+      setDetailOrder(detail);
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : 'Failed to load order detail',
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function handleConfirmPayment(sale: SellerSaleItem) {
+    setUpdatingId(sale.id);
+    try {
+      await confirmItemPayment(sale.orderId, sale.id);
+      loadSales();
+      loadSummary();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to confirm payment');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === sales.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sales.map((s) => s.id)));
+    }
+  }
+
+  function getItemStatusClass(status: string) {
     switch (status) {
       case 'PENDING':
         return styles.statusPending;
@@ -125,6 +217,8 @@ export default function SalesPage() {
         return styles.statusDelivered;
       case 'CANCELLED':
         return styles.statusCancelled;
+      case 'PAID':
+        return styles.statusPaid;
       default:
         return '';
     }
@@ -135,6 +229,16 @@ export default function SalesPage() {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+    });
+  }
+
+  function formatDateTime(dateStr: string) {
+    return new Date(dateStr).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
@@ -208,7 +312,7 @@ export default function SalesPage() {
               className={`${styles.tab} ${statusFilter === s ? styles.tabActive : ''}`}
               onClick={() => setStatusFilter(s)}
             >
-              {s === 'ALL' ? 'All' : STATUS_LABELS[s as OrderStatus]}
+              {s === 'ALL' ? 'All' : ITEM_STATUS_LABELS[s]}
             </button>
           ))}
         </div>
@@ -284,69 +388,193 @@ export default function SalesPage() {
               </p>
             </div>
           ) : (
-            sales.map((sale, i) => (
-              <div
-                key={sale.id}
-                className={`${styles.saleCard} animate-fade-up delay-${Math.min(i + 1, 8)}`}
-              >
-                <div className={styles.saleInfo}>
-                  <p className={styles.saleOrderNum}>{sale.orderNumber}</p>
-                  <p className={styles.saleProduct}>{sale.productName}</p>
-                  <p className={styles.saleBuyer}>
-                    Buyer: {sale.buyerName}
-                  </p>
-                  <p className={styles.saleQty}>
-                    Qty: {sale.quantity} x ${sale.unitPrice.toFixed(2)}
-                  </p>
-                </div>
-
-                <div className={styles.saleMeta}>
-                  <span className={styles.salePrice}>
-                    ${sale.totalPrice.toFixed(2)}
-                  </span>
-                  <span className={styles.saleDate}>
-                    {formatDate(sale.createdAt)}
-                  </span>
-                  <span
-                    className={`${styles.statusBadge} ${getStatusClass(sale.status)}`}
-                  >
-                    {STATUS_LABELS[sale.status]}
-                  </span>
-                </div>
-
-                <div className={styles.saleActions}>
-                  {sale.status === 'PENDING' && (
-                    <button
-                      type="button"
-                      className={styles.statusBtn}
-                      disabled={updatingId === sale.id}
-                      onClick={() =>
-                        handleUpdateStatus(sale.id, 'SHIPPED')
-                      }
-                    >
-                      {updatingId === sale.id
-                        ? 'Updating...'
-                        : 'Mark Shipped'}
-                    </button>
-                  )}
-                  {sale.status === 'SHIPPED' && (
-                    <button
-                      type="button"
-                      className={styles.statusBtn}
-                      disabled={updatingId === sale.id}
-                      onClick={() =>
-                        handleUpdateStatus(sale.id, 'DELIVERED')
-                      }
-                    >
-                      {updatingId === sale.id
-                        ? 'Updating...'
-                        : 'Mark Delivered'}
-                    </button>
-                  )}
-                </div>
+            <>
+              {/* Select All */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <input
+                  type="checkbox"
+                  className={styles.checkbox}
+                  checked={selectedIds.size === sales.length && sales.length > 0}
+                  onChange={toggleSelectAll}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--slate)' }}>
+                  Select all
+                </span>
               </div>
-            ))
+
+              {sales.map((sale, i) => (
+                <div
+                  key={sale.id}
+                  className={`${styles.saleCard} ${selectedIds.has(sale.id) ? styles.saleCardSelected : ''} animate-fade-up delay-${Math.min(i + 1, 8)}`}
+                >
+                  {/* Checkbox */}
+                  <div className={styles.checkboxCol}>
+                    <input
+                      type="checkbox"
+                      className={styles.checkbox}
+                      checked={selectedIds.has(sale.id)}
+                      onChange={() => toggleSelect(sale.id)}
+                    />
+                  </div>
+
+                  {/* Info */}
+                  <div className={styles.saleInfo}>
+                    <p
+                      className={styles.saleOrderNum}
+                      onClick={() => handleOpenDetail(sale.orderId)}
+                    >
+                      {sale.orderNo}
+                    </p>
+                    <p className={styles.saleProduct}>{sale.productName}</p>
+                    <p className={styles.saleQty}>
+                      Qty: {sale.quantity} x ${sale.unitPrice.toFixed(2)}
+                    </p>
+                    {sale.trackingNumber && (
+                      <p className={styles.saleTracking}>
+                        Tracking: {sale.trackingNumber}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Meta */}
+                  <div className={styles.saleMeta}>
+                    <span className={styles.salePrice}>
+                      ${sale.subtotalAmount.toFixed(2)}
+                    </span>
+                    <span className={styles.saleDate}>
+                      {formatDate(sale.orderedAt)}
+                    </span>
+                    <span
+                      className={`${styles.statusBadge} ${getItemStatusClass(sale.orderStatus === 'PAID' ? 'PAID' : sale.itemStatus)}`}
+                    >
+                      {ITEM_STATUS_LABELS[sale.itemStatus] || sale.itemStatus}
+                    </span>
+                    <span
+                      className={`${styles.statusBadge} ${sale.paymentStatus === 'PAID' ? styles.statusPaid : styles.statusPending}`}
+                    >
+                      {sale.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className={styles.saleActions}>
+                    {sale.paymentStatus !== 'PAID' && (
+                      <button
+                        type="button"
+                        className={styles.payBtn}
+                        disabled={updatingId === sale.id}
+                        onClick={() => handleConfirmPayment(sale)}
+                      >
+                        {updatingId === sale.id ? 'Updating...' : 'Confirm Payment'}
+                      </button>
+                    )}
+                    {sale.itemStatus === 'PENDING' && (
+                      <button
+                        type="button"
+                        className={styles.statusBtn}
+                        disabled={updatingId === sale.id}
+                        onClick={() =>
+                          handleUpdateItemStatus(sale, 'CONFIRMED')
+                        }
+                      >
+                        {updatingId === sale.id ? 'Updating...' : 'Confirm Order'}
+                      </button>
+                    )}
+                    {sale.itemStatus === 'CONFIRMED' && (
+                      <div className={styles.trackingRow}>
+                        <input
+                          type="text"
+                          className={styles.trackingInput}
+                          placeholder="Tracking #"
+                          value={trackingInputs[sale.id] || ''}
+                          onChange={(e) =>
+                            setTrackingInputs((prev) => ({
+                              ...prev,
+                              [sale.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className={styles.shipBtn}
+                          disabled={updatingId === sale.id}
+                          onClick={() =>
+                            handleUpdateItemStatus(sale, 'SHIPPED')
+                          }
+                        >
+                          {updatingId === sale.id ? '...' : 'Ship'}
+                        </button>
+                      </div>
+                    )}
+                    {sale.itemStatus === 'SHIPPED' && (
+                      <button
+                        type="button"
+                        className={styles.statusBtn}
+                        disabled={updatingId === sale.id}
+                        onClick={() =>
+                          handleUpdateItemStatus(sale, 'DELIVERED')
+                        }
+                      >
+                        {updatingId === sale.id ? 'Updating...' : 'Deliver'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </>
           )}
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className={styles.bulkBar}>
+          <span className={styles.bulkInfo}>
+            {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className={styles.bulkActions}>
+            <button
+              type="button"
+              className={styles.bulkBtn}
+              disabled={bulkProcessing}
+              onClick={() => handleBulkAction('CONFIRMED')}
+            >
+              Bulk Confirm
+            </button>
+            <input
+              type="text"
+              className={styles.bulkTrackingInput}
+              placeholder="Tracking # (optional)"
+              value={bulkTracking}
+              onChange={(e) => setBulkTracking(e.target.value)}
+            />
+            <button
+              type="button"
+              className={styles.bulkBtn}
+              disabled={bulkProcessing}
+              onClick={() => handleBulkAction('SHIPPED')}
+            >
+              Bulk Ship
+            </button>
+            <button
+              type="button"
+              className={styles.bulkBtn}
+              disabled={bulkProcessing}
+              onClick={() => handleBulkAction('DELIVERED')}
+            >
+              Bulk Deliver
+            </button>
+            <button
+              type="button"
+              className={styles.bulkCancelBtn}
+              onClick={() => {
+                setSelectedIds(new Set());
+                setBulkTracking('');
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -372,6 +600,181 @@ export default function SalesPage() {
           >
             Next
           </button>
+        </div>
+      )}
+
+      {/* Order Detail Modal */}
+      {(detailOrder || detailLoading) && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => !detailLoading && setDetailOrder(null)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {detailLoading ? (
+              <div className={styles.loadingState}>
+                <div className={styles.spinner} />
+                <p>Loading order details...</p>
+              </div>
+            ) : detailOrder ? (
+              <>
+                <div className={styles.modalHeader}>
+                  <h2 className={styles.modalTitle}>
+                    Order {detailOrder.orderNo}
+                  </h2>
+                  <button
+                    type="button"
+                    className={styles.modalClose}
+                    onClick={() => setDetailOrder(null)}
+                  >
+                    &#10005;
+                  </button>
+                </div>
+
+                {/* Order Info */}
+                <div className={styles.modalSection}>
+                  <h4 className={styles.modalSectionTitle}>Order Information</h4>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Status</span>
+                    <span
+                      className={`${styles.statusBadge} ${getItemStatusClass(detailOrder.status)}`}
+                    >
+                      {ITEM_STATUS_LABELS[detailOrder.status] || detailOrder.status}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Payment Method</span>
+                    <span className={styles.detailValue}>
+                      {detailOrder.paymentMethod
+                        ? PAYMENT_METHOD_LABELS[detailOrder.paymentMethod] ||
+                          detailOrder.paymentMethod
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Total Amount</span>
+                    <span className={styles.detailValue}>
+                      ${detailOrder.totalAmount.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Date</span>
+                    <span className={styles.detailValue}>
+                      {formatDateTime(detailOrder.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.detailDivider} />
+
+                {/* Buyer Info */}
+                <div className={styles.modalSection}>
+                  <h4 className={styles.modalSectionTitle}>Buyer Information</h4>
+                  {detailOrder.buyer ? (
+                    <>
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Name</span>
+                        <span className={styles.detailValue}>
+                          {detailOrder.buyer.name}
+                        </span>
+                      </div>
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Email</span>
+                        <span className={styles.detailValue}>
+                          {detailOrder.buyer.email}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                      Buyer information unavailable
+                    </p>
+                  )}
+                  {detailOrder.receiverName && (
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Receiver</span>
+                      <span className={styles.detailValue}>
+                        {detailOrder.receiverName}
+                      </span>
+                    </div>
+                  )}
+                  {detailOrder.receiverPhone && (
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Phone</span>
+                      <span className={styles.detailValue}>
+                        {detailOrder.receiverPhone}
+                      </span>
+                    </div>
+                  )}
+                  {detailOrder.shippingAddress && (
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Address</span>
+                      <span className={styles.detailValue}>
+                        {detailOrder.shippingAddress}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailDivider} />
+
+                {/* Items */}
+                <div className={styles.modalSection}>
+                  <h4 className={styles.modalSectionTitle}>Items</h4>
+                  {detailOrder.items.map((item) => (
+                    <div key={item.id} className={styles.detailItem}>
+                      <div className={styles.detailItemInfo}>
+                        <p className={styles.detailItemName}>
+                          {item.productName}
+                        </p>
+                        <p className={styles.detailItemMeta}>
+                          Qty: {item.quantity} x ${item.unitPrice.toFixed(2)} ={' '}
+                          ${item.subtotalAmount.toFixed(2)}
+                          {item.trackingNumber && (
+                            <> | Tracking: {item.trackingNumber}</>
+                          )}
+                        </p>
+                      </div>
+                      <div className={styles.detailItemStatus}>
+                        <span
+                          className={`${styles.statusBadge} ${getItemStatusClass(item.itemStatus)}`}
+                        >
+                          {ITEM_STATUS_LABELS[item.itemStatus] || item.itemStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.detailDivider} />
+
+                {/* Status Timeline */}
+                <div className={styles.modalSection}>
+                  <h4 className={styles.modalSectionTitle}>Status Timeline</h4>
+                  <div className={styles.timeline}>
+                    {detailOrder.statusHistory.map((h) => (
+                      <div key={h.id} className={styles.timelineItem}>
+                        <div className={styles.timelineDot} />
+                        <div className={styles.timelineContent}>
+                          <span className={styles.timelineStatus}>
+                            {h.previousStatus || '(new)'} &rarr; {h.newStatus}
+                          </span>
+                          <span className={styles.timelineDate}>
+                            {formatDateTime(h.changedAt)}
+                          </span>
+                          {h.reason && (
+                            <p className={styles.timelineReason}>{h.reason}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

@@ -41,6 +41,12 @@
   animation: fadeIn var(--duration-fast) var(--ease-out);
 }
 
+.toastError {
+  background: rgba(200, 80, 80, 0.06);
+  color: var(--error);
+  border-color: rgba(200, 80, 80, 0.2);
+}
+
 /* ── Section ── */
 .section {
   background: var(--white);
@@ -92,6 +98,13 @@
   font-weight: 400;
   color: var(--charcoal);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatarInfo {
@@ -409,6 +422,62 @@
   justify-content: center;
 }
 
+/* ── Account Info ── */
+.accountInfoGrid {
+  display: flex;
+  flex-direction: column;
+}
+
+.accountInfoItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+}
+
+.accountInfoItem + .accountInfoItem {
+  border-top: 1px solid var(--border-light);
+}
+
+.accountInfoLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.accountInfoValue {
+  font-size: 0.875rem;
+  color: var(--charcoal);
+  font-weight: 500;
+}
+
+/* ── Role Badge ── */
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.roleBadgeBuyer {
+  background: rgba(90, 138, 106, 0.08);
+  color: var(--success);
+}
+
+.roleBadgeSeller {
+  background: rgba(180, 160, 100, 0.1);
+  color: var(--gold-dark);
+}
+
+.roleBadgeAdmin {
+  background: rgba(200, 80, 80, 0.06);
+  color: var(--error);
+}
+
 /* ── Responsive ── */
 @media (max-width: 767px) {
   .settings {
@@ -437,5 +506,11 @@
 
   .modalActions {
     flex-direction: column;
+  }
+
+  .accountInfoItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
   }
 }
