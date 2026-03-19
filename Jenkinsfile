@@ -89,7 +89,7 @@ pipeline {
 
         stage('Deploy to Railway') {
             when {
-                branch 'main'
+                branch 'staging'
             }
             steps {
                 echo 'Deploying to Railway staging...'
