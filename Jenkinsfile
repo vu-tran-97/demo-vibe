@@ -2,20 +2,36 @@ pipeline {
     agent any
 
     environment {
-        NODE_VERSION = '20'
-        DATABASE_URL = 'mongodb://demo-vibe-mongo:27017/demo-vibe-test?replicaSet=rs0'
-        JWT_SECRET = 'jenkins-test-secret-key'
-        JWT_REFRESH_SECRET = 'jenkins-test-refresh-secret-key'
+        RAILWAY_TOKEN = credentials('railway-token')
     }
 
-    tools {
-        nodejs "${NODE_VERSION}"
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        timestamps()
+    }
+
+    triggers {
+        githubPush()
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Setup Node') {
+            steps {
+                sh '''
+                    # Install Node.js 20 if not available
+                    if ! command -v node &> /dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]; then
+                        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+                        apt-get install -y nodejs
+                    fi
+                    node -v && npm -v
+                '''
             }
         }
 
@@ -83,14 +99,36 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Railway') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to Railway staging...'
+                sh '''
+                    railway up --detach
+                '''
+            }
+        }
     }
 
     post {
         always {
             echo 'Pipeline finished'
+            cleanWs(
+                cleanWhenNotBuilt: false,
+                deleteDirs: true,
+                patterns: [
+                    [pattern: 'node_modules/**', type: 'INCLUDE'],
+                    [pattern: 'server/node_modules/**', type: 'INCLUDE'],
+                    [pattern: '.next/**', type: 'INCLUDE'],
+                    [pattern: 'server/dist/**', type: 'INCLUDE']
+                ]
+            )
         }
         success {
-            echo 'Build successful!'
+            echo 'Build & Deploy successful!'
         }
         failure {
             echo 'Build failed!'
