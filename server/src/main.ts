@@ -10,10 +10,17 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')
+    .map((u) => u.trim());
   app.enableCors({
-    origin: (process.env.FRONTEND_URL || 'http://localhost:3000')
-      .split(',')
-      .map((u) => u.trim()),
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   });
 
