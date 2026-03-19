@@ -92,8 +92,12 @@ pipeline {
                 branch 'staging'
             }
             steps {
-                echo 'Deploying to Railway staging...'
-                sh 'railway up --detach'
+                echo 'Deploying Frontend to Railway...'
+                sh '''
+                    railway up --detach \
+                      --service 02c5d317-a1d7-4884-970e-d525bb987791 \
+                      --environment production
+                '''
             }
         }
     }
