@@ -633,6 +633,17 @@
   color: var(--white);
 }
 
+.pageDots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  letter-spacing: 2px;
+}
+
 /* ── Footer ── */
 .footer {
   background: var(--white);
