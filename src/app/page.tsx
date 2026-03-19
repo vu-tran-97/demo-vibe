@@ -103,7 +103,8 @@ export default function HomePage() {
     const trimmed = headerSearch.trim();
     if (!trimmed) return;
     if (loggedIn) {
-      router.push(`/dashboard/search?q=${encodeURIComponent(trimmed)}`);
+      const searchBase = user?.role === 'BUYER' ? '/products' : '/dashboard/search';
+      router.push(`${searchBase}?q=${encodeURIComponent(trimmed)}`);
     } else {
       // For non-logged-in users, filter products on the home page
       setSearch(trimmed);
@@ -124,23 +125,16 @@ export default function HomePage() {
   const paged = products;
 
   function getProductHref(product: Product) {
-    return loggedIn ? `/dashboard/products/${product.id}` : '#';
+    return `/products/${product.id}`;
   }
 
-  function handleProductClick(e: React.MouseEvent, product: Product) {
-    if (!loggedIn) {
-      e.preventDefault();
-      openLogin();
-    }
+  function handleProductClick(_e: React.MouseEvent, _product: Product) {
+    // Public product page is accessible to all users
   }
 
   function handleQuickAdd(e: React.MouseEvent, product: Product) {
     e.preventDefault();
     e.stopPropagation();
-    if (!loggedIn) {
-      openLogin();
-      return;
-    }
     const result = cartAddItem(product);
     if (result.success) {
       showToast(result.message);
@@ -215,27 +209,21 @@ export default function HomePage() {
 
           {/* Cart + User */}
           <div className={styles.headerActions}>
-            {loggedIn ? (
-              <>
-                <Link href="/dashboard/cart" className={styles.cartBtn}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <path d="M16 10a4 4 0 01-8 0" />
-                  </svg>
-                  {cartCount > 0 && (
-                    <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
-                  )}
-                </Link>
-                <UserMenu user={user!} onLogout={handleLogout} />
-              </>
+            <Link href="/cart" className={styles.cartBtn}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+              {cartCount > 0 && (
+                <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
+              )}
+            </Link>
+            {loggedIn && user ? (
+              <UserMenu user={user} onLogout={handleLogout} />
             ) : (
               <button type="button" className={styles.cartBtn} onClick={openLogin}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <path d="M16 10a4 4 0 01-8 0" />
-                </svg>
+                Sign In
               </button>
             )}
           </div>
@@ -283,7 +271,7 @@ export default function HomePage() {
                 Flash Deals
               </div>
               <Link
-                href={loggedIn ? '/dashboard/products' : '#'}
+                href={loggedIn ? '/' : '#'}
                 onClick={(e) => { if (!loggedIn) { e.preventDefault(); openLogin(); } }}
                 className={styles.flashSeeAll}
               >

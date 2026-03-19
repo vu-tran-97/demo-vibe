@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Param,
@@ -12,9 +13,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { BoardService } from './board.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
 import { ListPostsQueryDto } from './dto/list-posts-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -23,6 +26,23 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 @Controller('api/posts')
 export class BoardController {
   constructor(private readonly boardService: BoardService) {}
+
+  // ── Banner ──
+
+  @Get('banner')
+  @Public()
+  async getBanner() {
+    return this.boardService.getBanner();
+  }
+
+  @Put('banner')
+  @Roles('SUPER_ADMIN')
+  async updateBanner(
+    @Body() dto: UpdateBannerDto,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.boardService.updateBanner(dto, req.user.sub);
+  }
 
   // ── Posts ──
 

@@ -22,6 +22,14 @@ export class ListOrdersQueryDto {
   status?: string;
 
   @IsOptional()
+  @IsIn(['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
+  itemStatus?: string;
+
+  @IsOptional()
+  @IsIn(['UNPAID', 'PAID'])
+  paymentStatus?: string;
+
+  @IsOptional()
   @IsString()
   startDate?: string;
 

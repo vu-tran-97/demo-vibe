@@ -52,6 +52,9 @@ export default function MyProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const isAdmin = user?.role === 'SUPER_ADMIN';
   const isSeller = user?.role === 'SELLER' || isAdmin;
@@ -60,7 +63,10 @@ export default function MyProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchMyProducts({ page, limit: 20 });
+      const params: Record<string, unknown> = { page, limit: 20 };
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      const data = await fetchMyProducts(params as Parameters<typeof fetchMyProducts>[0]);
       setProducts(data.items);
       setPagination(data.pagination);
     } catch (err) {
@@ -68,7 +74,7 @@ export default function MyProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => {
     if (!authLoading && isSeller) {
@@ -134,6 +140,43 @@ export default function MyProductsPage() {
         </Link>
       </div>
 
+      {/* Search & Filters */}
+      <div className={styles.toolbar}>
+        <form
+          className={styles.searchForm}
+          onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); setPage(1); }}
+        >
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={isAdmin ? 'Search by product name or seller...' : 'Search products...'}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          <button type="submit" className={styles.searchBtn}>Search</button>
+        </form>
+        <select
+          className={styles.statusSelect}
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">All Status</option>
+          <option value="ACTV">Active</option>
+          <option value="DRAFT">Draft</option>
+          <option value="SOLD_OUT">Sold Out</option>
+          <option value="HIDDEN">Hidden</option>
+        </select>
+        {(search || statusFilter) && (
+          <button
+            type="button"
+            className={styles.clearFiltersBtn}
+            onClick={() => { setSearchInput(''); setSearch(''); setStatusFilter(''); setPage(1); }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Loading */}
       {loading && (
         <div className={styles.loadingState}>
@@ -173,10 +216,12 @@ export default function MyProductsPage() {
                 >
                   {product.name}
                 </Link>
+                {isAdmin && product.seller && (
+                  <p className={styles.productSeller}>
+                    Seller: <strong>{product.seller.nickname || product.seller.name}</strong>
+                  </p>
+                )}
                 <div className={styles.productMeta}>
-                  {isAdmin && product.seller && (
-                    <span>by {product.seller.name}</span>
-                  )}
                   <span>{getCategoryLabel(product.category)}</span>
                   <span>Stock: {product.stock}</span>
                   <span>Sold: {product.sold}</span>

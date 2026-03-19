@@ -107,6 +107,15 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+function handle401(res: Response): void {
+  if (res.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  }
+}
+
 function buildQueryString(params: Record<string, unknown>): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -138,7 +147,7 @@ function mapProduct(raw: any): Product {
     rating: raw.averageRating ?? raw.rating ?? 0,
     reviewCount: raw.reviewCount ?? 0,
     tags: raw.searchTags || raw.tags || [],
-    status: raw.status,
+    status: raw.status === 'ACTV' ? 'ACTIVE' : raw.status,
     seller: raw.seller || { name: 'Unknown', nickname: '' },
   };
 }
@@ -168,6 +177,7 @@ export async function fetchMyProducts(params: FetchProductsParams = {}): Promise
   const res = await fetch(`${API_BASE}/api/products/my${qs}`, {
     headers: getAuthHeaders(),
   });
+  handle401(res);
   const json = await res.json();
   if (!json.success) {
     throw new Error(json.error || 'Failed to fetch my products');
@@ -184,12 +194,27 @@ export async function fetchProductById(id: string): Promise<Product> {
   return mapProduct(json.data);
 }
 
+function mapProductPayload(data: CreateProductData | UpdateProductData): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (data.name !== undefined) payload.prdNm = data.name;
+  if (data.description !== undefined) payload.prdDc = data.description;
+  if (data.price !== undefined) payload.prdPrc = data.price;
+  if (data.salePrice !== undefined) payload.prdSalePrc = data.salePrice;
+  if (data.category !== undefined) payload.prdCtgrCd = data.category;
+  if (data.stock !== undefined) payload.stckQty = data.stock;
+  if (data.imageUrl !== undefined) payload.prdImgUrl = data.imageUrl;
+  if (data.images !== undefined) payload.prdImgUrls = data.images;
+  if (data.tags !== undefined) payload.srchTags = data.tags;
+  return payload;
+}
+
 export async function createProduct(data: CreateProductData): Promise<Product> {
   const res = await fetch(`${API_BASE}/api/products`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapProductPayload(data)),
   });
+  handle401(res);
   const json = await res.json();
   if (!json.success) {
     throw new Error(json.error || 'Failed to create product');
@@ -201,8 +226,9 @@ export async function updateProduct(id: string, data: UpdateProductData): Promis
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapProductPayload(data)),
   });
+  handle401(res);
   const json = await res.json();
   if (!json.success) {
     throw new Error(json.error || 'Failed to update product');
@@ -211,11 +237,13 @@ export async function updateProduct(id: string, data: UpdateProductData): Promis
 }
 
 export async function updateProductStatus(id: string, status: string): Promise<Product> {
+  const apiStatus = status === 'ACTIVE' ? 'ACTV' : status;
   const res = await fetch(`${API_BASE}/api/products/${id}/status`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status: apiStatus }),
   });
+  handle401(res);
   const json = await res.json();
   if (!json.success) {
     throw new Error(json.error || 'Failed to update product status');
@@ -228,6 +256,7 @@ export async function deleteProduct(id: string): Promise<void> {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
+  handle401(res);
   const json = await res.json();
   if (!json.success) {
     throw new Error(json.error || 'Failed to delete product');

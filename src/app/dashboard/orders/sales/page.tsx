@@ -8,6 +8,7 @@ import {
   fetchSellerSummary,
   fetchSellerOrderDetail,
   updateItemStatus,
+  confirmItemPayment,
   bulkUpdateItemStatus,
   type ItemStatus,
   type SellerSaleItem,
@@ -168,6 +169,19 @@ export default function SalesPage() {
       );
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function handleConfirmPayment(sale: SellerSaleItem) {
+    setUpdatingId(sale.id);
+    try {
+      await confirmItemPayment(sale.orderId, sale.id);
+      loadSales();
+      loadSummary();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to confirm payment');
+    } finally {
+      setUpdatingId(null);
     }
   }
 
@@ -431,14 +445,29 @@ export default function SalesPage() {
                       {formatDate(sale.orderedAt)}
                     </span>
                     <span
-                      className={`${styles.statusBadge} ${getItemStatusClass(sale.itemStatus)}`}
+                      className={`${styles.statusBadge} ${getItemStatusClass(sale.orderStatus === 'PAID' ? 'PAID' : sale.itemStatus)}`}
                     >
                       {ITEM_STATUS_LABELS[sale.itemStatus] || sale.itemStatus}
+                    </span>
+                    <span
+                      className={`${styles.statusBadge} ${sale.paymentStatus === 'PAID' ? styles.statusPaid : styles.statusPending}`}
+                    >
+                      {sale.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
                     </span>
                   </div>
 
                   {/* Actions */}
                   <div className={styles.saleActions}>
+                    {sale.paymentStatus !== 'PAID' && (
+                      <button
+                        type="button"
+                        className={styles.payBtn}
+                        disabled={updatingId === sale.id}
+                        onClick={() => handleConfirmPayment(sale)}
+                      >
+                        {updatingId === sale.id ? 'Updating...' : 'Confirm Payment'}
+                      </button>
+                    )}
                     {sale.itemStatus === 'PENDING' && (
                       <button
                         type="button"
@@ -448,7 +477,7 @@ export default function SalesPage() {
                           handleUpdateItemStatus(sale, 'CONFIRMED')
                         }
                       >
-                        {updatingId === sale.id ? 'Updating...' : 'Confirm'}
+                        {updatingId === sale.id ? 'Updating...' : 'Confirm Order'}
                       </button>
                     )}
                     {sale.itemStatus === 'CONFIRMED' && (

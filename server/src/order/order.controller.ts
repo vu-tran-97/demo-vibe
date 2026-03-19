@@ -72,6 +72,16 @@ export class OrderController {
     return this.orderService.getSellerOrderDetail(id, req.user.sub);
   }
 
+  @Patch('sales/:orderId/items/:itemId/payment')
+  @Roles('SELLER', 'SUPER_ADMIN')
+  async confirmItemPayment(
+    @Param('orderId') orderId: string,
+    @Param('itemId') itemId: string,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.orderService.confirmItemPayment(orderId, itemId, req.user.sub);
+  }
+
   @Patch('sales/:orderId/items/:itemId/status')
   @Roles('SELLER', 'SUPER_ADMIN')
   async updateItemStatus(

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
@@ -18,13 +18,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Overview', href: '/dashboard', icon: '◎', roles: ['BUYER', 'SELLER', 'SUPER_ADMIN'] },
-  { label: 'Products', href: '/dashboard/products', icon: '◇', roles: ['SELLER', 'SUPER_ADMIN'] },
+  { label: 'Overview', href: '/dashboard', icon: '◎', roles: ['SELLER', 'SUPER_ADMIN'] },
+  { label: 'Products', href: '/dashboard/products', icon: '◇', roles: ['SUPER_ADMIN'] },
   { label: 'My Products', href: '/dashboard/products/my', icon: '◈', roles: ['SELLER'] },
-  { label: 'Cart', href: '/dashboard/cart', icon: '▣', roles: ['BUYER'] },
-  { label: 'Orders', href: '/dashboard/orders', icon: '□', roles: ['BUYER'] },
-  { label: 'Sales', href: '/dashboard/orders/sales', icon: '□', roles: ['SELLER'] },
-  { label: 'Board', href: '/dashboard/board', icon: '☰', roles: ['BUYER', 'SELLER', 'SUPER_ADMIN'] },
+  { label: 'Orders', href: '/dashboard/orders/sales', icon: '□', roles: ['SELLER'] },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
@@ -84,8 +81,16 @@ export default function DashboardLayout({
   const { user, loading, logout, refresh } = useAuth(true);
   const { totalItems: cartCount } = useCart();
   const pathname = usePathname();
+  const dashboardRouter = useRouter();
   const [sessionExpired, setSessionExpired] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Block buyers from dashboard — redirect to home
+  useEffect(() => {
+    if (!loading && user?.role === 'BUYER') {
+      dashboardRouter.replace('/');
+    }
+  }, [user, loading, dashboardRouter]);
 
   useEffect(() => {
     function handleSessionExpired() {
@@ -204,7 +209,11 @@ export default function DashboardLayout({
           </button>
 
           <div className={styles.userCard}>
-            <div className={styles.userAvatar}>{initials}</div>
+            <div className={styles.userAvatar}>
+              {user?.profileImageUrl ? (
+                <img src={user.profileImageUrl} alt={displayName} className={styles.userAvatarImg} />
+              ) : initials}
+            </div>
             <div className={styles.userInfo}>
               <p className={styles.userName}>{displayName}</p>
               <p className={styles.userRole}>{user?.email}</p>
@@ -233,10 +242,14 @@ export default function DashboardLayout({
           </div>
           <div className={styles.topBarRight}>
             <GlobalSearchBar />
-            <button type="button" className={styles.notifBtn}>
-              <span className={styles.notifDot} />
-              ◎
-            </button>
+            <Link href="/cart" className={styles.notifBtn} style={{ position: 'relative', textDecoration: 'none' }}>
+              ▣
+              {cartCount > 0 && (
+                <span style={{ position: 'absolute', top: '-2px', right: '-2px', background: 'var(--gold, #C8A96E)', color: '#fff', fontSize: '0.5625rem', fontWeight: 700, minWidth: '14px', height: '14px', borderRadius: '999px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
           </div>
         </header>
 

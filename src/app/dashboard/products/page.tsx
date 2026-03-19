@@ -406,7 +406,7 @@ function ProductsContent() {
                   </div>
                 </div>
               </Link>
-              {user?.role === 'BUYER' && product.stock > 0 && (
+              {product.stock > 0 && (
                 <button
                   type="button"
                   className={styles.quickAddBtn}

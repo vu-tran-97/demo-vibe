@@ -52,6 +52,16 @@ async function authFetch<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  if (res.status === 401 && path !== '/api/auth/login' && path !== '/api/auth/signup') {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+    throw new AuthError('SESSION_EXPIRED', 'Session expired');
+  }
+
   const json: ApiResponse<T> = await res.json();
 
   if (!json.success) {

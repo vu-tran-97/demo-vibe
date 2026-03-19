@@ -8,6 +8,7 @@ import { ProductModule } from './product/product.module';
 import { OrderModule } from './order/order.module';
 import { SearchModule } from './search/search.module';
 import { BoardModule } from './board/board.module';
+import { HealthModule } from './health/health.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { JwtAuthGuard } from './auth/auth.guard';
@@ -25,6 +26,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     OrderModule,
     SearchModule,
     BoardModule,
+    HealthModule,
   ],
   providers: [
     {

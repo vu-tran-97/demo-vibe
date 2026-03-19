@@ -158,7 +158,15 @@ export class ProductService {
       where.prdSttsCd = query.status;
     }
     if (query.search) {
-      where.prdNm = { contains: query.search, mode: 'insensitive' };
+      if (user.role === 'SUPER_ADMIN') {
+        where.OR = [
+          { prdNm: { contains: query.search, mode: 'insensitive' } },
+          { seller: { userNm: { contains: query.search, mode: 'insensitive' } } },
+          { seller: { userNcnm: { contains: query.search, mode: 'insensitive' } } },
+        ];
+      } else {
+        where.prdNm = { contains: query.search, mode: 'insensitive' };
+      }
     }
 
     const [products, total] = await Promise.all([
@@ -257,6 +265,23 @@ export class ProductService {
 
     this.verifyOwnership(product.sellerId, user);
 
+    // When hiding, check for pending/unpaid orders and warn
+    if (newStatus === 'HIDDEN') {
+      const pendingItems = await this.prisma.orderItem.count({
+        where: {
+          prdId: productId,
+          delYn: 'N',
+          itemSttsCd: { in: ['PENDING', 'CONFIRMED'] },
+          order: { delYn: 'N', ordrSttsCd: { not: 'CANCELLED' } },
+        },
+      });
+      if (pendingItems > 0) {
+        this.logger.warn(
+          `Product ${productId} hidden with ${pendingItems} unfulfilled order item(s). Existing orders remain valid.`,
+        );
+      }
+    }
+
     const validTransitions: Record<string, string[]> = {
       DRAFT: ['ACTV'],
       ACTV: ['HIDDEN', 'SOLD_OUT'],
@@ -299,6 +324,78 @@ export class ProductService {
 
     this.verifyOwnership(product.sellerId, user);
 
+    // Check for unfulfilled order items
+    const pendingItems = await this.prisma.orderItem.findMany({
+      where: {
+        prdId: productId,
+        delYn: 'N',
+        itemSttsCd: { in: ['PENDING', 'CONFIRMED', 'SHIPPED'] },
+        order: { delYn: 'N', ordrSttsCd: { not: 'CANCELLED' } },
+      },
+      include: { order: true },
+    });
+
+    // Block deletion if any items are already shipped (in transit)
+    const shippedItems = pendingItems.filter((i) => i.itemSttsCd === 'SHIPPED');
+    if (shippedItems.length > 0) {
+      throw new BusinessException(
+        'CANNOT_DELETE_SHIPPED',
+        `Cannot delete product with ${shippedItems.length} item(s) currently in transit. Please wait until delivery is complete.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Auto-cancel pending/confirmed items and restore stock
+    for (const item of pendingItems) {
+      await this.prisma.orderItem.update({
+        where: { id: item.id },
+        data: { itemSttsCd: 'CANCELLED', mdfrId: user.sub },
+      });
+
+      // Restore stock
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: {
+          stckQty: { increment: item.ordrQty },
+          soldCnt: { decrement: item.ordrQty },
+        },
+      });
+
+      // Log in status history
+      await this.prisma.orderStatusHistory.create({
+        data: {
+          ordrId: item.ordrId,
+          prevSttsCd: item.itemSttsCd,
+          newSttsCd: 'CANCELLED',
+          chngRsn: `Product "${product.prdNm}" deleted by seller. Item auto-cancelled.`,
+          chngrId: user.sub,
+          chngDt: new Date(),
+          rgtrId: user.sub,
+        },
+      });
+
+      // If all items in this order are now cancelled, cancel the order too
+      const orderItems = await this.prisma.orderItem.findMany({
+        where: { ordrId: item.ordrId, delYn: 'N' },
+      });
+      const allCancelled = orderItems.every(
+        (oi) => oi.itemSttsCd === 'CANCELLED' || oi.id === item.id,
+      );
+      if (allCancelled) {
+        await this.prisma.order.update({
+          where: { id: item.ordrId },
+          data: { ordrSttsCd: 'CANCELLED', mdfrId: user.sub },
+        });
+      }
+    }
+
+    if (pendingItems.length > 0) {
+      this.logger.warn(
+        `Product ${productId} deleted: ${pendingItems.length} order item(s) auto-cancelled`,
+      );
+    }
+
+    // Soft-delete the product
     await this.prisma.product.update({
       where: { id: productId },
       data: { delYn: 'Y', mdfrId: user.sub },
@@ -306,7 +403,11 @@ export class ProductService {
 
     this.logger.log(`User ${user.sub} soft-deleted product ${productId}`);
 
-    return { id: productId, deleted: true };
+    return {
+      id: productId,
+      deleted: true,
+      cancelledItems: pendingItems.length,
+    };
   }
 
   private verifyOwnership(sellerId: string, user: JwtPayload) {

@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { login, isLoggedIn, AuthError } from "@/lib/auth";
+import { login, isLoggedIn, getUser, AuthError } from "@/lib/auth";
 import styles from "../auth.module.css";
 
 export default function LoginPage() {
@@ -14,7 +14,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace("/dashboard");
+    if (isLoggedIn()) {
+      const user = getUser();
+      router.replace(user?.role === "BUYER" ? "/" : "/dashboard");
+    }
   }, [router]);
 
   async function handleSubmit(e: FormEvent) {
@@ -23,8 +26,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      router.push("/dashboard");
+      const result = await login(email, password);
+      router.push(result.user.role === "BUYER" ? "/" : "/dashboard");
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
@@ -81,19 +84,19 @@ export default function LoginPage() {
           </div>
 
           {/* Social Login */}
-          <div className={styles.socialButtons}>
+          {/* <div className={styles.socialButtons}>
             <button type="button" className={styles.socialBtn}>
               <span className={`${styles.socialIcon} ${styles.google}`}>G</span>
               Continue with Google
             </button>
-          </div>
+          </div> */}
 
           {/* Divider */}
-          <div className={styles.divider}>
+          {/* <div className={styles.divider}>
             <div className={styles.dividerLine} />
             <span className={styles.dividerText}>or</span>
             <div className={styles.dividerLine} />
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && <div className={styles.errorMessage}>{error}</div>}
