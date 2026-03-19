@@ -1,17 +1,16 @@
 services:
-  # ── MongoDB Replica Set ──
+  # ── MongoDB (custom image with init script baked in) ──
   mongodb:
-    image: mongo:7
+    build:
+      context: ./docker/db
+      dockerfile: Dockerfile
+    image: demo-vibe-mongo:latest
     container_name: demo-vibe-mongo
     restart: unless-stopped
     ports:
       - "${MONGO_PORT:-27017}:27017"
-    environment:
-      MONGO_INITDB_DATABASE: demo-vibe
     volumes:
       - mongo-data:/data/db
-      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
-    command: ["--replSet", "rs0", "--bind_ip_all"]
     healthcheck:
       test: >
         mongosh --eval "try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }"
@@ -22,7 +21,28 @@ services:
     networks:
       - demo-vibe-net
 
-  # ── Jenkins CI/CD (start manually: docker compose up -d jenkins) ──
+  # ── Backend (NestJS — custom image) ──
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: demo-vibe-backend:latest
+    container_name: demo-vibe-backend
+    restart: unless-stopped
+    ports:
+      - "3001:4000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mongodb://mongodb:27017/demo-vibe?replicaSet=rs0
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-jwt-refresh-secret}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - demo-vibe-net
+
+  # ── Jenkins CI/CD (builds Frontend image via pipeline) ──
   jenkins:
     image: jenkins/jenkins:lts
     container_name: demo-vibe-jenkins

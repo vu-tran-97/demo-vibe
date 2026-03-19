@@ -1,0 +1,40 @@
+# ── Stage 1: Dependencies + Prisma Generate ──
+FROM node:20-alpine AS deps
+WORKDIR /app/server
+
+# Install server dependencies
+COPY server/package.json server/package-lock.json ./
+RUN npm ci
+
+# Copy prisma schema (one level up, matching the monorepo layout)
+COPY prisma /app/prisma/
+
+# Generate Prisma client
+# Schema output: "../server/node_modules/.prisma/client"
+# From /app/prisma/ => /app/server/node_modules/.prisma/client
+RUN npx prisma generate --schema=/app/prisma/schema.prisma
+
+# ── Stage 2: Build ──
+FROM node:20-alpine AS builder
+WORKDIR /app/server
+COPY --from=deps /app/server/node_modules ./node_modules
+COPY server/package.json server/package-lock.json ./
+COPY server/tsconfig.json server/tsconfig.build.json server/nest-cli.json ./
+COPY server/src ./src
+RUN npm run build
+
+# ── Stage 3: Production ──
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nestjs && \
+    adduser --system --uid 1001 nestjs
+
+COPY --from=deps /app/server/node_modules ./node_modules
+COPY --from=builder /app/server/dist ./dist
+COPY server/package.json ./
+
+USER nestjs
+EXPOSE 4000
+CMD ["node", "dist/main"]

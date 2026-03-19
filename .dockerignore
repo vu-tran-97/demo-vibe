@@ -1,0 +1,10 @@
+node_modules
+server/node_modules
+.next
+server/dist
+server/coverage
+*.log
+.git
+.env*
+docker
+docs
