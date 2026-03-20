@@ -147,10 +147,6 @@ export default function HomePage() {
     return `/products/${product.id}`;
   }
 
-  function handleProductClick(_e: React.MouseEvent, _product: Product) {
-    // Public product page is accessible to all users
-  }
-
   function handleQuickAdd(e: React.MouseEvent, product: Product) {
     e.preventDefault();
     e.stopPropagation();
@@ -371,7 +367,6 @@ export default function HomePage() {
                 <div key={product.id} className={styles.productCard}>
                   <Link
                     href={getProductHref(product)}
-                    onClick={(e) => handleProductClick(e, product)}
                     className={styles.productCardLink}
                   >
                     <div className={styles.productImage}>

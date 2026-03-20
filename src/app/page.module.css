@@ -89,7 +89,7 @@
 }
 
 .searchWrapper:focus-within {
-  box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.15);
+  box-shadow: 0 0 0 3px var(--shadow-gold-subtle, rgba(200, 169, 110, 0.15));
 }
 
 .searchInput {
@@ -460,7 +460,7 @@
 
 .productImage {
   aspect-ratio: 1;
-  background: linear-gradient(145deg, #E8E4DE 0%, #D4CFC6 50%, #C8C0B4 100%);
+  background: linear-gradient(145deg, var(--warm-gray-light, #E8E4DE) 0%, var(--warm-gray, #D4CFC6) 50%, var(--warm-gray-dark, #C8C0B4) 100%);
   position: relative;
   overflow: hidden;
 }

@@ -54,10 +54,6 @@ export default function CheckoutPage() {
   }, 0);
 
   async function handleConfirm() {
-    if (!loggedIn) {
-      setAuthModalOpen(true);
-      return;
-    }
     setSubmitting(true);
     setError(null);
     try {
@@ -236,6 +232,15 @@ export default function CheckoutPage() {
                     <textarea id="chkMemo" className={styles.formTextarea} value={shipMemo} onChange={(e) => setShipMemo(e.target.value)} placeholder="e.g. Leave at the front door" rows={2} />
                   </div>
                 </div>
+
+                {!loggedIn && (
+                  <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#92400e' }}>
+                    You are checking out as a guest. Your order will be confirmed, but you won&apos;t be able to view order history.{' '}
+                    <button type="button" onClick={() => setAuthModalOpen(true)} style={{ color: '#d97706', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>
+                      Sign in
+                    </button>{' '}to track your orders.
+                  </div>
+                )}
 
                 {error && <p className={styles.errorMsg}>{error}</p>}
 
