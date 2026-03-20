@@ -1,0 +1,2623 @@
+openapi: 3.0.3
+info:
+  title: Demo Vibe E-Commerce API
+  description: |
+    REST API for the Demo Vibe e-commerce platform built with NestJS, Prisma ORM, and MongoDB.
+
+    All successful responses are wrapped in a standard envelope:
+    ```json
+    { "success": true, "data": <T> }
+    ```
+    All error responses follow:
+    ```json
+    { "success": false, "data": null, "error": "<ERROR_CODE>", "message": "<human-readable message>" }
+    ```
+  version: 1.0.0
+  contact:
+    name: ASTRA Team
+
+servers:
+  - url: http://localhost:4000
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Authentication and account management
+  - name: Auth - Social
+    description: OAuth2 social login (Google, Kakao, Naver)
+  - name: Products
+    description: Product catalog management
+  - name: Orders
+    description: Buyer order management
+  - name: Orders - Seller
+    description: Seller sales and fulfillment management
+  - name: Admin - Dashboard
+    description: Admin dashboard overview
+  - name: Admin - Users
+    description: Admin user management
+  - name: Board
+    description: Community board posts and comments
+  - name: Search
+    description: Full-text product search and suggestions
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ──────────────────────────────────────────────
+  # Auth
+  # ──────────────────────────────────────────────
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register a new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AuthTokens'
+        '409':
+          description: Email or nickname already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AuthTokens'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account suspended or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out and revoke refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Null'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token using a refresh token (token rotation)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: New token pair issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_RefreshResult'
+        '401':
+          description: Invalid, expired, or reused refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify email address with token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+        '400':
+          description: Invalid or expired verification token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset email sent (always succeeds to prevent user enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+
+  /api/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using a reset token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+        '400':
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/profile:
+    patch:
+      tags: [Auth]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_User'
+        '409':
+          description: Nickname already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/password:
+    patch:
+      tags: [Auth]
+      summary: Change current user password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed (all refresh tokens revoked)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+        '400':
+          description: Current password incorrect or new password same as old
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/account:
+    delete:
+      tags: [Auth]
+      summary: Soft-delete current user account
+      responses:
+        '200':
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────
+  # Auth - Social OAuth2
+  # ──────────────────────────────────────────────
+  /api/auth/social/{provider}:
+    get:
+      tags: [Auth - Social]
+      summary: Initiate OAuth2 authorization flow
+      description: Redirects the user to the OAuth2 provider's authorization page. Sets an `oauth_state` cookie for CSRF protection.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, kakao, naver]
+      responses:
+        '302':
+          description: Redirect to OAuth2 provider
+
+  /api/auth/social/{provider}/callback:
+    get:
+      tags: [Auth - Social]
+      summary: OAuth2 callback handler
+      description: Handles the callback from the OAuth2 provider. Validates CSRF state, exchanges the authorization code for tokens, and redirects to the frontend with tokens in query params.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, kakao, naver]
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to frontend with tokens or error in query params
+
+  # ──────────────────────────────────────────────
+  # Products
+  # ──────────────────────────────────────────────
+  /api/products:
+    get:
+      tags: [Products]
+      summary: List products (public, with filters)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CERAMICS, TEXTILES, ART, JEWELRY, HOME, FOOD]
+        - name: categories
+          in: query
+          description: Comma-separated list of categories
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, ACTV, SOLD_OUT, HIDDEN]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, price-low, price-high, popular, rating]
+        - name: minPrice
+          in: query
+          schema:
+            type: string
+        - name: maxPrice
+          in: query
+          schema:
+            type: string
+        - name: minRating
+          in: query
+          schema:
+            type: string
+        - name: inStock
+          in: query
+          description: Filter by stock availability (e.g., "true")
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated product list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ProductList'
+
+    post:
+      tags: [Products]
+      summary: Create a new product
+      description: Requires SELLER or SUPER_ADMIN role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Product'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/products/my:
+    get:
+      tags: [Products]
+      summary: List current seller's products
+      description: Requires SELLER or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, ACTV, SOLD_OUT, HIDDEN]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, price-low, price-high, popular, rating]
+      responses:
+        '200':
+          description: Paginated list of seller's products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ProductList'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      summary: Get product detail by ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Products]
+      summary: Update a product
+      description: Requires SELLER (own product) or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Product'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      description: Requires SELLER (own product) or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Null'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/products/{id}/status:
+    patch:
+      tags: [Products]
+      summary: Change product status
+      description: Requires SELLER (own product) or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Product'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Orders - Buyer
+  # ──────────────────────────────────────────────
+  /api/orders:
+    get:
+      tags: [Orders]
+      summary: List buyer's orders
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PAID, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+        - name: itemStatus
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+        - name: paymentStatus
+          in: query
+          schema:
+            type: string
+            enum: [UNPAID, PAID]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OrderList'
+
+    post:
+      tags: [Orders]
+      summary: Create an order (without payment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/orders/checkout:
+    post:
+      tags: [Orders]
+      summary: Create an order and initiate payment in one step
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutOrderRequest'
+      responses:
+        '201':
+          description: Order created with payment initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order detail by ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status (buyer cancel/refund)
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+      responses:
+        '200':
+          description: Order status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/orders/{id}/pay:
+    patch:
+      tags: [Orders]
+      summary: Mark an order as paid
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayOrderRequest'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Orders - Seller
+  # ──────────────────────────────────────────────
+  /api/orders/sales:
+    get:
+      tags: [Orders - Seller]
+      summary: List seller's sales orders
+      description: Requires SELLER or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PAID, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+        - name: itemStatus
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+        - name: paymentStatus
+          in: query
+          schema:
+            type: string
+            enum: [UNPAID, PAID]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Paginated sales list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OrderList'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/orders/sales/summary:
+    get:
+      tags: [Orders - Seller]
+      summary: Get seller sales summary statistics
+      description: Requires SELLER or SUPER_ADMIN role.
+      responses:
+        '200':
+          description: Sales summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SalesSummary'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/orders/sales/{id}:
+    get:
+      tags: [Orders - Seller]
+      summary: Get seller order detail
+      description: Requires SELLER or SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/orders/sales/{orderId}/items/{itemId}/status:
+    patch:
+      tags: [Orders - Seller]
+      summary: Update individual order item status
+      description: Requires SELLER or SUPER_ADMIN role.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemStatusRequest'
+      responses:
+        '200':
+          description: Item status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/orders/sales/{orderId}/items/{itemId}/payment:
+    patch:
+      tags: [Orders - Seller]
+      summary: Confirm payment for an individual order item
+      description: Requires SELLER or SUPER_ADMIN role.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item payment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Order'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/orders/sales/bulk-status:
+    post:
+      tags: [Orders - Seller]
+      summary: Bulk update status for multiple order items
+      description: Requires SELLER or SUPER_ADMIN role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkItemStatusRequest'
+      responses:
+        '200':
+          description: Bulk status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_BulkResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ──────────────────────────────────────────────
+  # Admin - Dashboard
+  # ──────────────────────────────────────────────
+  /api/admin/dashboard:
+    get:
+      tags: [Admin - Dashboard]
+      summary: Get admin dashboard overview
+      description: Requires SUPER_ADMIN role.
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Dashboard'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ──────────────────────────────────────────────
+  # Admin - Users
+  # ──────────────────────────────────────────────
+  /api/admin/users:
+    get:
+      tags: [Admin - Users]
+      summary: List all users with filters
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [SUPER_ADMIN, SELLER, BUYER]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTV, SUSP, INAC]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_UserList'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Admin - Users]
+      summary: Create a new user (admin-initiated)
+      description: Requires SUPER_ADMIN role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AdminUser'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/users/export:
+    get:
+      tags: [Admin - Users]
+      summary: Export users as CSV
+      description: Requires SUPER_ADMIN role. Returns a CSV file download.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [SUPER_ADMIN, SELLER, BUYER]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTV, SUSP, INAC]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/users/bulk/status:
+    post:
+      tags: [Admin - Users]
+      summary: Bulk change user statuses
+      description: Requires SUPER_ADMIN role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminBulkStatusRequest'
+      responses:
+        '200':
+          description: Bulk status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_BulkResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/users/{id}:
+    get:
+      tags: [Admin - Users]
+      summary: Get user detail by ID
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AdminUser'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Admin - Users]
+      summary: Update user info
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AdminUser'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/activity:
+    get:
+      tags: [Admin - Users]
+      summary: Get user activity log
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated activity log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ActivityList'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/summary:
+    get:
+      tags: [Admin - Users]
+      summary: Get user summary statistics
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: User summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_UserSummary'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/role:
+    patch:
+      tags: [Admin - Users]
+      summary: Change user role
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AdminUser'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/status:
+    patch:
+      tags: [Admin - Users]
+      summary: Change user status
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AdminUser'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/users/{id}/password:
+    patch:
+      tags: [Admin - Users]
+      summary: Reset user password (admin)
+      description: Requires SUPER_ADMIN role.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Message'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Board - Banner
+  # ──────────────────────────────────────────────
+  /api/posts/banner:
+    get:
+      tags: [Board]
+      summary: Get current banner configuration
+      security: []
+      responses:
+        '200':
+          description: Banner data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Banner'
+
+    put:
+      tags: [Board]
+      summary: Update banner configuration
+      description: Requires SUPER_ADMIN role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBannerRequest'
+      responses:
+        '200':
+          description: Banner updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Banner'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ──────────────────────────────────────────────
+  # Board - Posts
+  # ──────────────────────────────────────────────
+  /api/posts:
+    get:
+      tags: [Board]
+      summary: List posts with filters
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [NOTICE, FREE, QNA, REVIEW]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, views, comments]
+      responses:
+        '200':
+          description: Paginated post list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PostList'
+
+    post:
+      tags: [Board]
+      summary: Create a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Post'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/posts/{id}:
+    get:
+      tags: [Board]
+      summary: Get post detail by ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Post detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Post'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Board]
+      summary: Update a post
+      description: Author or SUPER_ADMIN can update.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Post'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Board]
+      summary: Delete a post
+      description: Author or SUPER_ADMIN can delete.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Post deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Null'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Board - Comments
+  # ──────────────────────────────────────────────
+  /api/posts/{id}/comments:
+    get:
+      tags: [Board]
+      summary: Get comments for a post
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Comment list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CommentList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Board]
+      summary: Create a comment on a post
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Comment'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/posts/{postId}/comments/{commentId}:
+    patch:
+      tags: [Board]
+      summary: Update a comment
+      description: Author or SUPER_ADMIN can update.
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Comment'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Board]
+      summary: Delete a comment
+      description: Author or SUPER_ADMIN can delete.
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Null'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──────────────────────────────────────────────
+  # Search
+  # ──────────────────────────────────────────────
+  /api/search:
+    get:
+      tags: [Search]
+      summary: Full-text product search
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (min 2 characters)
+          schema:
+            type: string
+            minLength: 2
+        - $ref: '#/components/parameters/PageParam'
+        - name: limit
+          in: query
+          description: Items per page (max 50, default 12)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SearchResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/search/suggest:
+    get:
+      tags: [Search]
+      summary: Search autocomplete suggestions
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (min 1 character)
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Suggestion list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Suggestions'
+
+# ══════════════════════════════════════════════════
+# Components
+# ══════════════════════════════════════════════════
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /api/auth/login or /api/auth/signup
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Resource ID (MongoDB ObjectId)
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: string
+        default: '1'
+      description: Page number (1-based)
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: string
+        default: '20'
+      description: Items per page
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error: VALIDATION_ERROR
+            message: "email must be an email, password must be longer than or equal to 8 characters"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error: FORBIDDEN
+            message: "You do not have permission to perform this action"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error: NOT_FOUND
+            message: "Resource not found"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error: UNAUTHORIZED
+            message: "Authentication is required"
+
+  schemas:
+    # ── Envelope schemas ──
+    ErrorResponse:
+      type: object
+      required: [success, data, error, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: 'null'
+          example: null
+        error:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+          example: "email must be an email"
+
+    ApiResponse_Null:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: 'null'
+          example: null
+
+    ApiResponse_Message:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+          required: [message]
+
+    # ── Auth schemas ──
+    SignupRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          description: Must contain at least one uppercase, one lowercase, one number, and one special character
+          example: MyP@ssw0rd
+        name:
+          type: string
+          maxLength: 50
+          example: John Doe
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 30
+          description: Korean, English, numbers, underscore, and space allowed
+          example: john_doe
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 100
+          example: user@example.com
+        password:
+          type: string
+          example: MyP@ssw0rd
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token from login/signup response
+
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: Email verification token from the verification email
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 100
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: Password reset token from the reset email
+        newPassword:
+          type: string
+          minLength: 8
+          description: Must contain at least one uppercase, one lowercase, one number, and one special character
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 30
+          description: Korean, English, numbers, underscore, and space allowed
+        profileImageUrl:
+          type: string
+          format: uri
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+          description: Must contain at least one uppercase, one lowercase, one number, and one special character
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        nickname:
+          type: string
+          nullable: true
+        emailVerified:
+          type: boolean
+        profileImageUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [BUYER, SELLER, SUPER_ADMIN]
+
+    AuthTokensData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Access token TTL in seconds
+
+    RefreshResultData:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+
+    ApiResponse_AuthTokens:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuthTokensData'
+
+    ApiResponse_RefreshResult:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/RefreshResultData'
+
+    ApiResponse_User:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/User'
+
+    # ── Product schemas ──
+    CreateProductRequest:
+      type: object
+      required: [prdNm, prdDc, prdPrc, prdCtgrCd, prdImgUrl, stckQty]
+      properties:
+        prdNm:
+          type: string
+          maxLength: 200
+          description: Product name
+          example: Handmade Ceramic Mug
+        prdDc:
+          type: string
+          maxLength: 10000
+          description: Product description
+        prdPrc:
+          type: number
+          minimum: 0
+          description: Product price
+          example: 35000
+        prdSalePrc:
+          type: number
+          minimum: 0
+          description: Sale price (optional)
+          example: 28000
+        prdCtgrCd:
+          type: string
+          enum: [CERAMICS, TEXTILES, ART, JEWELRY, HOME, FOOD]
+          description: Product category code
+        prdSttsCd:
+          type: string
+          enum: [DRAFT, ACTV]
+          description: Initial product status (default varies)
+        prdImgUrl:
+          type: string
+          description: Main product image URL
+        prdImgUrls:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+          description: Additional product image URLs
+        stckQty:
+          type: integer
+          minimum: 0
+          description: Stock quantity
+          example: 100
+        srchTags:
+          type: array
+          items:
+            type: string
+          description: Search tags
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        prdNm:
+          type: string
+          maxLength: 200
+        prdDc:
+          type: string
+          maxLength: 10000
+        prdPrc:
+          type: number
+          minimum: 0
+        prdSalePrc:
+          type: number
+          minimum: 0
+        prdCtgrCd:
+          type: string
+          enum: [CERAMICS, TEXTILES, ART, JEWELRY, HOME, FOOD]
+        prdSttsCd:
+          type: string
+          enum: [DRAFT, ACTV]
+        prdImgUrl:
+          type: string
+        prdImgUrls:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+        stckQty:
+          type: integer
+          minimum: 0
+        srchTags:
+          type: array
+          items:
+            type: string
+
+    UpdateProductStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [DRAFT, ACTV, SOLD_OUT, HIDDEN]
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        prdNm:
+          type: string
+        prdDc:
+          type: string
+        prdPrc:
+          type: number
+        prdSalePrc:
+          type: number
+          nullable: true
+        prdCtgrCd:
+          type: string
+        prdSttsCd:
+          type: string
+        prdImgUrl:
+          type: string
+        prdImgUrls:
+          type: array
+          items:
+            type: string
+        stckQty:
+          type: integer
+        srchTags:
+          type: array
+          items:
+            type: string
+        sellerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponse_Product:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Product'
+
+    ApiResponse_ProductList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    # ── Order schemas ──
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    CreateOrderRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          minItems: 1
+        shipAddr:
+          type: string
+          maxLength: 500
+          description: Shipping address
+        shipRcvrNm:
+          type: string
+          maxLength: 50
+          description: Receiver name
+        shipTelno:
+          type: string
+          maxLength: 20
+          description: Receiver phone number
+        shipMemo:
+          type: string
+          maxLength: 200
+          description: Shipping memo
+
+    CheckoutOrderRequest:
+      type: object
+      required: [items, paymentMethod]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          minItems: 1
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, EMAIL_INVOICE]
+        shipAddr:
+          type: string
+          maxLength: 500
+        shipRcvrNm:
+          type: string
+          maxLength: 50
+        shipTelno:
+          type: string
+          maxLength: 20
+        shipMemo:
+          type: string
+          maxLength: 200
+
+    PayOrderRequest:
+      type: object
+      required: [paymentMethod]
+      properties:
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, EMAIL_INVOICE]
+
+    UpdateOrderStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [PAID, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+        reason:
+          type: string
+          maxLength: 500
+          description: Reason for status change (e.g., cancellation reason)
+
+    UpdateItemStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [CONFIRMED, SHIPPED, DELIVERED]
+        trackingNumber:
+          type: string
+          maxLength: 100
+          description: Shipping tracking number (required when status is SHIPPED)
+
+    BulkItemStatusRequest:
+      type: object
+      required: [itemIds, status]
+      properties:
+        itemIds:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: List of order item IDs
+        status:
+          type: string
+          enum: [CONFIRMED, SHIPPED, DELIVERED]
+        trackingNumber:
+          type: string
+          maxLength: 100
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        buyerId:
+          type: string
+        orderSttsCd:
+          type: string
+          enum: [PENDING, PAID, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+        paymentMethod:
+          type: string
+          nullable: true
+        totalAmount:
+          type: number
+        shipAddr:
+          type: string
+          nullable: true
+        shipRcvrNm:
+          type: string
+          nullable: true
+        shipTelno:
+          type: string
+          nullable: true
+        shipMemo:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              productId:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+              totalPrice:
+                type: number
+              itemSttsCd:
+                type: string
+              trackingNumber:
+                type: string
+                nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SalesSummary:
+      type: object
+      properties:
+        totalSales:
+          type: number
+        totalOrders:
+          type: integer
+        pendingOrders:
+          type: integer
+        completedOrders:
+          type: integer
+
+    ApiResponse_Order:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Order'
+
+    ApiResponse_OrderList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    ApiResponse_SalesSummary:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/SalesSummary'
+
+    ApiResponse_BulkResult:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            updatedCount:
+              type: integer
+
+    # ── Admin schemas ──
+    AdminCreateUserRequest:
+      type: object
+      required: [email, password, name, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 50
+        nickname:
+          type: string
+          maxLength: 30
+        role:
+          type: string
+          enum: [SELLER, BUYER]
+
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        nickname:
+          type: string
+          maxLength: 30
+
+    UpdateRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [SELLER, BUYER]
+
+    UpdateUserStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACTV, SUSP, INAC]
+          description: "ACTV = Active, SUSP = Suspended, INAC = Inactive"
+
+    AdminResetPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 8
+
+    AdminBulkStatusRequest:
+      type: object
+      required: [userIds, status]
+      properties:
+        userIds:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        status:
+          type: string
+          enum: [ACTV, SUSP]
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [BUYER, SELLER, SUPER_ADMIN]
+        status:
+          type: string
+          enum: [ACTV, SUSP, INAC]
+        emailVerified:
+          type: boolean
+        profileImageUrl:
+          type: string
+          nullable: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponse_AdminUser:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AdminUser'
+
+    ApiResponse_UserList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdminUser'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    ApiResponse_Dashboard:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Dashboard statistics (user counts, order counts, revenue, etc.)
+          properties:
+            totalUsers:
+              type: integer
+            activeUsers:
+              type: integer
+            totalProducts:
+              type: integer
+            totalOrders:
+              type: integer
+            totalRevenue:
+              type: number
+            recentUsers:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdminUser'
+
+    ApiResponse_ActivityList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  action:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  details:
+                    type: object
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+
+    ApiResponse_UserSummary:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            totalOrders:
+              type: integer
+            totalSpent:
+              type: number
+            totalProducts:
+              type: integer
+            joinDate:
+              type: string
+              format: date-time
+            lastLoginAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    # ── Board schemas ──
+    CreatePostRequest:
+      type: object
+      required: [postTtl, postCn, postCtgrCd]
+      properties:
+        postTtl:
+          type: string
+          maxLength: 200
+          description: Post title
+          example: Welcome to our community!
+        postCn:
+          type: string
+          maxLength: 10000
+          description: Post content
+        postCtgrCd:
+          type: string
+          enum: [NOTICE, FREE, QNA, REVIEW]
+          description: Post category code
+        srchTags:
+          type: array
+          items:
+            type: string
+          description: Search tags
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        postTtl:
+          type: string
+          maxLength: 200
+        postCn:
+          type: string
+          maxLength: 10000
+        postCtgrCd:
+          type: string
+          enum: [NOTICE, FREE, QNA, REVIEW]
+        srchTags:
+          type: array
+          items:
+            type: string
+
+    UpdateBannerRequest:
+      type: object
+      required: [imageUrl, enabled]
+      properties:
+        imageUrl:
+          type: string
+          description: Banner image URL
+        title:
+          type: string
+          maxLength: 100
+        subtitle:
+          type: string
+          maxLength: 200
+        linkUrl:
+          type: string
+          description: Click-through URL
+        enabled:
+          type: boolean
+          description: Whether the banner is visible
+
+    CreateCommentRequest:
+      type: object
+      required: [cmntCn]
+      properties:
+        cmntCn:
+          type: string
+          maxLength: 2000
+          description: Comment content
+        prntCmntId:
+          type: string
+          description: Parent comment ID for replies
+
+    UpdateCommentRequest:
+      type: object
+      required: [cmntCn]
+      properties:
+        cmntCn:
+          type: string
+          maxLength: 2000
+          description: Comment content
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+        postTtl:
+          type: string
+        postCn:
+          type: string
+        postCtgrCd:
+          type: string
+        srchTags:
+          type: array
+          items:
+            type: string
+        viewCount:
+          type: integer
+        commentCount:
+          type: integer
+        author:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            nickname:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        cmntCn:
+          type: string
+        prntCmntId:
+          type: string
+          nullable: true
+        author:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            nickname:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Banner:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+        title:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+
+    ApiResponse_Post:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Post'
+
+    ApiResponse_PostList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Post'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    ApiResponse_Comment:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Comment'
+
+    ApiResponse_CommentList:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+
+    ApiResponse_Banner:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Banner'
+
+    # ── Search schemas ──
+    ApiResponse_SearchResult:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+
+    ApiResponse_Suggestions:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            type: string
+          description: List of autocomplete suggestions

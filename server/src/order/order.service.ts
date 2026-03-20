@@ -145,7 +145,8 @@ export class OrderService {
 
   async checkoutOrder(dto: CheckoutOrderDto, buyerId: string | null) {
     const isGuest = !buyerId;
-    const effectiveBuyerId = buyerId || 'GUEST';
+    // Use a fixed ObjectID for all guest orders (hex: "GUEST" zero-padded to 24 chars)
+    const effectiveBuyerId = buyerId || '000000000000000000000000';
     // Validate all products and calculate totals
     const orderItems: {
       prdId: string;

@@ -262,4 +262,14 @@
 | 2026-03-20 09:55 | implementation | src/app/checkout/success/page.tsx | page |
 | 2026-03-20 09:55 | implementation | src/app/checkout/page.tsx | page |
 | 2026-03-20 09:56 | implementation | server/src/auth/auth.guard.ts | auth.guard |
+| 2026-03-20 13:16 | implementation | server/src/order/order.service.ts | order.service |
+| 2026-03-20 13:32 | test_case | docs/tests/test-cases/sprint-6/guest-checkout-e2e-scenarios.md | guest-checkout-e2e-scenarios |
+| 2026-03-20 13:32 | test_case | docs/tests/test-cases/sprint-6/auth-e2e-scenarios.md | auth-e2e-scenarios |
+| 2026-03-20 13:33 | test_case | docs/tests/test-cases/sprint-6/product-e2e-scenarios.md | product-e2e-scenarios |
+| 2026-03-20 13:33 | test_case | docs/tests/test-cases/sprint-6/order-e2e-scenarios.md | order-e2e-scenarios |
+| 2026-03-20 13:34 | test_case | docs/tests/test-cases/sprint-6/admin-e2e-scenarios.md | admin-e2e-scenarios |
+| 2026-03-20 13:34 | test_case | docs/tests/test-cases/sprint-6/board-e2e-scenarios.md | board-e2e-scenarios |
+| 2026-03-20 13:34 | test_case | docs/tests/test-cases/sprint-6/search-e2e-scenarios.md | search-e2e-scenarios |
+| 2026-03-20 13:35 | test_case | docs/tests/test-cases/sprint-6/cross-feature-e2e-scenarios.md | cross-feature-e2e-scenarios |
+| 2026-03-20 15:41 | test_report | docs/tests/test-reports/sprint-6-integration-report.md | sprint-6-integration-report |
 <!-- ACTIVITY_LOG_END -->
