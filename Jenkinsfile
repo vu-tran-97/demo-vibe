@@ -22,19 +22,6 @@ pipeline {
             }
         }
 
-        stage('Setup Node') {
-            steps {
-                sh '''
-                    # Install Node.js 20 if not available
-                    if ! command -v node &> /dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]; then
-                        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-                        apt-get install -y nodejs
-                    fi
-                    node -v && npm -v
-                '''
-            }
-        }
-
         stage('Install Dependencies') {
             parallel {
                 stage('Frontend') {
@@ -102,12 +89,14 @@ pipeline {
 
         stage('Deploy to Railway') {
             when {
-                branch 'main'
+                branch 'staging'
             }
             steps {
-                echo 'Deploying to Railway staging...'
+                echo 'Deploying Frontend to Railway...'
                 sh '''
-                    railway up --detach
+                    railway up --detach \
+                      --service 02c5d317-a1d7-4884-970e-d525bb987791 \
+                      --environment production
                 '''
             }
         }

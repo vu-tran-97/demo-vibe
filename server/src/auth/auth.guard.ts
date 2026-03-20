@@ -15,6 +15,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
     if (isPublic) {
+      // For public routes, still try to extract user from JWT if token is present
+      const result = super.canActivate(context);
+      if (result instanceof Promise) {
+        return result.catch(() => true);
+      }
       return true;
     }
     return super.canActivate(context);

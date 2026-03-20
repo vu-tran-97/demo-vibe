@@ -12,6 +12,23 @@ import { ToastContainer, showToast } from '@/components/toast/Toast';
 import styles from './page.module.css';
 
 const ITEMS_PER_PAGE = 8;
+const BANNER_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1280&h=400&fit=crop',
+    title: 'Handcrafted Collection',
+    subtitle: 'Discover unique artisan pieces made with love',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1280&h=400&fit=crop',
+    title: 'New Arrivals',
+    subtitle: 'Fresh finds from top sellers this week',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=1280&h=400&fit=crop',
+    title: 'Shop by Category',
+    subtitle: 'Ceramics, textiles, art, jewelry and more',
+  },
+];
 
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
@@ -34,17 +51,19 @@ export default function HomePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
 
   useEffect(() => {
     setLoggedIn(isLoggedIn());
     setUser(getUser());
-    // Fetch sale products once
-    fetchProducts({ limit: 4, sort: 'popular' })
-      .then((res) => {
-        setSaleProducts(res.items.filter((p) => p.salePrice !== null).slice(0, 4));
-      })
-      .catch(() => {});
+  }, []);
+
+  // Auto-rotate banner
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBannerIndex((prev) => (prev + 1) % BANNER_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
   // Fetch products when filters change
@@ -126,10 +145,6 @@ export default function HomePage() {
 
   function getProductHref(product: Product) {
     return `/products/${product.id}`;
-  }
-
-  function handleProductClick(_e: React.MouseEvent, _product: Product) {
-    // Public product page is accessible to all users
   }
 
   function handleQuickAdd(e: React.MouseEvent, product: Product) {
@@ -261,54 +276,32 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ── Flash Deals Banner ── */}
-      {saleProducts.length > 0 && activeCategory === 'ALL' && !search && (
-        <section className={styles.flashSection}>
-          <div className={styles.flashInner}>
-            <div className={styles.flashHeader}>
-              <div className={styles.flashTitle}>
-                <span className={styles.flashIcon}>⚡</span>
-                Flash Deals
+      {/* ── Hero Banner Carousel ── */}
+      <section className={styles.bannerSection}>
+        <div className={styles.bannerInner}>
+          <div className={styles.bannerTrack} style={{ transform: `translateX(-${bannerIndex * 100}%)` }}>
+            {BANNER_SLIDES.map((slide, i) => (
+              <div key={i} className={styles.bannerSlide}>
+                <img src={slide.image} alt={slide.title} className={styles.bannerImage} />
+                <div className={styles.bannerOverlay}>
+                  <h2 className={styles.bannerTitle}>{slide.title}</h2>
+                  <p className={styles.bannerSubtitle}>{slide.subtitle}</p>
+                </div>
               </div>
-              <Link
-                href={loggedIn ? '/' : '#'}
-                onClick={(e) => { if (!loggedIn) { e.preventDefault(); openLogin(); } }}
-                className={styles.flashSeeAll}
-              >
-                See All &rarr;
-              </Link>
-            </div>
-            <div className={styles.flashGrid}>
-              {saleProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={getProductHref(product)}
-                  onClick={(e) => handleProductClick(e, product)}
-                  className={styles.flashCard}
-                >
-                  <div className={styles.flashCardImage}>
-                    {product.imageUrl && (
-                      <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
-                    )}
-                    <span className={styles.flashBadge}>{getDiscount(product)}% OFF</span>
-                  </div>
-                  <div className={styles.flashCardBody}>
-                    <p className={styles.flashPrice}>{formatPrice(product.salePrice!)}</p>
-                    <p className={styles.flashOriginal}>{formatPrice(product.price)}</p>
-                    <div className={styles.flashSoldBar}>
-                      <div
-                        className={styles.flashSoldFill}
-                        style={{ width: `${Math.min((product.sold / (product.sold + product.stock)) * 100, 100)}%` }}
-                      />
-                    </div>
-                    <p className={styles.flashSoldText}>{product.sold} sold</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            ))}
           </div>
-        </section>
-      )}
+          <div className={styles.bannerDots}>
+            {BANNER_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`${styles.bannerDot} ${i === bannerIndex ? styles.bannerDotActive : ''}`}
+                onClick={() => setBannerIndex(i)}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── Product Grid ── */}
       <section className={styles.shopSection}>
@@ -374,7 +367,6 @@ export default function HomePage() {
                 <div key={product.id} className={styles.productCard}>
                   <Link
                     href={getProductHref(product)}
-                    onClick={(e) => handleProductClick(e, product)}
                     className={styles.productCardLink}
                   >
                     <div className={styles.productImage}>
@@ -431,16 +423,34 @@ export default function HomePage() {
               >
                 &lsaquo;
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`${styles.pageBtn} ${p === page ? styles.pageBtnActive : ''}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
+              {(() => {
+                const pages: (number | string)[] = [];
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (page > 3) pages.push('...');
+                  for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+                    pages.push(i);
+                  }
+                  if (page < totalPages - 2) pages.push('...');
+                  pages.push(totalPages);
+                }
+                return pages.map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`dots-${idx}`} className={styles.pageDots}>&hellip;</span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`${styles.pageBtn} ${p === page ? styles.pageBtnActive : ''}`}
+                      onClick={() => setPage(p as number)}
+                    >
+                      {p}
+                    </button>
+                  )
+                );
+              })()}
               <button
                 type="button"
                 className={styles.pageBtn}

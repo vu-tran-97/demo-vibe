@@ -143,7 +143,10 @@ export class OrderService {
     return this.getOrderById(order.id, buyerId, 'BUYER');
   }
 
-  async checkoutOrder(dto: CheckoutOrderDto, buyerId: string) {
+  async checkoutOrder(dto: CheckoutOrderDto, buyerId: string | null) {
+    const isGuest = !buyerId;
+    // Use a fixed ObjectID for all guest orders (hex: "GUEST" zero-padded to 24 chars)
+    const effectiveBuyerId = buyerId || '000000000000000000000000';
     // Validate all products and calculate totals
     const orderItems: {
       prdId: string;
@@ -205,7 +208,7 @@ export class OrderService {
     const order = await this.prisma.order.create({
       data: {
         ordrNo: orderNumber,
-        byrId: buyerId,
+        byrId: effectiveBuyerId,
         ordrTotAmt: totalAmount,
         ordrSttsCd: 'PENDING',
         payMthdCd: dto.paymentMethod,
@@ -213,8 +216,8 @@ export class OrderService {
         shipRcvrNm: dto.shipRcvrNm,
         shipTelno: dto.shipTelno,
         shipMemo: dto.shipMemo,
-        rgtrId: buyerId,
-        mdfrId: buyerId,
+        rgtrId: effectiveBuyerId,
+        mdfrId: effectiveBuyerId,
       },
     });
 
@@ -231,8 +234,8 @@ export class OrderService {
           ordrQty: item.ordrQty,
           subtotAmt: item.subtotAmt,
           itemSttsCd: 'PENDING',
-          rgtrId: buyerId,
-          mdfrId: buyerId,
+          rgtrId: effectiveBuyerId,
+          mdfrId: effectiveBuyerId,
         },
       });
     }
@@ -261,18 +264,25 @@ export class OrderService {
         ordrId: order.id,
         prevSttsCd: '',
         newSttsCd: 'PENDING',
-        chngRsn: `Order created with payment method: ${dto.paymentMethod}`,
-        chngrId: buyerId,
+        chngRsn: isGuest
+          ? `Guest order created with payment method: ${dto.paymentMethod}`
+          : `Order created with payment method: ${dto.paymentMethod}`,
+        chngrId: effectiveBuyerId,
         chngDt: new Date(),
-        rgtrId: buyerId,
+        rgtrId: effectiveBuyerId,
       },
     });
 
     this.logger.log(
-      `Checkout order ${orderNumber} created by buyer ${buyerId} with ${dto.paymentMethod}`,
+      `Checkout order ${orderNumber} created by ${isGuest ? 'guest' : `buyer ${effectiveBuyerId}`} with ${dto.paymentMethod}`,
     );
 
-    return this.getOrderById(order.id, buyerId, 'BUYER');
+    // For guest orders, return formatted response directly (no ownership check needed)
+    if (isGuest) {
+      return this.formatGuestOrderResponse(order.id);
+    }
+
+    return this.getOrderById(order.id, effectiveBuyerId, 'BUYER');
   }
 
   async payOrder(orderId: string, paymentMethod: string, buyerId: string) {
@@ -1056,6 +1066,60 @@ export class OrderService {
         0,
       ),
       monthlyBreakdown,
+    };
+  }
+
+  private async formatGuestOrderResponse(orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId },
+      include: {
+        items: true,
+        statusHistory: {
+          orderBy: { chngDt: 'desc' },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new BusinessException(
+        'ORDER_NOT_FOUND',
+        'Order not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return {
+      id: order.id,
+      orderNo: order.ordrNo,
+      buyerId: order.byrId,
+      totalAmount: order.ordrTotAmt,
+      status: order.ordrSttsCd,
+      paymentMethod: order.payMthdCd,
+      shippingAddress: order.shipAddr,
+      receiverName: order.shipRcvrNm,
+      receiverPhone: order.shipTelno,
+      shippingMemo: order.shipMemo,
+      createdAt: order.rgstDt,
+      items: order.items.map((item) => ({
+        id: item.id,
+        productId: item.prdId,
+        productName: item.prdNm,
+        productImageUrl: item.prdImgUrl,
+        unitPrice: item.unitPrc,
+        quantity: item.ordrQty,
+        subtotalAmount: item.subtotAmt,
+        itemStatus: item.itemSttsCd,
+        paymentStatus: item.payStts || 'UNPAID',
+        trackingNumber: item.trckgNo,
+      })),
+      statusHistory: order.statusHistory.map((h) => ({
+        id: h.id,
+        previousStatus: h.prevSttsCd,
+        newStatus: h.newSttsCd,
+        reason: h.chngRsn,
+        changedBy: h.chngrId,
+        changedAt: h.chngDt,
+      })),
     };
   }
 
