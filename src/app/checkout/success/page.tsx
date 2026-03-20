@@ -64,10 +64,16 @@ function SuccessContent() {
             <p className={styles.orderNumber}>{orderNo}</p>
           </div>
           <div className={styles.actions}>
-            <Link href="/orders" className={styles.primaryLink}>
-              View My Orders
-            </Link>
-            <Link href="/" className={styles.secondaryLink}>
+            {loggedIn ? (
+              <Link href="/orders" className={styles.primaryLink}>
+                View My Orders
+              </Link>
+            ) : (
+              <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0 0 0.5rem' }}>
+                Sign in to track your order history
+              </p>
+            )}
+            <Link href="/" className={loggedIn ? styles.secondaryLink : styles.primaryLink}>
               Continue Shopping
             </Link>
           </div>

@@ -9,6 +9,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CheckoutOrderDto } from './dto/checkout-order.dto';
@@ -31,12 +32,14 @@ export class OrderController {
     return this.orderService.createOrder(dto, req.user.sub);
   }
 
+  @Public()
   @Post('checkout')
   async checkoutOrder(
     @Body() dto: CheckoutOrderDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user?: JwtPayload },
   ) {
-    return this.orderService.checkoutOrder(dto, req.user.sub);
+    const buyerId = req.user?.sub || null;
+    return this.orderService.checkoutOrder(dto, buyerId);
   }
 
   @Patch(':id/pay')

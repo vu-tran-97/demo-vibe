@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
-import { GlobalSearchBar } from '@/components/global-search/GlobalSearchBar';
 import { ToastContainer } from '@/components/toast/Toast';
 import styles from './dashboard.module.css';
 
@@ -79,7 +77,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, loading, logout, refresh } = useAuth(true);
-  const { totalItems: cartCount } = useCart();
   const pathname = usePathname();
   const dashboardRouter = useRouter();
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -158,9 +155,6 @@ export default function DashboardLayout({
                 >
                   <span className={styles.navIcon}>{item.icon}</span>
                   <span className={styles.navLabel}>{item.label}</span>
-                  {item.label === 'Cart' && cartCount > 0 && (
-                    <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
-                  )}
                 </Link>
               </li>
             ))}
@@ -240,17 +234,7 @@ export default function DashboardLayout({
             </button>
             <h1 className={styles.pageTitle}>{getPageTitle(pathname)}</h1>
           </div>
-          <div className={styles.topBarRight}>
-            <GlobalSearchBar />
-            <Link href="/cart" className={styles.notifBtn} style={{ position: 'relative', textDecoration: 'none' }}>
-              ▣
-              {cartCount > 0 && (
-                <span style={{ position: 'absolute', top: '-2px', right: '-2px', background: 'var(--gold, #C8A96E)', color: '#fff', fontSize: '0.5625rem', fontWeight: 700, minWidth: '14px', height: '14px', borderRadius: '999px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              )}
-            </Link>
-          </div>
+          <div className={styles.topBarRight} />
         </header>
 
         {/* Page Content */}
