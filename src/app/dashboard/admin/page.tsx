@@ -191,7 +191,7 @@ export default function AdminDashboardPage() {
                             ? `${styles.activityBadge} ${styles.activityBadgeSuccess}`
                             : styles.activityBadge
                     }>
-                      {activity.actionType.replace(/_/g, ' ')}
+                      {(activity.actionType || 'UNKNOWN').replace(/_/g, ' ')}
                     </span>
                   </div>
                   <p className={styles.activityDesc}>{activity.description}</p>
