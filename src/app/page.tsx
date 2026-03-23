@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getUser, logout as authLogout, type UserInfo } from '@/lib/auth';
@@ -33,6 +33,14 @@ const BANNER_SLIDES = [
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
 export default function HomePage() {
+  return (
+    <Suspense>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addItem: cartAddItem, totalItems: cartCount } = useCart();
