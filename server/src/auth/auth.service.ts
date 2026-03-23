@@ -12,6 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { MailService } from '../mail/mail.service';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const EMAIL_VERIFICATION_HOURS = 24;
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   async signup(dto: SignupDto, ip: string, userAgent?: string) {
@@ -67,7 +69,7 @@ export class AuthService {
         userPswd: hashedPassword,
         userNm: dto.name,
         userNcnm: generatedNickname,
-        useRoleCd: 'BUYER',
+        useRoleCd: dto.role || 'BUYER',
         userSttsCd: 'ACTV',
         emailVrfcYn: 'N',
         emlVrfcTkn: verificationToken,
@@ -81,6 +83,12 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.userEmail, user.useRoleCd);
     await this.storeRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
     await this.logLoginAttempt(user.id, 'EMAIL', 'SUCC', ip, userAgent);
+
+    // Send welcome email (non-blocking)
+    void this.mailService.sendWelcomeEmail(
+      user.userEmail,
+      user.userNm,
+    );
 
     return {
       user: this.formatUserResponse(user),
@@ -299,7 +307,12 @@ export class AuthService {
       },
     });
 
-    // TODO: Send reset email via MailService
+    // Send reset email (non-blocking)
+    void this.mailService.sendPasswordResetEmail(
+      user.userEmail,
+      user.userNm,
+      resetToken,
+    );
     this.logger.log(`Password reset token generated for user ${user.id}`);
 
     return { message: responseMessage };

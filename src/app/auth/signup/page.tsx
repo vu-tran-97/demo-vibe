@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"BUYER" | "SELLER">("BUYER");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,8 +29,8 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const result = await signup(email, password, name, nickname || undefined);
-      router.push(result.user.role === "BUYER" ? "/" : "/dashboard");
+      const result = await signup(email, password, name, nickname || undefined, role);
+      router.push(result.user.role === "SELLER" ? "/dashboard" : "/");
     } catch (err) {
       if (err instanceof AuthError) {
         switch (err.code) {
@@ -175,6 +176,18 @@ export default function SignupPage() {
               <p className={styles.inputHint}>
                 Must include uppercase, lowercase, number, and special character
               </p>
+            </div>
+
+            {/* Role Selector */}
+            <div style={{ display: "flex", gap: "20px", marginBottom: "4px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.9375rem", fontWeight: 500, color: "var(--charcoal)" }}>
+                <input type="radio" name="signup-role" value="BUYER" checked={role === "BUYER"} onChange={() => setRole("BUYER")} />
+                Buyer
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.9375rem", fontWeight: 500, color: "var(--charcoal)" }}>
+                <input type="radio" name="signup-role" value="SELLER" checked={role === "SELLER"} onChange={() => setRole("SELLER")} />
+                Seller
+              </label>
             </div>
 
             <button

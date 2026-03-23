@@ -4,12 +4,17 @@ import { BusinessException } from '../common/filters/business.exception';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CheckoutOrderDto } from './dto/checkout-order.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
+import { MailService } from '../mail/mail.service';
+import { OrderConfirmData } from '../mail/templates/order-confirm';
 
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createOrder(dto: CreateOrderDto, buyerId: string) {
     // Validate all products and calculate totals
@@ -140,7 +145,46 @@ export class OrderService {
 
     this.logger.log(`Order ${orderNumber} created by buyer ${buyerId}`);
 
+    // Send order confirmation email (non-blocking)
+    void this.sendOrderConfirmEmail(buyerId, orderNumber, orderItems, totalAmount, dto);
+
     return this.getOrderById(order.id, buyerId, 'BUYER');
+  }
+
+  private async sendOrderConfirmEmail(
+    buyerId: string,
+    orderNumber: string,
+    orderItems: { prdNm: string; prdImgUrl: string; unitPrc: number; ordrQty: number; subtotAmt: number }[],
+    totalAmount: number,
+    dto: CreateOrderDto,
+  ): Promise<void> {
+    try {
+      const buyer = await this.prisma.user.findUnique({ where: { id: buyerId } });
+      if (!buyer) return;
+
+      const orderData: OrderConfirmData = {
+        orderNumber,
+        items: orderItems.map((i) => ({
+          prdNm: i.prdNm,
+          prdImgUrl: i.prdImgUrl,
+          unitPrc: i.unitPrc,
+          ordrQty: i.ordrQty,
+          subtotAmt: i.subtotAmt,
+        })),
+        totalAmount,
+        shippingAddress: dto.shipAddr,
+        recipientName: dto.shipRcvrNm,
+      };
+
+      await this.mailService.sendOrderConfirmation(
+        buyer.userEmail,
+        buyer.userNm,
+        orderData,
+      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to send order confirmation email: ${msg}`);
+    }
   }
 
   async checkoutOrder(dto: CheckoutOrderDto, buyerId: string | null) {
@@ -276,6 +320,32 @@ export class OrderService {
     this.logger.log(
       `Checkout order ${orderNumber} created by ${isGuest ? 'guest' : `buyer ${effectiveBuyerId}`} with ${dto.paymentMethod}`,
     );
+
+    // Send order confirmation email (non-blocking)
+    if (!isGuest) {
+      try {
+        const buyer = await this.prisma.user.findUnique({ where: { id: effectiveBuyerId } });
+        if (buyer) {
+          const orderData = {
+            orderNumber,
+            items: orderItems.map((i) => ({
+              prdNm: i.prdNm,
+              prdImgUrl: i.prdImgUrl,
+              unitPrc: i.unitPrc,
+              ordrQty: i.ordrQty,
+              subtotAmt: i.subtotAmt,
+            })),
+            totalAmount,
+            shippingAddress: dto.shipAddr,
+            recipientName: dto.shipRcvrNm,
+          };
+          void this.mailService.sendOrderConfirmation(buyer.userEmail, buyer.userNm, orderData);
+        }
+      } catch (emailError: unknown) {
+        const msg = emailError instanceof Error ? emailError.message : 'Unknown error';
+        this.logger.error(`Failed to send checkout confirmation email: ${msg}`);
+      }
+    }
 
     // For guest orders, return formatted response directly (no ownership check needed)
     if (isGuest) {

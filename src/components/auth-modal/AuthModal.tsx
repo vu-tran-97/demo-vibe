@@ -39,6 +39,7 @@ export function AuthModal({
   const [signupNickname, setSignupNickname] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupRole, setSignupRole] = useState<"BUYER" | "SELLER">("BUYER");
 
   useEffect(() => {
     setView(initialView);
@@ -52,6 +53,7 @@ export function AuthModal({
     setSignupNickname("");
     setSignupEmail("");
     setSignupPassword("");
+    setSignupRole("BUYER");
     setLoading(false);
   }, []);
 
@@ -121,12 +123,13 @@ export function AuthModal({
         signupPassword,
         signupName,
         signupNickname || undefined,
+        signupRole,
       );
       onClose();
       if (onSuccess) onSuccess();
       if (!stayOnPage) {
         const role = result.user.role;
-        router.push(role === "BUYER" ? "/" : "/dashboard");
+        router.push(role === "SELLER" ? "/dashboard" : "/");
       }
     } catch (err) {
       if (err instanceof AuthError) {
@@ -367,6 +370,18 @@ export function AuthModal({
                   Must include uppercase, lowercase, number, and special
                   character
                 </p>
+              </div>
+
+              {/* Role Selector */}
+              <div style={{ display: "flex", gap: "20px", marginBottom: "4px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.875rem", fontWeight: 500, color: "var(--charcoal)" }}>
+                  <input type="radio" name="role" value="BUYER" checked={signupRole === "BUYER"} onChange={() => setSignupRole("BUYER")} />
+                  Buyer
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.875rem", fontWeight: 500, color: "var(--charcoal)" }}>
+                  <input type="radio" name="role" value="SELLER" checked={signupRole === "SELLER"} onChange={() => setSignupRole("SELLER")} />
+                  Seller
+                </label>
               </div>
 
               <button

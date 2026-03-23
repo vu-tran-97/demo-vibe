@@ -155,6 +155,21 @@ model LoginLog {
   @@map("TL_COMM_LGN_LOG")
 }
 
+model EmailLog {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  rcpntEml   String    @map("RCPNT_EML")
+  sbj        String    @map("SBJ")
+  tmpltNm    String    @map("TMPLT_NM")
+  sndSttsCd  String    @map("SND_STTS_CD")
+  errMsg     String?   @map("ERR_MSG")
+  sndDt      DateTime  @map("SND_DT")
+  mtdt       Json?     @map("MTDT")
+  rgstDt     DateTime  @default(now()) @map("RGST_DT")
+
+  // No DEL_YN — log table
+  @@map("TL_COMM_EML_LOG")
+}
+
 // ============================================================
 // Board Module
 // ============================================================
