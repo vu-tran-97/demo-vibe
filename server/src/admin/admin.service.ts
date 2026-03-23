@@ -428,6 +428,7 @@ export class AdminService {
         this.prisma.userActivity.findMany({
           take: 10,
           orderBy: { actvDt: 'desc' },
+          include: { user: true },
         }),
       ]);
 
@@ -439,16 +440,24 @@ export class AdminService {
         SELLER: sellerCount,
         SUPER_ADMIN: superAdminCount,
       },
-      recentActivity: recentActivities.map((a) => ({
-        id: a.id,
-        userId: a.userId,
-        type: a.actvTypeCd,
-        previousValue: a.prevVal,
-        newValue: a.newVal,
-        performerId: a.prfmrId,
-        clientIp: a.clntIpAddr,
-        activityDate: a.actvDt,
-      })),
+      recentActivity: recentActivities.map((a) => {
+        const actionType = a.actvTypeCd;
+        const userName = a.user?.userNm || a.user?.userNcnm || 'Unknown';
+        let description = actionType.replace(/_/g, ' ').toLowerCase();
+        if (a.prevVal && a.newVal) {
+          description = `${description}: ${a.prevVal} → ${a.newVal}`;
+        } else if (a.newVal) {
+          description = `${description}: ${a.newVal}`;
+        }
+        return {
+          id: a.id,
+          userId: a.userId,
+          userName,
+          actionType,
+          description,
+          createdAt: a.actvDt,
+        };
+      }),
     };
   }
 

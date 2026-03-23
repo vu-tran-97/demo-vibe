@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getUser, logout as authLogout, type UserInfo } from '@/lib/auth';
 import { CATEGORIES, fetchProducts, formatPrice, type Product } from '@/lib/products';
 import { useCart } from '@/hooks/use-cart';
@@ -34,15 +34,17 @@ type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
 export default function HomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addItem: cartAddItem, totalItems: cartCount } = useCart();
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState<'login' | 'signup'>('login');
-  const [headerSearch, setHeaderSearch] = useState('');
+  const initialQuery = searchParams.get('q') || '';
+  const [headerSearch, setHeaderSearch] = useState(initialQuery);
 
   // Filters
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [sort, setSort] = useState<SortOption>('popular');
   const [page, setPage] = useState(1);
@@ -121,13 +123,7 @@ export default function HomePage() {
     e.preventDefault();
     const trimmed = headerSearch.trim();
     if (!trimmed) return;
-    if (loggedIn) {
-      const searchBase = user?.role === 'BUYER' ? '/products' : '/dashboard/search';
-      router.push(`${searchBase}?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      // For non-logged-in users, filter products on the home page
-      setSearch(trimmed);
-    }
+    setSearch(trimmed);
   }
 
   function handleHeaderSearchKeyDown(e: React.KeyboardEvent) {
