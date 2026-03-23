@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -38,4 +39,10 @@ export class SignupDto {
       'Nickname can only contain Korean, English, numbers, underscore, and space',
   })
   nickname?: string;
+
+  @IsOptional()
+  @IsIn(['BUYER', 'SELLER'], {
+    message: 'Role must be either BUYER or SELLER',
+  })
+  role?: 'BUYER' | 'SELLER';
 }

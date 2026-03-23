@@ -62,6 +62,8 @@
         │
         ├──1:N──→ TL_COMM_LGN_LOG (Login Log)
         │
+        ├──1:N──→ TL_COMM_EML_LOG (Email Log)
+        │
         ├──1:N──→ TB_COMM_SCL_ACNT (Social Account)
         │
         ├──1:N──→ TB_COMM_BOARD_POST (Board Post)
@@ -91,7 +93,7 @@
         └──1:N──→ TL_COMM_USE_ACTV (User Activity Log)
 ```
 
-**Total 20 collections**: TB 8 + TC 2 + TL 2 + TH 1 + TR 2 + Chat 3 + Product 1 + Order 1
+**Total 21 collections**: TB 8 + TC 2 + TL 3 + TH 1 + TR 2 + Chat 3 + Product 1 + Order 1
 
 > Auth module fields updated to support password reset flow (PSWD_RST_TKN, PSWD_RST_EXPR_DT in TB_COMM_USER) per blueprint 001-auth.
 > RBAC: USE_ROLE_CD added to TB_COMM_USER, USE_ROLE code group added to TC_COMM_CD per blueprint 002-rbac.
@@ -173,6 +175,12 @@
 | | | `CONFIRMED` | Confirmed |
 | | | `SHIPPED` | Shipped |
 | | | `DELIVERED` | Delivered |
+| `EML_TMPLT` | Email Template | `WELCOME` | Welcome Email |
+| | | `RESET_PASSWORD` | Password Reset |
+| | | `ORDER_CONFIRM` | Order Confirmation |
+| | | `VERIFY_EMAIL` | Email Verification |
+| `EML_SND_STTS` | Email Send Status | `SUCC` | Success |
+| | | `FAIL` | Failure |
 
 ---
 
@@ -235,6 +243,22 @@
 | USE_AGNT | String | N | max 500 | User-Agent |
 
 > No DEL_YN (logs cannot be deleted). TTL Index: `LGN_DT` (auto-delete after 90 days)
+
+### TL_COMM_EML_LOG (Email Send Log)
+| Field | Type | Required | Constraint | Description |
+|-------|------|----------|-----------|-------------|
+| _id | ObjectId | PK | | Log ID |
+| RCPNT_EML | String | Y | max 100 | Recipient email address |
+| SBJ | String | Y | max 200 | Email subject line |
+| TMPLT_NM | String | Y | max 50 | Template name (welcome, reset-password, order-confirm) |
+| SND_STTS_CD | String | Y | enum: SUCC/FAIL | Send status code |
+| ERR_MSG | String | N | max 500 | Error message if failed |
+| SND_DT | DateTime | Y | | Send datetime |
+| MTDT | Json | N | | Additional metadata (userId, orderId, etc.) |
+| RGST_DT | DateTime | Y | default: now() | Created at |
+
+> No DEL_YN (log table, TL_ prefix). TTL Index: `SND_DT` (auto-delete after 90 days)
+> Added per blueprint 011-email-service.
 
 ---
 
@@ -469,6 +493,8 @@
 | TB_COMM_ORDR_ITEM | SLLR_ID + ITEM_STTS_CD + RGST_DT(desc) | Compound | Seller item status filtering |
 | TH_COMM_ORDR_STTS | ORDR_ID + CHNG_DT(desc) | Compound | Order status timeline |
 | TL_COMM_USE_ACTV | USE_ID + ACTV_DT(desc) | Compound | User activity history |
+| TL_COMM_EML_LOG | RCPNT_EML + SND_DT(desc) | Compound | Email history by recipient |
+| TL_COMM_EML_LOG | TMPLT_NM + SND_STTS_CD + SND_DT(desc) | Compound | Email stats by template |
 
 ### TTL Indexes (Auto-delete)
 | Collection | Field | TTL | Purpose |
@@ -476,6 +502,7 @@
 | TB_COMM_RFRSH_TKN | EXPR_DT | 0s (on expiry) | Auto-delete expired tokens |
 | TL_COMM_LGN_LOG | LGN_DT | 90 days | Log retention management |
 | TL_COMM_USE_ACTV | ACTV_DT | 180 days | Activity log retention |
+| TL_COMM_EML_LOG | SND_DT | 90 days | Email log retention |
 
 ### Text Index
 | Collection | Fields | Purpose |
@@ -539,6 +566,7 @@ TB_COMM_ORDR          →  Order                →  @@map("TB_COMM_ORDR")
 TB_COMM_ORDR_ITEM     →  OrderItem            →  @@map("TB_COMM_ORDR_ITEM")
 TH_COMM_ORDR_STTS     →  OrderStatusHistory   →  @@map("TH_COMM_ORDR_STTS")
 TL_COMM_USE_ACTV      →  UserActivity         →  @@map("TL_COMM_USE_ACTV")
+TL_COMM_EML_LOG       →  EmailLog             →  @@map("TL_COMM_EML_LOG")
 ```
 
 > Field mapping: Prisma fields use `camelCase`, MongoDB actual fields use `UPPER_SNAKE_CASE` → use `@map()`

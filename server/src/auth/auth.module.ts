@@ -11,9 +11,11 @@ import { SocialAuthService } from './social/social-auth.service';
 import { GoogleProvider } from './social/providers/google.provider';
 import { KakaoProvider } from './social/providers/kakao.provider';
 import { NaverProvider } from './social/providers/naver.provider';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
+    MailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -85,9 +85,11 @@ export async function signup(
   password: string,
   name: string,
   nickname?: string,
+  role?: 'BUYER' | 'SELLER',
 ): Promise<AuthResponse> {
   const body: Record<string, unknown> = { email, password, name };
   if (nickname) body.nickname = nickname;
+  if (role) body.role = role;
   const data = await authFetch<AuthResponse>('/api/auth/signup', body);
   saveTokens(data);
   return data;

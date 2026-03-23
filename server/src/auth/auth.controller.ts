@@ -1,9 +1,11 @@
 import {
   Controller,
+  Get,
   Post,
   Patch,
   Delete,
   Body,
+  Query,
   Req,
   HttpCode,
   HttpStatus,
@@ -64,6 +66,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.token);
+  }
+
+  @Public()
+  @Get('verify-email')
+  async verifyEmailGet(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 
   @Public()

@@ -33,6 +33,13 @@ function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Sellers should use My Products, not all products
+  useEffect(() => {
+    if (user && user.role === 'SELLER') {
+      router.replace('/dashboard/products/my');
+    }
+  }, [user, router]);
+
   // Initialize state from URL params
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
