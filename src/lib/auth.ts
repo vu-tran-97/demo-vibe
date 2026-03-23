@@ -153,6 +153,8 @@ export async function deleteAccount(): Promise<string> {
   return data.message;
 }
 
+const REFRESH_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
 export async function refreshTokens(): Promise<void> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
@@ -161,18 +163,28 @@ export async function refreshTokens(): Promise<void> {
   const data = await authFetch<{ accessToken: string; refreshToken: string }>('/api/auth/refresh', { refreshToken });
   localStorage.setItem('accessToken', data.accessToken);
   localStorage.setItem('refreshToken', data.refreshToken);
+  localStorage.setItem('tokenRefreshedAt', Date.now().toString());
+}
+
+export function isRefreshNeeded(): boolean {
+  if (typeof window === 'undefined') return false;
+  const refreshedAt = localStorage.getItem('tokenRefreshedAt');
+  if (!refreshedAt) return true;
+  return Date.now() - Number(refreshedAt) > REFRESH_INTERVAL_MS;
 }
 
 function saveTokens(data: AuthResponse): void {
   localStorage.setItem('accessToken', data.accessToken);
   localStorage.setItem('refreshToken', data.refreshToken);
   localStorage.setItem('user', JSON.stringify(data.user));
+  localStorage.setItem('tokenRefreshedAt', Date.now().toString());
 }
 
 function clearTokens(): void {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
+  localStorage.removeItem('tokenRefreshedAt');
 }
 
 export function getAccessToken(): string | null {
