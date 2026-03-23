@@ -31,6 +31,9 @@ describe('JwtAuthGuard', () => {
     const context = createMockContext();
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
 
+    // Mock super.canActivate so passport doesn't interfere
+    Object.getPrototypeOf(Object.getPrototypeOf(guard)).canActivate = jest.fn().mockReturnValue(true);
+
     expect(guard.canActivate(context)).toBe(true);
   });
 
