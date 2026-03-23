@@ -9,6 +9,14 @@ import {
   Query,
   Request,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { ProductService } from './product.service';
@@ -18,12 +26,19 @@ import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
+@ApiTags('Products')
 @Controller('api/products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Create a new product' })
+  @ApiBody({ type: CreateProductDto })
+  @ApiResponse({ status: 201, description: 'Product created successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - seller or admin only' })
   async createProduct(
     @Body() dto: CreateProductDto,
     @Request() req: { user: JwtPayload },
@@ -33,12 +48,18 @@ export class ProductController {
 
   @Get()
   @Public()
+  @ApiOperation({ summary: 'List products with filtering and pagination' })
+  @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   async listProducts(@Query() query: ListProductsQueryDto) {
     return this.productService.listProducts(query);
   }
 
   @Get('my')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'List my products (seller view)' })
+  @ApiResponse({ status: 200, description: 'Seller products retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyProducts(
     @Query() query: ListProductsQueryDto,
     @Request() req: { user: JwtPayload },
@@ -48,12 +69,23 @@ export class ProductController {
 
   @Get(':id')
   @Public()
+  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({ status: 200, description: 'Product details retrieved' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async getProductById(@Param('id') id: string) {
     return this.productService.getProductById(id);
   }
 
   @Patch(':id')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update a product' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiBody({ type: UpdateProductDto })
+  @ApiResponse({ status: 200, description: 'Product updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async updateProduct(
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
@@ -64,6 +96,13 @@ export class ProductController {
 
   @Patch(':id/status')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Change product status' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiBody({ type: UpdateProductStatusDto })
+  @ApiResponse({ status: 200, description: 'Product status updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async changeStatus(
     @Param('id') id: string,
     @Body() dto: UpdateProductStatusDto,
@@ -74,6 +113,12 @@ export class ProductController {
 
   @Delete(':id')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Delete a product' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({ status: 200, description: 'Product deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async deleteProduct(
     @Param('id') id: string,
     @Request() req: { user: JwtPayload },

@@ -8,12 +8,15 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SignupDto {
+  @ApiProperty({ example: 'user@example.com', description: 'User email address' })
   @IsEmail()
   @MaxLength(100)
   email!: string;
 
+  @ApiProperty({ example: 'StrongP@ss1', description: 'Password (min 8 chars, must include upper, lower, number, special)' })
   @IsString()
   @MinLength(8)
   @Matches(
@@ -25,11 +28,13 @@ export class SignupDto {
   )
   password!: string;
 
+  @ApiProperty({ example: 'John Doe', description: 'Full name' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   name!: string;
 
+  @ApiPropertyOptional({ example: 'johndoe', description: 'Display nickname' })
   @IsOptional()
   @IsString()
   @MinLength(2)
@@ -40,6 +45,7 @@ export class SignupDto {
   })
   nickname?: string;
 
+  @ApiPropertyOptional({ enum: ['BUYER', 'SELLER'], description: 'User role' })
   @IsOptional()
   @IsIn(['BUYER', 'SELLER'], {
     message: 'Role must be either BUYER or SELLER',
