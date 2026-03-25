@@ -28,24 +28,14 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       router.push(result.user.role === "BUYER" ? "/" : "/dashboard");
-    } catch (err) {
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string; message?: string };
       if (err instanceof AuthError) {
-        switch (err.code) {
-          case "INVALID_CREDENTIALS":
-            setError("Invalid email or password.");
-            break;
-          case "ACCOUNT_SUSPENDED":
-            setError("Your account has been suspended.");
-            break;
-          case "ACCOUNT_INACTIVE":
-            setError("Your account is inactive.");
-            break;
-          case "VALIDATION_ERROR":
-            setError(err.message);
-            break;
-          default:
-            setError(err.message);
-        }
+        setError(err.message);
+      } else if (firebaseErr.code === "auth/invalid-credential" || firebaseErr.code === "auth/wrong-password" || firebaseErr.code === "auth/user-not-found") {
+        setError("Invalid email or password.");
+      } else if (firebaseErr.code === "auth/too-many-requests") {
+        setError("Too many failed attempts. Please try again later.");
       } else {
         setError("Unable to connect to server. Please try again.");
       }

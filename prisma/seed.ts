@@ -1,10 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const bcrypt = require("../server/node_modules/bcrypt");
 
 const prisma = new PrismaClient();
-
-const BCRYPT_SALT_ROUNDS = 12;
 
 const CODE_GROUPS = [
   { cdGrpId: "USER_STTS", cdGrpNm: "User Status", cdGrpDc: "User account status codes" },
@@ -189,11 +185,8 @@ const COLORS = [
   "Terracotta", "Sand", "Ocean Blue", "Slate", "Cream",
 ];
 
-function generateProducts(sellerId: string, sellerIndex: number) {
+function generateProducts(sellerId: number, sellerIndex: number) {
   const products = [];
-  // Each seller gets products across all 6 categories
-  // 10 base templates × 5 variants = 50 products per seller
-  // Rotate categories so each seller has variety
   const catOrder = [...CATEGORIES].sort(() => (sellerIndex * 7 + Math.random()) % 1 - 0.5);
 
   for (let i = 0; i < 50; i++) {
@@ -263,8 +256,6 @@ async function main() {
     }
   }
 
-  const hashedPassword = await bcrypt.hash("Admin@123", BCRYPT_SALT_ROUNDS);
-
   // ── Super Admin ──
   const adminEmail = "admin@astratech.vn";
   let admin = await prisma.user.findFirst({ where: { userEmail: adminEmail } });
@@ -272,17 +263,16 @@ async function main() {
     admin = await prisma.user.create({
       data: {
         userEmail: adminEmail,
-        userPswd: hashedPassword,
+        firebaseUid: "firebase-admin-placeholder",
         userNm: "Super Admin",
         userNcnm: "superadmin",
         useRoleCd: "SUPER_ADMIN",
         userSttsCd: "ACTV",
-        emailVrfcYn: "Y",
         rgtrId: "SYSTEM",
         mdfrId: "SYSTEM",
       },
     });
-    console.info("Super admin created: admin@astratech.vn / Admin@123");
+    console.info("Super admin created: admin@astratech.vn");
   } else {
     if (admin.useRoleCd !== "SUPER_ADMIN") {
       await prisma.user.update({
@@ -297,50 +287,46 @@ async function main() {
   const buyerEmail = "buyer@vibe.com";
   const existingBuyer = await prisma.user.findFirst({ where: { userEmail: buyerEmail } });
   if (!existingBuyer) {
-    const buyerPswd = await bcrypt.hash("Buyer@123", BCRYPT_SALT_ROUNDS);
     await prisma.user.create({
       data: {
         userEmail: buyerEmail,
-        userPswd: buyerPswd,
+        firebaseUid: "firebase-buyer-placeholder",
         userNm: "Demo Buyer",
         userNcnm: "demo_buyer",
         useRoleCd: "BUYER",
         userSttsCd: "ACTV",
-        emailVrfcYn: "Y",
         rgtrId: "SYSTEM",
         mdfrId: "SYSTEM",
       },
     });
-    console.info("Buyer created: buyer@vibe.com / Buyer@123");
+    console.info("Buyer created: buyer@vibe.com");
   }
 
   // ── 4 Sellers (seller1~4@yopmail.com) ──
-  const sellerPassword = await bcrypt.hash("Admin@123", BCRYPT_SALT_ROUNDS);
   const sellers = [
-    { email: "seller1@yopmail.com", name: "Seoul Craft Studio", nickname: "seoul_craft" },
-    { email: "seller2@yopmail.com", name: "Hanok Living", nickname: "hanok_living" },
-    { email: "seller3@yopmail.com", name: "Jeju Art Gallery", nickname: "jeju_art" },
-    { email: "seller4@yopmail.com", name: "Busan Market", nickname: "busan_market" },
+    { email: "seller1@yopmail.com", name: "Seoul Craft Studio", nickname: "seoul_craft", firebaseUid: "firebase-seller1-placeholder" },
+    { email: "seller2@yopmail.com", name: "Hanok Living", nickname: "hanok_living", firebaseUid: "firebase-seller2-placeholder" },
+    { email: "seller3@yopmail.com", name: "Jeju Art Gallery", nickname: "jeju_art", firebaseUid: "firebase-seller3-placeholder" },
+    { email: "seller4@yopmail.com", name: "Busan Market", nickname: "busan_market", firebaseUid: "firebase-seller4-placeholder" },
   ];
 
-  const sellerIds: string[] = [];
+  const sellerIds: number[] = [];
   for (const s of sellers) {
     let seller = await prisma.user.findFirst({ where: { userEmail: s.email } });
     if (!seller) {
       seller = await prisma.user.create({
         data: {
           userEmail: s.email,
-          userPswd: sellerPassword,
+          firebaseUid: s.firebaseUid,
           userNm: s.name,
           userNcnm: s.nickname,
           useRoleCd: "SELLER",
           userSttsCd: "ACTV",
-          emailVrfcYn: "Y",
           rgtrId: "SYSTEM",
           mdfrId: "SYSTEM",
         },
       });
-      console.info(`Seller created: ${s.email} / Admin@123`);
+      console.info(`Seller created: ${s.email}`);
     }
     sellerIds.push(seller.id);
   }

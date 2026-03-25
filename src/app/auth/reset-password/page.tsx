@@ -3,13 +3,14 @@
 import { useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { resetPassword, AuthError } from '@/lib/auth';
+import { confirmPasswordReset } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import styles from '../auth.module.css';
 import { Suspense } from 'react';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const oobCode = searchParams.get('oobCode') || '';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +26,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!token) {
+    if (!oobCode) {
       setError('Invalid reset link. Please request a new one.');
       return;
     }
@@ -33,25 +34,16 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      await resetPassword(token, password);
+      await confirmPasswordReset(auth, oobCode, password);
       setSuccess(true);
-    } catch (err) {
-      if (err instanceof AuthError) {
-        switch (err.code) {
-          case 'INVALID_RESET_TOKEN':
-            setError('This reset link is invalid. Please request a new one.');
-            break;
-          case 'RESET_TOKEN_EXPIRED':
-            setError('This reset link has expired. Please request a new one.');
-            break;
-          case 'VALIDATION_ERROR':
-            setError(err.message);
-            break;
-          default:
-            setError(err.message);
-        }
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string };
+      if (firebaseErr.code === 'auth/invalid-action-code') {
+        setError('This reset link is invalid or expired. Please request a new one.');
+      } else if (firebaseErr.code === 'auth/weak-password') {
+        setError('Password is too weak. Use at least 6 characters.');
       } else {
-        setError('Unable to connect to server. Please try again.');
+        setError('Unable to reset password. Please try again.');
       }
     }
     setLoading(false);
@@ -92,16 +84,13 @@ function ResetPasswordForm() {
                 id="password"
                 type="password"
                 className={styles.input}
-                placeholder="Min. 8 characters"
+                placeholder="Min. 6 characters"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={6}
               />
-              <p className={styles.inputHint}>
-                Must include uppercase, lowercase, number, and special character
-              </p>
             </div>
 
             <div className={styles.inputGroup}>

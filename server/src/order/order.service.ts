@@ -16,11 +16,11 @@ export class OrderService {
     private readonly mailService: MailService,
   ) {}
 
-  async createOrder(dto: CreateOrderDto, buyerId: string) {
+  async createOrder(dto: CreateOrderDto, buyerId: number) {
     // Validate all products and calculate totals
     const orderItems: {
-      prdId: string;
-      sllrId: string;
+      prdId: number;
+      sllrId: number;
       prdNm: string;
       prdImgUrl: string;
       unitPrc: number;
@@ -87,8 +87,8 @@ export class OrderService {
         shipRcvrNm: dto.shipRcvrNm,
         shipTelno: dto.shipTelno,
         shipMemo: dto.shipMemo,
-        rgtrId: buyerId,
-        mdfrId: buyerId,
+        rgtrId: String(buyerId),
+        mdfrId: String(buyerId),
       },
     });
 
@@ -105,8 +105,8 @@ export class OrderService {
           ordrQty: item.ordrQty,
           subtotAmt: item.subtotAmt,
           itemSttsCd: 'PENDING',
-          rgtrId: buyerId,
-          mdfrId: buyerId,
+          rgtrId: String(buyerId),
+          mdfrId: String(buyerId),
         },
       });
     }
@@ -139,7 +139,7 @@ export class OrderService {
         chngRsn: 'Order created',
         chngrId: buyerId,
         chngDt: new Date(),
-        rgtrId: buyerId,
+        rgtrId: String(buyerId),
       },
     });
 
@@ -152,7 +152,7 @@ export class OrderService {
   }
 
   private async sendOrderConfirmEmail(
-    buyerId: string,
+    buyerId: number,
     orderNumber: string,
     orderItems: { prdNm: string; prdImgUrl: string; unitPrc: number; ordrQty: number; subtotAmt: number }[],
     totalAmount: number,
@@ -187,14 +187,14 @@ export class OrderService {
     }
   }
 
-  async checkoutOrder(dto: CheckoutOrderDto, buyerId: string | null) {
+  async checkoutOrder(dto: CheckoutOrderDto, buyerId: number | null) {
     const isGuest = !buyerId;
-    // Use a fixed ObjectID for all guest orders (hex: "GUEST" zero-padded to 24 chars)
-    const effectiveBuyerId = buyerId || '000000000000000000000000';
+    // For guest orders, byrId=0 is used as placeholder (system user)
+    const effectiveBuyerId: number = buyerId || 0;
     // Validate all products and calculate totals
     const orderItems: {
-      prdId: string;
-      sllrId: string;
+      prdId: number;
+      sllrId: number;
       prdNm: string;
       prdImgUrl: string;
       unitPrc: number;
@@ -260,8 +260,8 @@ export class OrderService {
         shipRcvrNm: dto.shipRcvrNm,
         shipTelno: dto.shipTelno,
         shipMemo: dto.shipMemo,
-        rgtrId: effectiveBuyerId,
-        mdfrId: effectiveBuyerId,
+        rgtrId: String(effectiveBuyerId),
+        mdfrId: String(effectiveBuyerId),
       },
     });
 
@@ -278,8 +278,8 @@ export class OrderService {
           ordrQty: item.ordrQty,
           subtotAmt: item.subtotAmt,
           itemSttsCd: 'PENDING',
-          rgtrId: effectiveBuyerId,
-          mdfrId: effectiveBuyerId,
+          rgtrId: String(effectiveBuyerId),
+          mdfrId: String(effectiveBuyerId),
         },
       });
     }
@@ -313,7 +313,7 @@ export class OrderService {
           : `Order created with payment method: ${dto.paymentMethod}`,
         chngrId: effectiveBuyerId,
         chngDt: new Date(),
-        rgtrId: effectiveBuyerId,
+        rgtrId: String(effectiveBuyerId),
       },
     });
 
@@ -355,7 +355,7 @@ export class OrderService {
     return this.getOrderById(order.id, effectiveBuyerId, 'BUYER');
   }
 
-  async payOrder(orderId: string, paymentMethod: string, buyerId: string) {
+  async payOrder(orderId: number, paymentMethod: string, buyerId: number) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, delYn: 'N' },
     });
@@ -392,7 +392,7 @@ export class OrderService {
       data: {
         ordrSttsCd: 'PAID',
         payMthdCd: paymentMethod,
-        mdfrId: buyerId,
+        mdfrId: String(buyerId),
       },
     });
 
@@ -405,7 +405,7 @@ export class OrderService {
       if (it.payStts !== 'PAID') {
         await this.prisma.orderItem.update({
           where: { id: it.id },
-          data: { payStts: 'PAID', mdfrId: buyerId },
+          data: { payStts: 'PAID', mdfrId: String(buyerId) },
         });
       }
     }
@@ -419,7 +419,7 @@ export class OrderService {
         chngRsn: `Payment via ${paymentMethod}`,
         chngrId: buyerId,
         chngDt: new Date(),
-        rgtrId: buyerId,
+        rgtrId: String(buyerId),
       },
     });
 
@@ -430,7 +430,7 @@ export class OrderService {
     return this.getOrderById(orderId, buyerId, 'BUYER');
   }
 
-  async confirmItemPayment(orderId: string, itemId: string, sellerId: string) {
+  async confirmItemPayment(orderId: number, itemId: number, sellerId: number) {
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, ordrId: orderId, delYn: 'N' },
       include: { order: true },
@@ -462,7 +462,7 @@ export class OrderService {
 
     await this.prisma.orderItem.update({
       where: { id: itemId },
-      data: { payStts: 'PAID', mdfrId: sellerId },
+      data: { payStts: 'PAID', mdfrId: String(sellerId) },
     });
 
     // Record in status history
@@ -474,7 +474,7 @@ export class OrderService {
         chngRsn: `Payment confirmed by seller for "${item.prdNm}"`,
         chngrId: sellerId,
         chngDt: new Date(),
-        rgtrId: sellerId,
+        rgtrId: String(sellerId),
       },
     });
 
@@ -486,7 +486,7 @@ export class OrderService {
     if (allPaid && item.order.ordrSttsCd === 'PENDING') {
       await this.prisma.order.update({
         where: { id: orderId },
-        data: { ordrSttsCd: 'PAID', mdfrId: sellerId },
+        data: { ordrSttsCd: 'PAID', mdfrId: String(sellerId) },
       });
     }
 
@@ -496,11 +496,11 @@ export class OrderService {
   }
 
   async updateItemStatus(
-    orderId: string,
-    itemId: string,
+    orderId: number,
+    itemId: number,
     newStatus: string,
     trackingNumber: string | undefined,
-    sellerId: string,
+    sellerId: number,
   ) {
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, ordrId: orderId, delYn: 'N' },
@@ -531,7 +531,7 @@ export class OrderService {
     // Update item status and optionally tracking number
     const updateData: Record<string, unknown> = {
       itemSttsCd: newStatus,
-      mdfrId: sellerId,
+      mdfrId: String(sellerId),
     };
 
     if (trackingNumber !== undefined && newStatus === 'SHIPPED') {
@@ -552,7 +552,7 @@ export class OrderService {
         chngRsn: `Item "${item.prdNm}" status updated${trackingNumber ? ` (tracking: ${trackingNumber})` : ''}`,
         chngrId: sellerId,
         chngDt: new Date(),
-        rgtrId: sellerId,
+        rgtrId: String(sellerId),
       },
     });
 
@@ -585,12 +585,13 @@ export class OrderService {
     itemIds: string[],
     newStatus: string,
     trackingNumber: string | undefined,
-    sellerId: string,
+    sellerId: number,
   ) {
     let updated = 0;
     let failed = 0;
 
-    for (const itemId of itemIds) {
+    for (const rawItemId of itemIds) {
+      const itemId = Number(rawItemId);
       try {
         const item = await this.prisma.orderItem.findFirst({
           where: { id: itemId, delYn: 'N' },
@@ -623,7 +624,7 @@ export class OrderService {
 
         const updateData: Record<string, unknown> = {
           itemSttsCd: newStatus,
-          mdfrId: sellerId,
+          mdfrId: String(sellerId),
         };
 
         if (trackingNumber !== undefined && newStatus === 'SHIPPED') {
@@ -644,7 +645,7 @@ export class OrderService {
             chngRsn: `Bulk update: item "${item.prdNm}"${trackingNumber ? ` (tracking: ${trackingNumber})` : ''}`,
             chngrId: sellerId,
             chngDt: new Date(),
-            rgtrId: sellerId,
+            rgtrId: String(sellerId),
           },
         });
 
@@ -661,7 +662,7 @@ export class OrderService {
     return { updated, failed };
   }
 
-  async getSellerOrderDetail(orderId: string, sellerId: string) {
+  async getSellerOrderDetail(orderId: number, sellerId: number) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, delYn: 'N' },
       include: {
@@ -734,7 +735,7 @@ export class OrderService {
     };
   }
 
-  async listBuyerOrders(buyerId: string, query: ListOrdersQueryDto) {
+  async listBuyerOrders(buyerId: number, query: ListOrdersQueryDto) {
     const page = parseInt(query.page || '1', 10);
     const limit = Math.min(parseInt(query.limit || '20', 10), 100);
     const skip = (page - 1) * limit;
@@ -816,7 +817,7 @@ export class OrderService {
     };
   }
 
-  async getOrderById(orderId: string, userId: string, userRole: string) {
+  async getOrderById(orderId: number, userId: number, userRole: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, delYn: 'N' },
       include: {
@@ -857,10 +858,10 @@ export class OrderService {
   }
 
   async updateOrderStatus(
-    orderId: string,
+    orderId: number,
     newStatus: string,
     reason: string | undefined,
-    userId: string,
+    userId: number,
     userRole: string,
   ) {
     const order = await this.prisma.order.findFirst({
@@ -957,7 +958,7 @@ export class OrderService {
       where: { id: orderId },
       data: {
         ordrSttsCd: newStatus,
-        mdfrId: userId,
+        mdfrId: String(userId),
       },
     });
 
@@ -971,7 +972,7 @@ export class OrderService {
         if (it.payStts !== 'PAID') {
           await this.prisma.orderItem.update({
             where: { id: it.id },
-            data: { payStts: 'PAID', mdfrId: userId },
+            data: { payStts: 'PAID', mdfrId: String(userId) },
           });
         }
       }
@@ -986,7 +987,7 @@ export class OrderService {
         chngRsn: reason,
         chngrId: userId,
         chngDt: new Date(),
-        rgtrId: userId,
+        rgtrId: String(userId),
       },
     });
 
@@ -997,7 +998,7 @@ export class OrderService {
     return this.getOrderById(orderId, userId, userRole);
   }
 
-  async listSellerSales(sellerId: string, query: ListOrdersQueryDto) {
+  async listSellerSales(sellerId: number, query: ListOrdersQueryDto) {
     const page = parseInt(query.page || '1', 10);
     const limit = Math.min(parseInt(query.limit || '20', 10), 100);
     const skip = (page - 1) * limit;
@@ -1069,7 +1070,7 @@ export class OrderService {
     };
   }
 
-  async getSellerSummary(sellerId: string) {
+  async getSellerSummary(sellerId: number) {
     // Get all delivered order items for this seller
     const deliveredItems = await this.prisma.orderItem.findMany({
       where: {
@@ -1110,7 +1111,7 @@ export class OrderService {
     }
 
     // Count unique orders per month
-    const monthlyOrderIds = new Map<string, Set<string>>();
+    const monthlyOrderIds = new Map<string, Set<number>>();
     for (const item of deliveredItems) {
       const month = item.order.rgstDt.toISOString().slice(0, 7);
       if (!monthlyOrderIds.has(month)) {
@@ -1139,7 +1140,7 @@ export class OrderService {
     };
   }
 
-  private async formatGuestOrderResponse(orderId: string) {
+  private async formatGuestOrderResponse(orderId: number) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId },
       include: {
@@ -1256,9 +1257,9 @@ export class OrderService {
   }
 
   private formatOrderResponse(order: {
-    id: string;
+    id: number;
     ordrNo: string;
-    byrId: string;
+    byrId: number;
     ordrTotAmt: number;
     ordrSttsCd: string;
     payMthdCd: string | null;
@@ -1269,8 +1270,8 @@ export class OrderService {
     trckgNo: string | null;
     rgstDt: Date;
     items: {
-      id: string;
-      prdId: string;
+      id: number;
+      prdId: number;
       prdNm: string;
       prdImgUrl: string;
       unitPrc: number;
@@ -1310,9 +1311,9 @@ export class OrderService {
   }
 
   private formatOrderDetailResponse(order: {
-    id: string;
+    id: number;
     ordrNo: string;
-    byrId: string;
+    byrId: number;
     ordrTotAmt: number;
     ordrSttsCd: string;
     payMthdCd: string | null;
@@ -1323,9 +1324,9 @@ export class OrderService {
     trckgNo: string | null;
     rgstDt: Date;
     items: {
-      id: string;
-      prdId: string;
-      sllrId: string;
+      id: number;
+      prdId: number;
+      sllrId: number;
       prdNm: string;
       prdImgUrl: string;
       unitPrc: number;
@@ -1334,14 +1335,14 @@ export class OrderService {
       itemSttsCd: string;
       payStts?: string;
       trckgNo: string | null;
-      seller?: { id: string; userNm: string; userNcnm: string | null } | null;
+      seller?: { id: number; userNm: string; userNcnm: string | null } | null;
     }[];
     statusHistory: {
-      id: string;
+      id: number;
       prevSttsCd: string;
       newSttsCd: string;
       chngRsn: string | null;
-      chngrId: string;
+      chngrId: number;
       chngDt: Date;
     }[];
   }) {

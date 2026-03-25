@@ -1,10 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { RequestUser } from '../../firebase/firebase-auth.guard';
 
 export const CurrentUser = createParamDecorator(
-  (data: keyof JwtPayload | undefined, ctx: ExecutionContext) => {
+  (data: keyof RequestUser | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const user = request.user as JwtPayload;
+    const user = request.user as RequestUser;
     if (data) {
       return user[data];
     }

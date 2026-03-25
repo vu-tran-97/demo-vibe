@@ -31,21 +31,14 @@ export default function SignupPage() {
     try {
       const result = await signup(email, password, name, nickname || undefined, role);
       router.push(result.user.role === "SELLER" ? "/dashboard" : "/");
-    } catch (err) {
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string };
       if (err instanceof AuthError) {
-        switch (err.code) {
-          case "EMAIL_ALREADY_EXISTS":
-            setError("This email is already registered.");
-            break;
-          case "NICKNAME_ALREADY_EXISTS":
-            setError("This nickname is already taken.");
-            break;
-          case "VALIDATION_ERROR":
-            setError(err.message);
-            break;
-          default:
-            setError(err.message);
-        }
+        setError(err.message);
+      } else if (firebaseErr.code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else if (firebaseErr.code === "auth/weak-password") {
+        setError("Password is too weak. Use at least 6 characters.");
       } else {
         setError("Unable to connect to server. Please try again.");
       }

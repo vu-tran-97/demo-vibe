@@ -485,6 +485,56 @@
   font-size: 0.8125rem;
 }
 
+.pageJump {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: var(--space-sm);
+}
+
+.pageJumpInput {
+  width: 72px;
+  height: 36px;
+  padding: 0 var(--space-xs);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--charcoal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  outline: none;
+  transition: border-color var(--duration-fast);
+  -moz-appearance: textfield;
+}
+
+.pageJumpInput::-webkit-outer-spin-button,
+.pageJumpInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pageJumpInput:focus {
+  border-color: var(--charcoal);
+}
+
+.pageJumpBtn {
+  height: 36px;
+  padding: 0 var(--space-sm);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--charcoal);
+  border: 1px solid var(--charcoal);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.pageJumpBtn:hover {
+  background: var(--charcoal-light);
+}
+
 .pageInfo {
   font-size: 0.75rem;
   color: var(--muted);

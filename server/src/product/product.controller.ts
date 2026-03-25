@@ -24,7 +24,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @ApiTags('Products')
 @Controller('api/products')
@@ -41,7 +41,7 @@ export class ProductController {
   @ApiResponse({ status: 403, description: 'Forbidden - seller or admin only' })
   async createProduct(
     @Body() dto: CreateProductDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.productService.createProduct(dto, req.user);
   }
@@ -62,7 +62,7 @@ export class ProductController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyProducts(
     @Query() query: ListProductsQueryDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.productService.getMyProducts(query, req.user);
   }
@@ -74,7 +74,7 @@ export class ProductController {
   @ApiResponse({ status: 200, description: 'Product details retrieved' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async getProductById(@Param('id') id: string) {
-    return this.productService.getProductById(id);
+    return this.productService.getProductById(Number(id));
   }
 
   @Patch(':id')
@@ -89,9 +89,9 @@ export class ProductController {
   async updateProduct(
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.productService.updateProduct(id, dto, req.user);
+    return this.productService.updateProduct(Number(id), dto, req.user);
   }
 
   @Patch(':id/status')
@@ -106,9 +106,9 @@ export class ProductController {
   async changeStatus(
     @Param('id') id: string,
     @Body() dto: UpdateProductStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.productService.changeStatus(id, dto.status, req.user);
+    return this.productService.changeStatus(Number(id), dto.status, req.user);
   }
 
   @Delete(':id')
@@ -121,8 +121,8 @@ export class ProductController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   async deleteProduct(
     @Param('id') id: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.productService.deleteProduct(id, req.user);
+    return this.productService.deleteProduct(Number(id), req.user);
   }
 }

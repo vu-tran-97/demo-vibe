@@ -29,7 +29,7 @@ import { UpdateBannerDto } from './dto/update-banner.dto';
 import { ListPostsQueryDto } from './dto/list-posts-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @ApiTags('Board')
 @Controller('api/posts')
@@ -56,9 +56,9 @@ export class BoardController {
   @ApiResponse({ status: 403, description: 'Forbidden - admin only' })
   async updateBanner(
     @Body() dto: UpdateBannerDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.updateBanner(dto, req.user.sub);
+    return this.boardService.updateBanner(dto, req.user.id);
   }
 
   // ── Posts ──
@@ -72,7 +72,7 @@ export class BoardController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createPost(
     @Body() dto: CreatePostDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.boardService.createPost(dto, req.user);
   }
@@ -92,7 +92,7 @@ export class BoardController {
   @ApiResponse({ status: 200, description: 'Post details retrieved' })
   @ApiResponse({ status: 404, description: 'Post not found' })
   async getPostById(@Param('id') id: string) {
-    return this.boardService.getPostById(id);
+    return this.boardService.getPostById(Number(id));
   }
 
   @Patch(':id')
@@ -106,9 +106,9 @@ export class BoardController {
   async updatePost(
     @Param('id') id: string,
     @Body() dto: UpdatePostDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.updatePost(id, dto, req.user);
+    return this.boardService.updatePost(Number(id), dto, req.user);
   }
 
   @Delete(':id')
@@ -120,9 +120,9 @@ export class BoardController {
   @ApiResponse({ status: 404, description: 'Post not found' })
   async deletePost(
     @Param('id') id: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.deletePost(id, req.user);
+    return this.boardService.deletePost(Number(id), req.user);
   }
 
   // ── Comments ──
@@ -134,7 +134,7 @@ export class BoardController {
   @ApiResponse({ status: 200, description: 'Comments retrieved' })
   @ApiResponse({ status: 404, description: 'Post not found' })
   async getComments(@Param('id') id: string) {
-    return this.boardService.getComments(id);
+    return this.boardService.getComments(Number(id));
   }
 
   @Post(':id/comments')
@@ -149,9 +149,9 @@ export class BoardController {
   async createComment(
     @Param('id') id: string,
     @Body() dto: CreateCommentDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.createComment(id, dto, req.user);
+    return this.boardService.createComment(Number(id), dto, req.user);
   }
 
   @Patch(':postId/comments/:commentId')
@@ -167,9 +167,9 @@ export class BoardController {
     @Param('postId') postId: string,
     @Param('commentId') commentId: string,
     @Body() dto: UpdateCommentDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.updateComment(postId, commentId, dto, req.user);
+    return this.boardService.updateComment(Number(postId), Number(commentId), dto, req.user);
   }
 
   @Delete(':postId/comments/:commentId')
@@ -183,8 +183,8 @@ export class BoardController {
   async deleteComment(
     @Param('postId') postId: string,
     @Param('commentId') commentId: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.boardService.deleteComment(postId, commentId, req.user);
+    return this.boardService.deleteComment(Number(postId), Number(commentId), req.user);
   }
 }

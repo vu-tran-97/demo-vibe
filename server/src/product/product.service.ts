@@ -4,7 +4,7 @@ import { BusinessException } from '../common/filters/business.exception';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @Injectable()
 export class ProductService {
@@ -12,7 +12,7 @@ export class ProductService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createProduct(dto: CreateProductDto, user: JwtPayload) {
+  async createProduct(dto: CreateProductDto, user: RequestUser) {
     if (user.role !== 'SELLER' && user.role !== 'SUPER_ADMIN') {
       throw new BusinessException(
         'INSUFFICIENT_ROLE',
@@ -23,7 +23,7 @@ export class ProductService {
 
     const product = await this.prisma.product.create({
       data: {
-        sellerId: user.sub,
+        sellerId: user.id,
         prdNm: dto.prdNm,
         prdDc: dto.prdDc,
         prdPrc: dto.prdPrc,
@@ -38,12 +38,12 @@ export class ProductService {
         avgRtng: 0,
         rvwCnt: 0,
         srchTags: dto.srchTags || [],
-        rgtrId: user.sub,
-        mdfrId: user.sub,
+        rgtrId: String(user.id),
+        mdfrId: String(user.id),
       },
     });
 
-    this.logger.log(`User ${user.sub} created product ${product.id}`);
+    this.logger.log(`User ${user.id} created product ${product.id}`);
 
     return this.formatProductResponse(product);
   }
@@ -137,7 +137,7 @@ export class ProductService {
     };
   }
 
-  async getMyProducts(query: ListProductsQueryDto, user: JwtPayload) {
+  async getMyProducts(query: ListProductsQueryDto, user: RequestUser) {
     const page = parseInt(query.page || '1', 10);
     const limit = Math.min(parseInt(query.limit || '20', 10), 100);
     const skip = (page - 1) * limit;
@@ -148,7 +148,7 @@ export class ProductService {
 
     // SUPER_ADMIN sees all products; sellers see only their own
     if (user.role !== 'SUPER_ADMIN') {
-      where.sellerId = user.sub;
+      where.sellerId = user.id;
     }
 
     if (query.category) {
@@ -191,7 +191,7 @@ export class ProductService {
     };
   }
 
-  async getProductById(productId: string) {
+  async getProductById(productId: number) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, delYn: 'N' },
       include: { seller: { select: { id: true, userNm: true, userNcnm: true } } },
@@ -217,9 +217,9 @@ export class ProductService {
   }
 
   async updateProduct(
-    productId: string,
+    productId: number,
     dto: UpdateProductDto,
-    user: JwtPayload,
+    user: RequestUser,
   ) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, delYn: 'N' },
@@ -238,19 +238,19 @@ export class ProductService {
       where: { id: productId },
       data: {
         ...dto,
-        mdfrId: user.sub,
+        mdfrId: String(user.id),
       },
     });
 
-    this.logger.log(`User ${user.sub} updated product ${productId}`);
+    this.logger.log(`User ${user.id} updated product ${productId}`);
 
     return this.formatProductResponse(updated);
   }
 
   async changeStatus(
-    productId: string,
+    productId: number,
     newStatus: string,
-    user: JwtPayload,
+    user: RequestUser,
   ) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, delYn: 'N' },
@@ -300,17 +300,17 @@ export class ProductService {
 
     const updated = await this.prisma.product.update({
       where: { id: productId },
-      data: { prdSttsCd: newStatus, mdfrId: user.sub },
+      data: { prdSttsCd: newStatus, mdfrId: String(user.id) },
     });
 
     this.logger.log(
-      `User ${user.sub} changed product ${productId} status from ${product.prdSttsCd} to ${newStatus}`,
+      `User ${user.id} changed product ${productId} status from ${product.prdSttsCd} to ${newStatus}`,
     );
 
     return this.formatProductResponse(updated);
   }
 
-  async deleteProduct(productId: string, user: JwtPayload) {
+  async deleteProduct(productId: number, user: RequestUser) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, delYn: 'N' },
     });
@@ -349,7 +349,7 @@ export class ProductService {
     for (const item of pendingItems) {
       await this.prisma.orderItem.update({
         where: { id: item.id },
-        data: { itemSttsCd: 'CANCELLED', mdfrId: user.sub },
+        data: { itemSttsCd: 'CANCELLED', mdfrId: String(user.id) },
       });
 
       // Restore stock
@@ -368,9 +368,9 @@ export class ProductService {
           prevSttsCd: item.itemSttsCd,
           newSttsCd: 'CANCELLED',
           chngRsn: `Product "${product.prdNm}" deleted by seller. Item auto-cancelled.`,
-          chngrId: user.sub,
+          chngrId: user.id,
           chngDt: new Date(),
-          rgtrId: user.sub,
+          rgtrId: String(user.id),
         },
       });
 
@@ -384,7 +384,7 @@ export class ProductService {
       if (allCancelled) {
         await this.prisma.order.update({
           where: { id: item.ordrId },
-          data: { ordrSttsCd: 'CANCELLED', mdfrId: user.sub },
+          data: { ordrSttsCd: 'CANCELLED', mdfrId: String(user.id) },
         });
       }
     }
@@ -398,10 +398,10 @@ export class ProductService {
     // Soft-delete the product
     await this.prisma.product.update({
       where: { id: productId },
-      data: { delYn: 'Y', mdfrId: user.sub },
+      data: { delYn: 'Y', mdfrId: String(user.id) },
     });
 
-    this.logger.log(`User ${user.sub} soft-deleted product ${productId}`);
+    this.logger.log(`User ${user.id} soft-deleted product ${productId}`);
 
     return {
       id: productId,
@@ -410,11 +410,11 @@ export class ProductService {
     };
   }
 
-  private verifyOwnership(sellerId: string, user: JwtPayload) {
+  private verifyOwnership(sellerId: number, user: RequestUser) {
     if (user.role === 'SUPER_ADMIN') {
       return;
     }
-    if (sellerId !== user.sub) {
+    if (sellerId !== user.id) {
       throw new BusinessException(
         'NOT_PRODUCT_OWNER',
         'You can only modify your own products',
@@ -424,8 +424,8 @@ export class ProductService {
   }
 
   private formatProductResponse(product: {
-    id: string;
-    sellerId: string;
+    id: number;
+    sellerId: number;
     prdNm: string;
     prdDc: string;
     prdPrc: number;
@@ -441,7 +441,7 @@ export class ProductService {
     rvwCnt: number;
     srchTags: string[];
     rgstDt: Date;
-    seller?: { id: string; userNm: string; userNcnm: string | null } | null;
+    seller?: { id: number; userNm: string; userNcnm: string | null } | null;
   }) {
     return {
       id: product.id,

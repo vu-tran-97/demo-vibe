@@ -5,7 +5,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 // ── Types ──
 
 export interface Product {
-  id: string;
+  id: number;
   name: string;
   description: string;
   price: number;
@@ -22,7 +22,7 @@ export interface Product {
   tags: string[];
   status?: 'DRAFT' | 'ACTIVE' | 'SOLD_OUT' | 'HIDDEN';
   seller: {
-    id?: string;
+    id?: number;
     name: string;
     nickname: string;
   };
@@ -98,8 +98,8 @@ export function getCategoryLabel(code: string): string {
 
 // ── Helpers ──
 
-function getAuthHeaders(): Record<string, string> {
-  const token = getAccessToken();
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAccessToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -109,8 +109,6 @@ function getAuthHeaders(): Record<string, string> {
 
 function handle401(res: Response): void {
   if (res.status === 401 && typeof window !== 'undefined') {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     window.location.href = '/';
   }
@@ -175,7 +173,7 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<P
 export async function fetchMyProducts(params: FetchProductsParams = {}): Promise<ProductListResponse> {
   const qs = buildQueryString(params as unknown as Record<string, unknown>);
   const res = await fetch(`${API_BASE}/api/products/my${qs}`, {
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
   });
   handle401(res);
   const json = await res.json();
@@ -185,7 +183,7 @@ export async function fetchMyProducts(params: FetchProductsParams = {}): Promise
   return mapProductList(json.data);
 }
 
-export async function fetchProductById(id: string): Promise<Product> {
+export async function fetchProductById(id: string | number): Promise<Product> {
   const res = await fetch(`${API_BASE}/api/products/${id}`);
   const json = await res.json();
   if (!json.success) {
@@ -211,7 +209,7 @@ function mapProductPayload(data: CreateProductData | UpdateProductData): Record<
 export async function createProduct(data: CreateProductData): Promise<Product> {
   const res = await fetch(`${API_BASE}/api/products`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(mapProductPayload(data)),
   });
   handle401(res);
@@ -222,10 +220,10 @@ export async function createProduct(data: CreateProductData): Promise<Product> {
   return json.data;
 }
 
-export async function updateProduct(id: string, data: UpdateProductData): Promise<Product> {
+export async function updateProduct(id: string | number, data: UpdateProductData): Promise<Product> {
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(mapProductPayload(data)),
   });
   handle401(res);
@@ -236,11 +234,11 @@ export async function updateProduct(id: string, data: UpdateProductData): Promis
   return json.data;
 }
 
-export async function updateProductStatus(id: string, status: string): Promise<Product> {
+export async function updateProductStatus(id: string | number, status: string): Promise<Product> {
   const apiStatus = status === 'ACTIVE' ? 'ACTV' : status;
   const res = await fetch(`${API_BASE}/api/products/${id}/status`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ status: apiStatus }),
   });
   handle401(res);
@@ -251,10 +249,10 @@ export async function updateProductStatus(id: string, status: string): Promise<P
   return json.data;
 }
 
-export async function deleteProduct(id: string): Promise<void> {
+export async function deleteProduct(id: string | number): Promise<void> {
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
   });
   handle401(res);
   const json = await res.json();

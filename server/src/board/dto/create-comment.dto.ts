@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MaxLength, IsNumber } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class CreateCommentDto {
   @ApiProperty({ example: 'Great post!', description: 'Comment content' })
@@ -10,6 +11,7 @@ export class CreateCommentDto {
 
   @ApiPropertyOptional({ description: 'Parent comment ID for replies' })
   @IsOptional()
-  @IsString()
-  prntCmntId?: string;
+  @Type(() => Number)
+  @IsNumber()
+  prntCmntId?: number;
 }

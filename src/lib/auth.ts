@@ -1,20 +1,24 @@
+import { auth } from './firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile as firebaseUpdateProfile,
+} from 'firebase/auth';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export interface UserInfo {
-  id: string;
+  id: number;
+  firebaseUid: string;
   email: string;
   name: string;
   nickname: string | null;
-  emailVerified: boolean;
   profileImageUrl: string | null;
   role: string;
-}
-
-interface AuthResponse {
-  user: UserInfo;
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
 }
 
 interface ApiResponse<T> {
@@ -32,35 +36,23 @@ export class AuthError extends Error {
   }
 }
 
-async function authFetch<T>(
+async function apiFetch<T>(
   path: string,
-  body?: Record<string, unknown>,
-  options?: { method?: string },
+  options?: RequestInit,
 ): Promise<T> {
-  const method = options?.method ?? 'POST';
+  const user = auth.currentUser;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  const accessToken = getAccessToken();
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
+  if (user) {
+    const token = await user.getIdToken();
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
+    ...options,
+    headers: { ...options?.headers, ...headers },
   });
-
-  if (res.status === 401 && path !== '/api/auth/login' && path !== '/api/auth/signup') {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.location.href = '/';
-    }
-    throw new AuthError('SESSION_EXPIRED', 'Session expired');
-  }
 
   const json: ApiResponse<T> = await res.json();
 
@@ -74,47 +66,71 @@ async function authFetch<T>(
   return json.data;
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
-  const data = await authFetch<AuthResponse>('/api/auth/login', { email, password });
-  saveTokens(data);
-  return data;
-}
-
 export async function signup(
   email: string,
   password: string,
   name: string,
   nickname?: string,
   role?: 'BUYER' | 'SELLER',
-): Promise<AuthResponse> {
-  const body: Record<string, unknown> = { email, password, name };
-  if (nickname) body.nickname = nickname;
-  if (role) body.role = role;
-  const data = await authFetch<AuthResponse>('/api/auth/signup', body);
-  saveTokens(data);
-  return data;
+): Promise<{ user: UserInfo }> {
+  // Create Firebase user
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+  // Set display name in Firebase
+  await firebaseUpdateProfile(cred.user, { displayName: name });
+
+  // Update profile in backend (guard auto-creates user, then we set role/nickname)
+  const updateBody: Record<string, unknown> = { name };
+  if (nickname) updateBody.nickname = nickname;
+  const profile = await apiFetch<UserInfo>('/api/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(updateBody),
+  });
+
+  // Set role if provided
+  if (role) {
+    const updatedProfile = await apiFetch<UserInfo>('/api/auth/role', {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+    localStorage.setItem('user', JSON.stringify(updatedProfile));
+    return { user: updatedProfile };
+  }
+
+  localStorage.setItem('user', JSON.stringify(profile));
+  return { user: profile };
+}
+
+export async function login(
+  email: string,
+  password: string,
+): Promise<{ user: UserInfo }> {
+  await signInWithEmailAndPassword(auth, email, password);
+
+  // Fetch profile from backend (guard auto-creates if needed)
+  const profile = await apiFetch<UserInfo>('/api/auth/me');
+  localStorage.setItem('user', JSON.stringify(profile));
+  return { user: profile };
+}
+
+export async function loginWithGoogle(): Promise<{ user: UserInfo }> {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+
+  // Fetch profile from backend (guard auto-creates if needed)
+  const profile = await apiFetch<UserInfo>('/api/auth/me');
+  localStorage.setItem('user', JSON.stringify(profile));
+  return { user: profile };
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = getRefreshToken();
-  if (refreshToken) {
-    try {
-      await authFetch('/api/auth/logout', { refreshToken });
-    } catch {
-      // ignore logout errors
-    }
-  }
-  clearTokens();
+  await signOut(auth);
+  localStorage.removeItem('user');
 }
 
 export async function forgotPassword(email: string): Promise<string> {
-  const data = await authFetch<{ message: string }>('/api/auth/forgot-password', { email });
-  return data.message;
-}
-
-export async function resetPassword(token: string, newPassword: string): Promise<string> {
-  const data = await authFetch<{ message: string }>('/api/auth/reset-password', { token, newPassword });
-  return data.message;
+  await sendPasswordResetEmail(auth, email);
+  return 'If an account with that email exists, a reset link has been sent.';
 }
 
 export async function updateProfile(data: {
@@ -122,79 +138,25 @@ export async function updateProfile(data: {
   nickname?: string;
   profileImageUrl?: string;
 }): Promise<UserInfo> {
-  const user = await authFetch<UserInfo>(
+  const user = await apiFetch<UserInfo>(
     '/api/auth/profile',
-    data as Record<string, unknown>,
-    { method: 'PATCH' },
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    },
   );
   localStorage.setItem('user', JSON.stringify(user));
   return user;
 }
 
-export async function changePassword(
-  currentPassword: string,
-  newPassword: string,
-): Promise<string> {
-  const data = await authFetch<{ message: string }>(
-    '/api/auth/password',
-    { currentPassword, newPassword },
-    { method: 'PATCH' },
-  );
-  return data.message;
-}
-
 export async function deleteAccount(): Promise<string> {
-  const data = await authFetch<{ message: string }>(
+  const data = await apiFetch<{ message: string }>(
     '/api/auth/account',
-    undefined,
     { method: 'DELETE' },
   );
-  clearTokens();
-  return data.message;
-}
-
-const REFRESH_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
-
-export async function refreshTokens(): Promise<void> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new AuthError('NO_REFRESH_TOKEN', 'No refresh token available');
-  }
-  const data = await authFetch<{ accessToken: string; refreshToken: string }>('/api/auth/refresh', { refreshToken });
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
-  localStorage.setItem('tokenRefreshedAt', Date.now().toString());
-}
-
-export function isRefreshNeeded(): boolean {
-  if (typeof window === 'undefined') return false;
-  const refreshedAt = localStorage.getItem('tokenRefreshedAt');
-  if (!refreshedAt) return true;
-  return Date.now() - Number(refreshedAt) > REFRESH_INTERVAL_MS;
-}
-
-function saveTokens(data: AuthResponse): void {
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
-  localStorage.setItem('user', JSON.stringify(data.user));
-  localStorage.setItem('tokenRefreshedAt', Date.now().toString());
-}
-
-function clearTokens(): void {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  await signOut(auth);
   localStorage.removeItem('user');
-  localStorage.removeItem('tokenRefreshedAt');
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('refreshToken');
+  return data.message;
 }
 
 export function getUser(): UserInfo | null {
@@ -209,5 +171,15 @@ export function getUser(): UserInfo | null {
 }
 
 export function isLoggedIn(): boolean {
-  return !!getAccessToken();
+  return !!auth.currentUser || !!getUser();
+}
+
+/**
+ * Get Firebase ID token for API calls.
+ * Returns null if no user is signed in.
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return user.getIdToken();
 }

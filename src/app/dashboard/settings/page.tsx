@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import {
   updateProfile,
-  changePassword,
   deleteAccount,
   AuthError,
 } from '@/lib/auth';
@@ -91,14 +90,25 @@ export default function SettingsPage() {
 
     setPasswordSaving(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      const { auth } = await import('@/lib/firebase');
+      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth');
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser || !firebaseUser.email) throw new Error('Not authenticated');
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, newPassword);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setShowPasswordSection(false);
       showToast('Password changed successfully');
     } catch (err: unknown) {
-      showToast(getErrorMessage(err), 'error');
+      const firebaseErr = err as { code?: string };
+      if (firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
+        showToast('Current password is incorrect', 'error');
+      } else {
+        showToast(getErrorMessage(err), 'error');
+      }
     } finally {
       setPasswordSaving(false);
     }

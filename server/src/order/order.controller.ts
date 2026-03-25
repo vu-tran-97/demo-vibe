@@ -26,7 +26,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { BulkStatusDto } from './dto/bulk-status.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -41,9 +41,9 @@ export class OrderController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createOrder(
     @Body() dto: CreateOrderDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.createOrder(dto, req.user.sub);
+    return this.orderService.createOrder(dto, req.user.id);
   }
 
   @Public()
@@ -54,9 +54,9 @@ export class OrderController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   async checkoutOrder(
     @Body() dto: CheckoutOrderDto,
-    @Request() req: { user?: JwtPayload },
+    @Request() req: { user?: RequestUser },
   ) {
-    const buyerId = req.user?.sub || null;
+    const buyerId = req.user?.id || null;
     return this.orderService.checkoutOrder(dto, buyerId);
   }
 
@@ -70,9 +70,9 @@ export class OrderController {
   async payOrder(
     @Param('id') id: string,
     @Body() dto: PayOrderDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.payOrder(id, dto.paymentMethod, req.user.sub);
+    return this.orderService.payOrder(Number(id), dto.paymentMethod, req.user.id);
   }
 
   @Get('sales')
@@ -82,9 +82,9 @@ export class OrderController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listSellerSales(
     @Query() query: ListOrdersQueryDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.listSellerSales(req.user.sub, query);
+    return this.orderService.listSellerSales(req.user.id, query);
   }
 
   @Get('sales/summary')
@@ -92,8 +92,8 @@ export class OrderController {
   @ApiOperation({ summary: 'Get seller sales summary' })
   @ApiResponse({ status: 200, description: 'Sales summary retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getSellerSummary(@Request() req: { user: JwtPayload }) {
-    return this.orderService.getSellerSummary(req.user.sub);
+  async getSellerSummary(@Request() req: { user: RequestUser }) {
+    return this.orderService.getSellerSummary(req.user.id);
   }
 
   @Get('sales/:id')
@@ -105,9 +105,9 @@ export class OrderController {
   @ApiResponse({ status: 404, description: 'Order not found' })
   async getSellerOrderDetail(
     @Param('id') id: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.getSellerOrderDetail(id, req.user.sub);
+    return this.orderService.getSellerOrderDetail(Number(id), req.user.id);
   }
 
   @Patch('sales/:orderId/items/:itemId/payment')
@@ -121,9 +121,9 @@ export class OrderController {
   async confirmItemPayment(
     @Param('orderId') orderId: string,
     @Param('itemId') itemId: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.confirmItemPayment(orderId, itemId, req.user.sub);
+    return this.orderService.confirmItemPayment(Number(orderId), Number(itemId), req.user.id);
   }
 
   @Patch('sales/:orderId/items/:itemId/status')
@@ -139,14 +139,14 @@ export class OrderController {
     @Param('orderId') orderId: string,
     @Param('itemId') itemId: string,
     @Body() dto: UpdateItemStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.orderService.updateItemStatus(
-      orderId,
-      itemId,
+      Number(orderId),
+      Number(itemId),
       dto.status,
       dto.trackingNumber,
-      req.user.sub,
+      req.user.id,
     );
   }
 
@@ -158,13 +158,13 @@ export class OrderController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkUpdateStatus(
     @Body() dto: BulkStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.orderService.bulkUpdateItemStatus(
       dto.itemIds,
       dto.status,
       dto.trackingNumber,
-      req.user.sub,
+      req.user.id,
     );
   }
 
@@ -174,9 +174,9 @@ export class OrderController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listBuyerOrders(
     @Query() query: ListOrdersQueryDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.listBuyerOrders(req.user.sub, query);
+    return this.orderService.listBuyerOrders(req.user.id, query);
   }
 
   @Get(':id')
@@ -187,9 +187,9 @@ export class OrderController {
   @ApiResponse({ status: 404, description: 'Order not found' })
   async getOrderById(
     @Param('id') id: string,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.orderService.getOrderById(id, req.user.sub, req.user.role);
+    return this.orderService.getOrderById(Number(id), req.user.id, req.user.role);
   }
 
   @Patch(':id/status')
@@ -202,13 +202,13 @@ export class OrderController {
   async updateOrderStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.orderService.updateOrderStatus(
-      id,
+      Number(id),
       dto.status,
       dto.reason,
-      req.user.sub,
+      req.user.id,
       req.user.role,
     );
   }

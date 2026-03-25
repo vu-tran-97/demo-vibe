@@ -34,4 +34,13 @@
 | 2026-03-23 15:23 | implementation | server/src/auth/auth.service.ts | auth.service |
 | 2026-03-23 15:24 | implementation | src/lib/auth.ts | auth |
 | 2026-03-23 15:24 | implementation | src/hooks/use-auth.ts | use-auth |
+| 2026-03-25 10:29 | test_case | docs/tests/test-cases/sprint-8/auth-e2e-scenarios.md | auth-e2e-scenarios |
+| 2026-03-25 10:29 | test_case | docs/tests/test-cases/sprint-8/product-e2e-scenarios.md | product-e2e-scenarios |
+| 2026-03-25 10:29 | test_case | docs/tests/test-cases/sprint-8/search-e2e-scenarios.md | search-e2e-scenarios |
+| 2026-03-25 10:29 | test_case | docs/tests/test-cases/sprint-8/board-e2e-scenarios.md | board-e2e-scenarios |
+| 2026-03-25 10:29 | test_case | docs/tests/test-cases/sprint-8/order-e2e-scenarios.md | order-e2e-scenarios |
+| 2026-03-25 10:30 | test_case | docs/tests/test-cases/sprint-8/admin-e2e-scenarios.md | admin-e2e-scenarios |
+| 2026-03-25 10:31 | test_case | docs/tests/test-cases/sprint-8/email-e2e-scenarios.md | email-e2e-scenarios |
+| 2026-03-25 10:32 | test_case | docs/tests/test-cases/sprint-8/settings-e2e-scenarios.md | settings-e2e-scenarios |
+| 2026-03-25 10:34 | test_case | docs/tests/test-cases/sprint-8/cross-feature-e2e-scenarios.md | cross-feature-e2e-scenarios |
 <!-- ACTIVITY_LOG_END -->
