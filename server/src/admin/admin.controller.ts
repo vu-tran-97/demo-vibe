@@ -24,11 +24,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { BulkStatusDto } from './dto/bulk-status.dto';
 import { ActivityQueryDto } from './dto/activity-query.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @ApiTags('Admin')
 @ApiBearerAuth('access-token')
@@ -62,9 +61,9 @@ export class AdminController {
   @ApiResponse({ status: 409, description: 'Email already exists' })
   async createUser(
     @Body() dto: CreateUserDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.adminService.createUser(dto, req.user.sub);
+    return this.adminService.createUser(dto, req.user.id);
   }
 
   @Get()
@@ -97,12 +96,12 @@ export class AdminController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkChangeStatus(
     @Body() dto: BulkStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
     return this.adminService.bulkChangeStatus(
       dto.userIds,
       dto.status,
-      req.user.sub,
+      req.user.id,
     );
   }
 
@@ -151,9 +150,9 @@ export class AdminController {
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.adminService.updateUser(id, dto, req.user.sub);
+    return this.adminService.updateUser(id, dto, req.user.id);
   }
 
   @Patch(':id/role')
@@ -166,9 +165,9 @@ export class AdminController {
   async changeRole(
     @Param('id') id: string,
     @Body() dto: UpdateRoleDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.adminService.changeRole(id, dto.role, req.user.sub);
+    return this.adminService.changeRole(id, dto.role, req.user.id);
   }
 
   @Patch(':id/status')
@@ -181,23 +180,10 @@ export class AdminController {
   async changeStatus(
     @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
-    @Request() req: { user: JwtPayload },
+    @Request() req: { user: RequestUser },
   ) {
-    return this.adminService.changeStatus(id, dto.status, req.user.sub);
+    return this.adminService.changeStatus(id, dto.status, req.user.id);
   }
 
-  @Patch(':id/password')
-  @ApiOperation({ summary: 'Reset user password (admin)' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiBody({ type: ResetPasswordDto })
-  @ApiResponse({ status: 200, description: 'Password reset' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async resetPassword(
-    @Param('id') id: string,
-    @Body() dto: ResetPasswordDto,
-    @Request() req: { user: JwtPayload },
-  ) {
-    return this.adminService.resetUserPassword(id, dto.password, req.user.sub);
-  }
+  // Password reset removed — Firebase handles authentication
 }

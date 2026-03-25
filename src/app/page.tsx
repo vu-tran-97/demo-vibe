@@ -11,7 +11,7 @@ import { UserMenu } from '@/components/user-menu/UserMenu';
 import { ToastContainer, showToast } from '@/components/toast/Toast';
 import styles from './page.module.css';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 24;
 const BANNER_SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1280&h=400&fit=crop',
@@ -58,9 +58,10 @@ function HomePageContent() {
   const [page, setPage] = useState(1);
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
 
   useEffect(() => {
@@ -76,18 +77,20 @@ function HomePageContent() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch products when filters change
+  const sortMap: Record<SortOption, string> = useMemo(() => ({
+    popular: 'popular',
+    newest: 'newest',
+    'price-low': 'price-low',
+    'price-high': 'price-high',
+    rating: 'rating',
+  }), []);
+
+  // Fetch products — reset on filter change
   useEffect(() => {
     setLoading(true);
-    const sortMap: Record<SortOption, string> = {
-      popular: 'popular',
-      newest: 'newest',
-      'price-low': 'price-low',
-      'price-high': 'price-high',
-      rating: 'rating',
-    };
+    setPage(1);
     fetchProducts({
-      page,
+      page: 1,
       limit: ITEMS_PER_PAGE,
       category: activeCategory !== 'ALL' ? activeCategory : undefined,
       search: search.trim() || undefined,
@@ -95,16 +98,34 @@ function HomePageContent() {
     })
       .then((res) => {
         setProducts(res.items);
-        setTotalPages(res.pagination.totalPages);
         setTotalCount(res.pagination.total);
+        setHasMore(res.pagination.page < res.pagination.totalPages);
       })
       .catch(() => {
         setProducts([]);
-        setTotalPages(1);
         setTotalCount(0);
+        setHasMore(false);
       })
       .finally(() => setLoading(false));
-  }, [page, activeCategory, search, sort]);
+  }, [activeCategory, search, sort, sortMap]);
+
+  function handleLoadMore() {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    fetchProducts({
+      page: nextPage,
+      limit: ITEMS_PER_PAGE,
+      category: activeCategory !== 'ALL' ? activeCategory : undefined,
+      search: search.trim() || undefined,
+      sort: sortMap[sort],
+    })
+      .then((res) => {
+        setProducts((prev) => [...prev, ...res.items]);
+        setPage(nextPage);
+        setHasMore(res.pagination.page < res.pagination.totalPages);
+      })
+      .finally(() => setLoadingMore(false));
+  }
 
   const refreshAuth = useCallback(() => {
     setLoggedIn(isLoggedIn());
@@ -140,10 +161,6 @@ function HomePageContent() {
     }
   }
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [activeCategory, search, sort]);
 
   const paged = products;
 
@@ -422,53 +439,33 @@ function HomePageContent() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
+          {/* Load More */}
+          {hasMore && (
+            <div className={styles.loadMore}>
+              <span className={styles.loadMoreCount}>
+                Showing {products.length.toLocaleString()} of {totalCount.toLocaleString()} products
+              </span>
               <button
                 type="button"
-                className={styles.pageBtn}
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
+                className={styles.loadMoreBtn}
+                onClick={handleLoadMore}
+                disabled={loadingMore}
               >
-                &lsaquo;
+                {loadingMore ? (
+                  <>
+                    <span className={styles.loadMoreSpinner} />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More'
+                )}
               </button>
-              {(() => {
-                const pages: (number | string)[] = [];
-                if (totalPages <= 7) {
-                  for (let i = 1; i <= totalPages; i++) pages.push(i);
-                } else {
-                  pages.push(1);
-                  if (page > 3) pages.push('...');
-                  for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-                    pages.push(i);
-                  }
-                  if (page < totalPages - 2) pages.push('...');
-                  pages.push(totalPages);
-                }
-                return pages.map((p, idx) =>
-                  p === '...' ? (
-                    <span key={`dots-${idx}`} className={styles.pageDots}>&hellip;</span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      className={`${styles.pageBtn} ${p === page ? styles.pageBtnActive : ''}`}
-                      onClick={() => setPage(p as number)}
-                    >
-                      {p}
-                    </button>
-                  )
-                );
-              })()}
-              <button
-                type="button"
-                className={styles.pageBtn}
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                &rsaquo;
-              </button>
+              <div className={styles.loadMoreBar}>
+                <div
+                  className={styles.loadMoreProgress}
+                  style={{ width: `${Math.min((products.length / totalCount) * 100, 100)}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

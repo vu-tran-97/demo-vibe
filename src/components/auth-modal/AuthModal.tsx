@@ -2,10 +2,8 @@
 
 import { useState, FormEvent, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { login, signup, AuthError } from "@/lib/auth";
+import { login, signup, loginWithGoogle, AuthError } from "@/lib/auth";
 import styles from "./auth-modal.module.css";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 type ModalView = "login" | "signup";
 
@@ -90,24 +88,34 @@ export function AuthModal({
         const role = result.user.role;
         router.push(role === "BUYER" ? "/" : "/dashboard");
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string; message?: string };
       if (err instanceof AuthError) {
-        switch (err.code) {
-          case "INVALID_CREDENTIALS":
-            setError("Invalid email or password.");
-            break;
-          case "ACCOUNT_SUSPENDED":
-            setError("Your account has been suspended.");
-            break;
-          case "ACCOUNT_INACTIVE":
-            setError("Your account is inactive.");
-            break;
-          default:
-            setError(err.message);
-        }
+        setError(err.message);
+      } else if (firebaseErr.code === "auth/invalid-credential" || firebaseErr.code === "auth/wrong-password" || firebaseErr.code === "auth/user-not-found") {
+        setError("Invalid email or password.");
+      } else if (firebaseErr.code === "auth/too-many-requests") {
+        setError("Too many failed attempts. Please try again later.");
       } else {
         setError("Unable to connect to server. Please try again.");
       }
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await loginWithGoogle();
+      onClose();
+      if (onSuccess) onSuccess();
+      if (!stayOnPage) {
+        const role = result.user.role;
+        router.push(role === "BUYER" ? "/" : "/dashboard");
+      }
+    } catch {
+      setError("Google sign-in failed. Please try again.");
       setLoading(false);
     }
   }
@@ -131,18 +139,20 @@ export function AuthModal({
         const role = result.user.role;
         router.push(role === "SELLER" ? "/dashboard" : "/");
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string; message?: string };
       if (err instanceof AuthError) {
         switch (err.code) {
-          case "EMAIL_ALREADY_EXISTS":
-            setError("This email is already registered.");
-            break;
           case "NICKNAME_ALREADY_EXISTS":
             setError("This nickname is already taken.");
             break;
           default:
             setError(err.message);
         }
+      } else if (firebaseErr.code === "auth/email-already-in-use") {
+        setError("This email is already registered.");
+      } else if (firebaseErr.code === "auth/weak-password") {
+        setError("Password is too weak. Use at least 6 characters.");
       } else {
         setError("Unable to connect to server. Please try again.");
       }
@@ -168,24 +178,26 @@ export function AuthModal({
               </p>
             </div>
 
-            {/* Social Login */}
-            {/* <div className={styles.socialButtons}>
-              <a
-                href={`${API_BASE}/api/auth/social/google`}
+            {/* Google Sign-In */}
+            <div className={styles.socialButtons}>
+              <button
+                type="button"
                 className={styles.socialBtn}
+                onClick={handleGoogleLogin}
+                disabled={loading}
               >
                 <span className={`${styles.socialIcon} ${styles.google}`}>
                   G
                 </span>
                 Continue with Google
-              </a>
-            </div> */}
+              </button>
+            </div>
 
-            {/* <div className={styles.divider}>
+            <div className={styles.divider}>
               <div className={styles.dividerLine} />
               <span className={styles.dividerText}>or</span>
               <div className={styles.dividerLine} />
-            </div> */}
+            </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}
 
@@ -261,35 +273,19 @@ export function AuthModal({
               </p>
             </div>
 
-            {/* Social Login */}
-            {/* <div className={styles.socialButtons}>
-              <a
-                href={`${API_BASE}/api/auth/social/google`}
+            {/* Google Sign-Up */}
+            <div className={styles.socialButtons}>
+              <button
+                type="button"
                 className={styles.socialBtn}
+                onClick={handleGoogleLogin}
+                disabled={loading}
               >
                 <span className={`${styles.socialIcon} ${styles.google}`}>
                   G
                 </span>
                 Sign up with Google
-              </a>
-              <a
-                href={`${API_BASE}/api/auth/social/kakao`}
-                className={styles.socialBtn}
-              >
-                <span className={`${styles.socialIcon} ${styles.kakao}`}>
-                  K
-                </span>
-                Sign up with Kakao
-              </a>
-              <a
-                href={`${API_BASE}/api/auth/social/naver`}
-                className={styles.socialBtn}
-              >
-                <span className={`${styles.socialIcon} ${styles.naver}`}>
-                  N
-                </span>
-                Sign up with Naver
-              </a>
+              </button>
             </div>
 
             <div className={styles.divider}>
@@ -297,8 +293,6 @@ export function AuthModal({
               <span className={styles.dividerText}>or</span>
               <div className={styles.dividerLine} />
             </div>
-
-            {error && <div className={styles.errorMessage}>{error}</div>} */}
 
             {error && <div className={styles.errorMessage}>{error}</div>}
 

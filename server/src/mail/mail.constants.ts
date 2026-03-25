@@ -1,11 +1,7 @@
 export const MAIL_TEMPLATES = {
   WELCOME: {
     name: 'welcome',
-    subject: 'Welcome to Vibe! Verify your email',
-  },
-  RESET_PASSWORD: {
-    name: 'reset-password',
-    subject: 'Reset your Vibe password',
+    subject: 'Welcome to Vibe!',
   },
   ORDER_CONFIRMATION: {
     name: 'order-confirm',

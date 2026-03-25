@@ -1,12 +1,9 @@
 import { Injectable, HttpStatus, Logger } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessException } from '../common/filters/business.exception';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
-
-const BCRYPT_SALT_ROUNDS = 12;
 
 @Injectable()
 export class AdminService {
@@ -14,7 +11,7 @@ export class AdminService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createUser(dto: CreateUserDto, adminId: string) {
+  async createUser(dto: CreateUserDto, adminId: number) {
     const existingEmail = await this.prisma.user.findFirst({
       where: { userEmail: dto.email, delYn: 'N' },
     });
@@ -39,22 +36,21 @@ export class AdminService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
-
     const generatedNickname = dto.nickname || `user_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
+    // Firebase handles authentication; admin-created users need a firebaseUid placeholder
+    // They must complete Firebase signup separately
     const user = await this.prisma.user.create({
       data: {
         userEmail: dto.email,
-        userPswd: hashedPassword,
+        firebaseUid: `admin_created_${Date.now()}`,
         userNm: dto.name,
         userNcnm: generatedNickname,
         useRoleCd: dto.role,
         userSttsCd: 'ACTV',
-        emailVrfcYn: 'Y',
         lstLgnDt: null,
-        rgtrId: adminId,
-        mdfrId: adminId,
+        rgtrId: String(adminId),
+        mdfrId: String(adminId),
       },
     });
 
@@ -106,8 +102,9 @@ export class AdminService {
   }
 
   async getUserById(userId: string) {
+    const id = parseInt(userId, 10);
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, delYn: 'N' },
+      where: { id, delYn: 'N' },
     });
     if (!user) {
       throw new BusinessException(
@@ -119,9 +116,10 @@ export class AdminService {
     return this.formatUserResponse(user);
   }
 
-  async updateUser(userId: string, dto: UpdateUserDto, adminId: string) {
+  async updateUser(userId: string, dto: UpdateUserDto, adminId: number) {
+    const id = parseInt(userId, 10);
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, delYn: 'N' },
+      where: { id, delYn: 'N' },
     });
     if (!user) {
       throw new BusinessException(
@@ -133,7 +131,7 @@ export class AdminService {
 
     if (dto.nickname) {
       const existingNickname = await this.prisma.user.findFirst({
-        where: { userNcnm: dto.nickname, delYn: 'N', id: { not: userId } },
+        where: { userNcnm: dto.nickname, delYn: 'N', id: { not: id } },
       });
       if (existingNickname) {
         throw new BusinessException(
@@ -144,12 +142,12 @@ export class AdminService {
       }
     }
 
-    const updateData: Record<string, unknown> = { mdfrId: adminId };
+    const updateData: Record<string, unknown> = { mdfrId: String(adminId) };
     if (dto.name !== undefined) updateData.userNm = dto.name;
     if (dto.nickname !== undefined) updateData.userNcnm = dto.nickname;
 
     const updated = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id },
       data: updateData,
     });
 
@@ -158,40 +156,9 @@ export class AdminService {
     return this.formatUserResponse(updated);
   }
 
-  async resetUserPassword(userId: string, newPassword: string, adminId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, delYn: 'N' },
-    });
-    if (!user) {
-      throw new BusinessException(
-        'USER_NOT_FOUND',
-        'User not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { userPswd: hashedPassword, mdfrId: adminId },
-    });
-
-    this.logger.log(`Admin ${adminId} reset password for user ${userId}`);
-
-    await this.logActivity(
-      userId,
-      'PASSWORD_RESET',
-      null,
-      null,
-      adminId,
-    );
-
-    return { success: true };
-  }
-
-  async changeRole(targetUserId: string, newRole: string, adminId: string) {
-    if (targetUserId === adminId) {
+  async changeRole(targetUserId: string, newRole: string, adminId: number) {
+    const targetId = parseInt(targetUserId, 10);
+    if (targetId === adminId) {
       throw new BusinessException(
         'CANNOT_CHANGE_OWN_ROLE',
         'Cannot change your own role',
@@ -200,7 +167,7 @@ export class AdminService {
     }
 
     const targetUser = await this.prisma.user.findFirst({
-      where: { id: targetUserId, delYn: 'N' },
+      where: { id: targetId, delYn: 'N' },
     });
     if (!targetUser) {
       throw new BusinessException(
@@ -219,8 +186,8 @@ export class AdminService {
     }
 
     const updated = await this.prisma.user.update({
-      where: { id: targetUserId },
-      data: { useRoleCd: newRole, mdfrId: adminId },
+      where: { id: targetId },
+      data: { useRoleCd: newRole, mdfrId: String(adminId) },
     });
 
     this.logger.log(
@@ -228,7 +195,7 @@ export class AdminService {
     );
 
     await this.logActivity(
-      targetUserId,
+      targetId,
       'ROLE_CHANGE',
       targetUser.useRoleCd,
       newRole,
@@ -238,8 +205,9 @@ export class AdminService {
     return this.formatUserResponse(updated);
   }
 
-  async changeStatus(targetUserId: string, newStatus: string, adminId: string) {
-    if (targetUserId === adminId) {
+  async changeStatus(targetUserId: string, newStatus: string, adminId: number) {
+    const targetId = parseInt(targetUserId, 10);
+    if (targetId === adminId) {
       throw new BusinessException(
         'CANNOT_CHANGE_OWN_STATUS',
         'Cannot change your own status',
@@ -248,7 +216,7 @@ export class AdminService {
     }
 
     const targetUser = await this.prisma.user.findFirst({
-      where: { id: targetUserId, delYn: 'N' },
+      where: { id: targetId, delYn: 'N' },
     });
     if (!targetUser) {
       throw new BusinessException(
@@ -267,8 +235,8 @@ export class AdminService {
     }
 
     const updated = await this.prisma.user.update({
-      where: { id: targetUserId },
-      data: { userSttsCd: newStatus, mdfrId: adminId },
+      where: { id: targetId },
+      data: { userSttsCd: newStatus, mdfrId: String(adminId) },
     });
 
     this.logger.log(
@@ -276,7 +244,7 @@ export class AdminService {
     );
 
     await this.logActivity(
-      targetUserId,
+      targetId,
       'STATUS_CHANGE',
       targetUser.userSttsCd,
       newStatus,
@@ -287,17 +255,18 @@ export class AdminService {
   }
 
   async getUserActivity(userId: string, page: number, limit: number) {
+    const id = parseInt(userId, 10);
     const safeLimit = Math.min(limit, 100);
     const skip = (page - 1) * safeLimit;
 
     const [activities, total] = await Promise.all([
       this.prisma.userActivity.findMany({
-        where: { userId },
+        where: { userId: id },
         skip,
         take: safeLimit,
         orderBy: { actvDt: 'desc' },
       }),
-      this.prisma.userActivity.count({ where: { userId } }),
+      this.prisma.userActivity.count({ where: { userId: id } }),
     ]);
 
     return {
@@ -321,11 +290,11 @@ export class AdminService {
   }
 
   async logActivity(
-    userId: string,
+    userId: number,
     type: string,
     prevVal: string | null,
     newVal: string | null,
-    performerId: string,
+    performerId: number,
     ip?: string,
   ) {
     await this.prisma.userActivity.create({
@@ -344,7 +313,7 @@ export class AdminService {
   async bulkChangeStatus(
     userIds: string[],
     newStatus: string,
-    adminId: string,
+    adminId: number,
   ) {
     const results: { userId: string; success: boolean; error?: string }[] = [];
 
@@ -445,7 +414,7 @@ export class AdminService {
         const userName = a.user?.userNm || a.user?.userNcnm || 'Unknown';
         let description = actionType.replace(/_/g, ' ').toLowerCase();
         if (a.prevVal && a.newVal) {
-          description = `${description}: ${a.prevVal} → ${a.newVal}`;
+          description = `${description}: ${a.prevVal} -> ${a.newVal}`;
         } else if (a.newVal) {
           description = `${description}: ${a.newVal}`;
         }
@@ -462,8 +431,9 @@ export class AdminService {
   }
 
   async getUserSummary(userId: string) {
+    const id = parseInt(userId, 10);
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, delYn: 'N' },
+      where: { id, delYn: 'N' },
     });
     if (!user) {
       throw new BusinessException(
@@ -474,18 +444,18 @@ export class AdminService {
     }
 
     const [orderCount, productCount, revenueResult] = await Promise.all([
-      this.prisma.order.count({ where: { byrId: userId } }),
-      this.prisma.product.count({ where: { sellerId: userId } }),
+      this.prisma.order.count({ where: { byrId: id } }),
+      this.prisma.product.count({ where: { sellerId: id } }),
       this.prisma.orderItem.aggregate({
         _sum: { subtotAmt: true },
         where: {
-          sllrId: userId,
+          sllrId: id,
           order: { ordrSttsCd: 'DELIVERED' },
         },
       }),
     ]);
 
-    const totalRevenue = revenueResult._sum.subtotAmt || 0;
+    const totalRevenue = revenueResult._sum?.subtotAmt || 0;
 
     return {
       ...this.formatUserResponse(user),
@@ -498,11 +468,10 @@ export class AdminService {
   }
 
   private formatUserResponse(user: {
-    id: string;
+    id: number;
     userEmail: string;
     userNm: string;
     userNcnm: string | null;
-    emailVrfcYn: string;
     prflImgUrl: string | null;
     useRoleCd: string;
     userSttsCd: string;
@@ -514,7 +483,6 @@ export class AdminService {
       email: user.userEmail,
       name: user.userNm,
       nickname: user.userNcnm,
-      emailVerified: user.emailVrfcYn === 'Y',
       profileImageUrl: user.prflImgUrl,
       role: user.useRoleCd,
       status: user.userSttsCd,

@@ -1,67 +1,72 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  getUser,
-  isLoggedIn,
-  logout as authLogout,
-  refreshTokens,
-  isRefreshNeeded,
-  type UserInfo,
-} from '@/lib/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { logout as authLogout, type UserInfo } from '@/lib/auth';
 
-const AUTO_REFRESH_CHECK_MS = 60 * 60 * 1000; // check every 1 hour
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export function useAuth(requireAuth = true) {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const refreshingRef = useRef(false);
-
-  const tryAutoRefresh = useCallback(async () => {
-    if (refreshingRef.current) return;
-    if (!isLoggedIn() || !isRefreshNeeded()) return;
-    refreshingRef.current = true;
-    try {
-      await refreshTokens();
-    } catch {
-      await authLogout();
-      router.replace('/');
-    } finally {
-      refreshingRef.current = false;
-    }
-  }, [router]);
 
   useEffect(() => {
-    const loggedIn = isLoggedIn();
-    if (requireAuth && !loggedIn) {
-      router.replace('/');
-      return;
-    }
-    if (loggedIn) {
-      setUser(getUser());
-      // Auto-refresh on mount if needed
-      tryAutoRefresh();
-    }
-    setLoading(false);
-  }, [requireAuth, router, tryAutoRefresh]);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          const res = await fetch(`${API_BASE}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json();
+          if (json.success) {
+            setUser(json.data);
+            localStorage.setItem('user', JSON.stringify(json.data));
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem('user');
+        if (requireAuth) {
+          router.replace('/');
+        }
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [requireAuth, router]);
 
-  // Periodic auto-refresh check
-  useEffect(() => {
-    if (!isLoggedIn()) return;
-    const interval = setInterval(tryAutoRefresh, AUTO_REFRESH_CHECK_MS);
-    return () => clearInterval(interval);
-  }, [tryAutoRefresh]);
-
-  const refresh = useCallback(() => {
-    setUser(getUser());
+  const refresh = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success) {
+          setUser(json.data);
+          localStorage.setItem('user', JSON.stringify(json.data));
+        }
+      } catch {
+        // ignore refresh errors
+      }
+    }
   }, []);
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     await authLogout();
+    setUser(null);
     router.replace('/');
-  }
+  }, [router]);
 
   return { user, loading, logout: handleLogout, refresh };
 }

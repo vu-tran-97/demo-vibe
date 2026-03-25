@@ -97,8 +97,8 @@ export class SearchService {
   }
 
   private formatProduct(product: {
-    id: string;
-    sellerId: string;
+    id: number;
+    sellerId: number;
     prdNm: string;
     prdDc: string;
     prdPrc: number;
@@ -114,7 +114,7 @@ export class SearchService {
     rvwCnt: number;
     srchTags: string[];
     rgstDt: Date;
-    seller?: { id: string; userNm: string; userNcnm: string | null } | null;
+    seller?: { id: number; userNm: string; userNcnm: string | null } | null;
   }) {
     return {
       id: product.id,
@@ -137,8 +137,8 @@ export class SearchService {
   }
 
   private formatPost(post: {
-    id: string;
-    userId: string;
+    id: number;
+    userId: number;
     postTtl: string;
     postCn: string;
     postCtgrCd: string;
@@ -147,7 +147,7 @@ export class SearchService {
     cmntCnt: number;
     pnndYn: string;
     rgstDt: Date;
-    user?: { id: string; userNm: string; userNcnm: string | null } | null;
+    user?: { id: number; userNm: string; userNcnm: string | null } | null;
   }) {
     return {
       id: post.id,

@@ -8,7 +8,6 @@ import {
   getUser,
   logout as authLogout,
   updateProfile,
-  changePassword,
   deleteAccount,
   AuthError,
   type UserInfo,
@@ -106,11 +105,24 @@ export default function SettingsPage() {
     if (newPassword !== confirmPassword) { showToastMsg('Passwords do not match', 'error'); return; }
     setPasswordSaving(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      const { auth } = await import('@/lib/firebase');
+      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth');
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser || !firebaseUser.email) throw new Error('Not authenticated');
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, newPassword);
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setShowPasswordSection(false);
       showToastMsg('Password changed successfully');
-    } catch (err: unknown) { showToastMsg(getErrorMessage(err), 'error'); }
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string };
+      if (firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
+        showToastMsg('Current password is incorrect', 'error');
+      } else {
+        showToastMsg(getErrorMessage(err), 'error');
+      }
+    }
     finally { setPasswordSaving(false); }
   }
 

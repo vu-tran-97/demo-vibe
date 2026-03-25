@@ -26,7 +26,7 @@ function PostKebabMenu({
   onDelete,
 }: {
   post: Post;
-  onDelete: (postId: string) => void;
+  onDelete: (postId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -329,7 +329,7 @@ export default function BoardPage() {
     return post.author?.id === user.id;
   }
 
-  async function handleDeletePost(postId: string) {
+  async function handleDeletePost(postId: number) {
     try {
       await deletePost(postId);
       setPosts((prev) => prev.filter((p) => p.id !== postId));

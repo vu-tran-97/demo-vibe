@@ -4,11 +4,12 @@ import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 import { MAIL_TEMPLATES } from './mail.constants';
 import { welcomeTemplate } from './templates/welcome';
-import { resetPasswordTemplate } from './templates/reset-password';
 import {
   orderConfirmTemplate,
   OrderConfirmData,
 } from './templates/order-confirm';
+
+type MailProvider = 'ses' | 'smtp';
 
 interface MailOptions {
   to: string;
@@ -20,20 +21,54 @@ interface MailOptions {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: nodemailer.Transporter;
+  private readonly provider: MailProvider;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('MAIL_HOST'),
-      port: Number(this.configService.get<string>('MAIL_PORT') || 587),
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASSWORD'),
-      },
-    });
+    this.provider = this.resolveProvider();
+
+    if (this.provider === 'ses') {
+      // AWS SES via SMTP interface (no SDK dependency needed)
+      // Uses SES SMTP credentials (created in SES console, NOT IAM credentials)
+      const region = this.configService.get<string>('AWS_SES_REGION') || 'ap-northeast-2';
+      this.transporter = nodemailer.createTransport({
+        host: `email-smtp.${region}.amazonaws.com`,
+        port: 587,
+        secure: false,
+        auth: {
+          user: this.configService.get<string>('AWS_SES_SMTP_USER') || '',
+          pass: this.configService.get<string>('AWS_SES_SMTP_PASSWORD') || '',
+        },
+      });
+
+      this.logger.log(`Mail provider: AWS SES SMTP (${region})`);
+    } else {
+      this.transporter = nodemailer.createTransport({
+        host: this.configService.get<string>('MAIL_HOST'),
+        port: Number(this.configService.get<string>('MAIL_PORT') || 587),
+        secure: false,
+        auth: {
+          user: this.configService.get<string>('MAIL_USER'),
+          pass: this.configService.get<string>('MAIL_PASSWORD'),
+        },
+      });
+
+      this.logger.log(`Mail provider: SMTP (${this.configService.get<string>('MAIL_HOST')})`);
+    }
+  }
+
+  private resolveProvider(): MailProvider {
+    const explicit = this.configService.get<string>('MAIL_PROVIDER');
+    if (explicit === 'ses' || explicit === 'smtp') {
+      return explicit;
+    }
+    // Auto-detect: if AWS SES SMTP credentials are set, use SES
+    if (this.configService.get<string>('AWS_SES_SMTP_USER')) {
+      return 'ses';
+    }
+    return 'smtp';
   }
 
   async sendWelcomeEmail(
@@ -49,25 +84,6 @@ export class MailService {
         html,
       },
       MAIL_TEMPLATES.WELCOME.name,
-    );
-  }
-
-  async sendPasswordResetEmail(
-    email: string,
-    name: string,
-    resetToken: string,
-  ): Promise<void> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
-    const html = resetPasswordTemplate({ name, resetUrl });
-
-    await this.send(
-      {
-        to: email,
-        subject: MAIL_TEMPLATES.RESET_PASSWORD.subject,
-        html,
-      },
-      MAIL_TEMPLATES.RESET_PASSWORD.name,
     );
   }
 
@@ -105,7 +121,7 @@ export class MailService {
       });
 
       this.logger.log(
-        `Email sent successfully: template=${templateName}, to=${options.to}`,
+        `Email sent successfully: provider=${this.provider}, template=${templateName}, to=${options.to}`,
       );
 
       await this.logEmailSend(
@@ -120,7 +136,7 @@ export class MailService {
       const errMsg =
         error instanceof Error ? error.message : 'Unknown mail error';
       this.logger.error(
-        `Failed to send email: template=${templateName}, to=${options.to}, error=${errMsg}`,
+        `Failed to send email: provider=${this.provider}, template=${templateName}, to=${options.to}, error=${errMsg}`,
       );
 
       await this.logEmailSend(

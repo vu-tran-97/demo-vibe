@@ -29,9 +29,9 @@ export default function BoardDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [commentText, setCommentText] = useState('');
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editingComment, setEditingComment] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -78,7 +78,7 @@ export default function BoardDetailPage() {
     }
   };
 
-  const handleAddReply = async (parentId: string) => {
+  const handleAddReply = async (parentId: number) => {
     if (!replyText.trim() || submitting) return;
     setSubmitting(true);
     try {
@@ -96,7 +96,7 @@ export default function BoardDetailPage() {
     }
   };
 
-  const handleEditComment = async (commentId: string) => {
+  const handleEditComment = async (commentId: number) => {
     if (!editText.trim() || submitting) return;
     setSubmitting(true);
     try {
@@ -113,7 +113,7 @@ export default function BoardDetailPage() {
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = async (commentId: number) => {
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -168,11 +168,11 @@ export default function BoardDetailPage() {
 
   // Organize comments: root comments with their replies
   const rootComments = comments.filter((c) => c.depth === 0);
-  const replyMap = new Map<string, Comment[]>();
+  const replyMap = new Map<number, Comment[]>();
   comments
     .filter((c) => c.depth === 1 && c.parentCommentId)
     .forEach((c) => {
-      const parentId = c.parentCommentId as string;
+      const parentId = c.parentCommentId as number;
       if (!replyMap.has(parentId)) replyMap.set(parentId, []);
       replyMap.get(parentId)?.push(c);
     });

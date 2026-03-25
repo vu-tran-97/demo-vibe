@@ -14,8 +14,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class CheckoutItemDto {
   @ApiProperty({ description: 'Product ID' })
-  @IsString()
-  productId: string;
+  @IsInt()
+  @Type(() => Number)
+  productId: number;
 
   @ApiProperty({ example: 1, minimum: 1, description: 'Quantity' })
   @IsInt()

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import styles from './admin.module.css';
 
 interface PaginationProps {
@@ -10,6 +11,8 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, totalPages, total, onPageChange }: PaginationProps) {
+  const [jumpValue, setJumpValue] = useState('');
+
   if (totalPages <= 1) return null;
 
   const pages: (number | string)[] = [];
@@ -28,8 +31,27 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
     pages.push(totalPages);
   }
 
+  function handleJump(e: React.FormEvent) {
+    e.preventDefault();
+    const target = parseInt(jumpValue, 10);
+    if (target >= 1 && target <= totalPages && target !== page) {
+      onPageChange(target);
+    }
+    setJumpValue('');
+  }
+
   return (
     <div className={styles.pagination}>
+      <button
+        type="button"
+        className={styles.pageBtn}
+        disabled={page <= 1}
+        onClick={() => onPageChange(1)}
+        aria-label="First page"
+      >
+        &#171;
+      </button>
+
       <button
         type="button"
         className={styles.pageBtn}
@@ -69,8 +91,32 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
         &#8250;
       </button>
 
+      <button
+        type="button"
+        className={styles.pageBtn}
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(totalPages)}
+        aria-label="Last page"
+      >
+        &#187;
+      </button>
+
+      <form onSubmit={handleJump} className={styles.pageJump}>
+        <input
+          type="number"
+          min={1}
+          max={totalPages}
+          placeholder="Page"
+          value={jumpValue}
+          onChange={(e) => setJumpValue(e.target.value)}
+          className={styles.pageJumpInput}
+          aria-label="Jump to page"
+        />
+        <button type="submit" className={styles.pageJumpBtn}>Go</button>
+      </form>
+
       <span className={styles.pageInfo}>
-        Page {page} of {totalPages} ({total} total)
+        Page {page.toLocaleString()} of {totalPages.toLocaleString()} ({total.toLocaleString()} total)
       </span>
     </div>
   );
