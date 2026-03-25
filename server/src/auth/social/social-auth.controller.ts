@@ -8,12 +8,20 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { Public } from '../decorators/public.decorator';
 import { SocialAuthService } from './social-auth.service';
 import { ConfigService } from '@nestjs/config';
 import { BusinessException } from '../../common/filters/business.exception';
 
+@ApiTags('Auth')
 @Controller('api/auth/social')
 export class SocialAuthController {
   private readonly logger = new Logger(SocialAuthController.name);
@@ -25,6 +33,10 @@ export class SocialAuthController {
 
   @Public()
   @Get(':provider')
+  @ApiOperation({ summary: 'Initiate social OAuth login (redirects to provider)' })
+  @ApiParam({ name: 'provider', description: 'OAuth provider (e.g., google, kakao, naver)' })
+  @ApiResponse({ status: 302, description: 'Redirect to OAuth provider authorization page' })
+  @ApiResponse({ status: 400, description: 'Invalid provider' })
   async authorize(
     @Param('provider') provider: string,
     @Res() res: Response,
@@ -52,6 +64,12 @@ export class SocialAuthController {
 
   @Public()
   @Get(':provider/callback')
+  @ApiOperation({ summary: 'Handle social OAuth callback (redirects to frontend)' })
+  @ApiParam({ name: 'provider', description: 'OAuth provider' })
+  @ApiQuery({ name: 'code', required: false, description: 'Authorization code from provider' })
+  @ApiQuery({ name: 'state', required: false, description: 'CSRF state parameter' })
+  @ApiQuery({ name: 'error', required: false, description: 'OAuth error code' })
+  @ApiResponse({ status: 302, description: 'Redirect to frontend with tokens or error' })
   async callback(
     @Param('provider') provider: string,
     @Query('code') code: string,

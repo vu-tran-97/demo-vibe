@@ -8,6 +8,14 @@ import {
   Query,
   Request,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { OrderService } from './order.service';
@@ -20,11 +28,17 @@ import { BulkStatusDto } from './dto/bulk-status.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
+@ApiTags('Orders')
+@ApiBearerAuth('access-token')
 @Controller('api/orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new order' })
+  @ApiBody({ type: CreateOrderDto })
+  @ApiResponse({ status: 201, description: 'Order created successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createOrder(
     @Body() dto: CreateOrderDto,
     @Request() req: { user: JwtPayload },
@@ -34,6 +48,10 @@ export class OrderController {
 
   @Public()
   @Post('checkout')
+  @ApiOperation({ summary: 'Guest or authenticated checkout' })
+  @ApiBody({ type: CheckoutOrderDto })
+  @ApiResponse({ status: 201, description: 'Checkout completed' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   async checkoutOrder(
     @Body() dto: CheckoutOrderDto,
     @Request() req: { user?: JwtPayload },
@@ -43,6 +61,12 @@ export class OrderController {
   }
 
   @Patch(':id/pay')
+  @ApiOperation({ summary: 'Pay for an order' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiBody({ type: PayOrderDto })
+  @ApiResponse({ status: 200, description: 'Payment recorded' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async payOrder(
     @Param('id') id: string,
     @Body() dto: PayOrderDto,
@@ -53,6 +77,9 @@ export class OrderController {
 
   @Get('sales')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'List seller sales orders' })
+  @ApiResponse({ status: 200, description: 'Sales orders retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listSellerSales(
     @Query() query: ListOrdersQueryDto,
     @Request() req: { user: JwtPayload },
@@ -62,12 +89,20 @@ export class OrderController {
 
   @Get('sales/summary')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Get seller sales summary' })
+  @ApiResponse({ status: 200, description: 'Sales summary retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getSellerSummary(@Request() req: { user: JwtPayload }) {
     return this.orderService.getSellerSummary(req.user.sub);
   }
 
   @Get('sales/:id')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Get seller order detail' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiResponse({ status: 200, description: 'Order detail retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async getSellerOrderDetail(
     @Param('id') id: string,
     @Request() req: { user: JwtPayload },
@@ -77,6 +112,12 @@ export class OrderController {
 
   @Patch('sales/:orderId/items/:itemId/payment')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Confirm item payment' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @ApiParam({ name: 'itemId', description: 'Item ID' })
+  @ApiResponse({ status: 200, description: 'Payment confirmed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order or item not found' })
   async confirmItemPayment(
     @Param('orderId') orderId: string,
     @Param('itemId') itemId: string,
@@ -87,6 +128,13 @@ export class OrderController {
 
   @Patch('sales/:orderId/items/:itemId/status')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Update order item status' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @ApiParam({ name: 'itemId', description: 'Item ID' })
+  @ApiBody({ type: UpdateItemStatusDto })
+  @ApiResponse({ status: 200, description: 'Item status updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order or item not found' })
   async updateItemStatus(
     @Param('orderId') orderId: string,
     @Param('itemId') itemId: string,
@@ -104,6 +152,10 @@ export class OrderController {
 
   @Post('sales/bulk-status')
   @Roles('SELLER', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Bulk update item statuses' })
+  @ApiBody({ type: BulkStatusDto })
+  @ApiResponse({ status: 201, description: 'Bulk status update completed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkUpdateStatus(
     @Body() dto: BulkStatusDto,
     @Request() req: { user: JwtPayload },
@@ -117,6 +169,9 @@ export class OrderController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'List buyer orders' })
+  @ApiResponse({ status: 200, description: 'Buyer orders retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listBuyerOrders(
     @Query() query: ListOrdersQueryDto,
     @Request() req: { user: JwtPayload },
@@ -125,6 +180,11 @@ export class OrderController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get order by ID' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiResponse({ status: 200, description: 'Order details retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async getOrderById(
     @Param('id') id: string,
     @Request() req: { user: JwtPayload },
@@ -133,6 +193,12 @@ export class OrderController {
   }
 
   @Patch(':id/status')
+  @ApiOperation({ summary: 'Update order status' })
+  @ApiParam({ name: 'id', description: 'Order ID' })
+  @ApiBody({ type: UpdateOrderStatusDto })
+  @ApiResponse({ status: 200, description: 'Order status updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async updateOrderStatus(
     @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,

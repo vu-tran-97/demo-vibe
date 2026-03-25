@@ -9,6 +9,14 @@ import {
   Request,
   Res,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AdminService } from './admin.service';
@@ -22,23 +30,36 @@ import { BulkStatusDto } from './dto/bulk-status.dto';
 import { ActivityQueryDto } from './dto/activity-query.dto';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
+@ApiTags('Admin')
+@ApiBearerAuth('access-token')
 @Controller('api/admin')
 @Roles('SUPER_ADMIN')
 export class AdminDashboardController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('dashboard')
+  @ApiOperation({ summary: 'Get admin dashboard overview' })
+  @ApiResponse({ status: 200, description: 'Dashboard data retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - admin only' })
   async getDashboard() {
     return this.adminService.getDashboard();
   }
 }
 
+@ApiTags('Admin')
+@ApiBearerAuth('access-token')
 @Controller('api/admin/users')
 @Roles('SUPER_ADMIN')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new user (admin)' })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
   async createUser(
     @Body() dto: CreateUserDto,
     @Request() req: { user: JwtPayload },
@@ -47,12 +68,18 @@ export class AdminController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'List all users with filtering' })
+  @ApiResponse({ status: 200, description: 'Users retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listUsers(@Query() query: ListUsersQueryDto) {
     return this.adminService.listUsers(query);
   }
 
   // Static routes must be placed before parameterized /:id routes
   @Get('export')
+  @ApiOperation({ summary: 'Export users as CSV' })
+  @ApiResponse({ status: 200, description: 'CSV file downloaded' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async exportUsers(
     @Query() query: ListUsersQueryDto,
     @Res() res: Response,
@@ -64,6 +91,10 @@ export class AdminController {
   }
 
   @Post('bulk/status')
+  @ApiOperation({ summary: 'Bulk change user statuses' })
+  @ApiBody({ type: BulkStatusDto })
+  @ApiResponse({ status: 201, description: 'Bulk status update completed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkChangeStatus(
     @Body() dto: BulkStatusDto,
     @Request() req: { user: JwtPayload },
@@ -76,11 +107,21 @@ export class AdminController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User details retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUserById(@Param('id') id: string) {
     return this.adminService.getUserById(id);
   }
 
   @Get(':id/activity')
+  @ApiOperation({ summary: 'Get user activity log' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'Activity log retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUserActivity(
     @Param('id') id: string,
     @Query() query: ActivityQueryDto,
@@ -91,11 +132,22 @@ export class AdminController {
   }
 
   @Get(':id/summary')
+  @ApiOperation({ summary: 'Get user summary statistics' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User summary retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUserSummary(@Param('id') id: string) {
     return this.adminService.getUserSummary(id);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update user details' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ status: 200, description: 'User updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
@@ -105,6 +157,12 @@ export class AdminController {
   }
 
   @Patch(':id/role')
+  @ApiOperation({ summary: 'Change user role' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UpdateRoleDto })
+  @ApiResponse({ status: 200, description: 'Role updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async changeRole(
     @Param('id') id: string,
     @Body() dto: UpdateRoleDto,
@@ -114,6 +172,12 @@ export class AdminController {
   }
 
   @Patch(':id/status')
+  @ApiOperation({ summary: 'Change user status' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UpdateStatusDto })
+  @ApiResponse({ status: 200, description: 'Status updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async changeStatus(
     @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
@@ -123,6 +187,12 @@ export class AdminController {
   }
 
   @Patch(':id/password')
+  @ApiOperation({ summary: 'Reset user password (admin)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password reset' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async resetPassword(
     @Param('id') id: string,
     @Body() dto: ResetPasswordDto,
