@@ -193,7 +193,7 @@ async function getSellerIds(): Promise<number[]> {
     select: { id: true },
     orderBy: { id: 'asc' },
   });
-  return sellers.map((s) => s.id);
+  return sellers.map((s: { id: number }) => s.id);
 }
 
 async function insertBatch(products: CrawledProduct[], sellerIds: number[], offset: number) {
