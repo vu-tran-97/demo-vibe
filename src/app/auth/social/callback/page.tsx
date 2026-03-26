@@ -17,20 +17,13 @@ function SocialCallbackContent() {
     const error = searchParams.get('error');
     const message = searchParams.get('message');
 
-    if (error) {
-      setStatus('error');
-      setErrorMessage(message || 'Social login failed. Please try again.');
-      return;
-    }
+    if (error) { setStatus('error'); setErrorMessage(message || 'Social login failed. Please try again.'); return; }
 
     if (accessToken && refreshToken) {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       let role = '';
-      if (user) {
-        localStorage.setItem('user', user);
-        try { role = JSON.parse(user).role; } catch { /* ignore */ }
-      }
+      if (user) { localStorage.setItem('user', user); try { role = JSON.parse(user).role; } catch { /* ignore */ } }
       router.push(role === 'BUYER' ? '/' : '/dashboard');
       return;
     }
@@ -41,82 +34,25 @@ function SocialCallbackContent() {
 
   if (status === 'error') {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        gap: '1rem',
-        padding: '2rem',
-        fontFamily: 'var(--font-body, system-ui)',
-      }}>
-        <h2 style={{ color: 'var(--charcoal, #1a1a1a)', fontSize: '1.5rem' }}>
-          Login Failed
-        </h2>
-        <p style={{ color: 'var(--muted, #666)', textAlign: 'center' }}>
-          {errorMessage}
-        </p>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            padding: '0.75rem 2rem',
-            background: 'var(--charcoal, #1a1a1a)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '0.9375rem',
-          }}
-        >
-          Back to Home
-        </button>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-[1rem] p-[2rem] font-body">
+        <h2 className="text-charcoal text-[1.5rem]">Login Failed</h2>
+        <p className="text-muted text-center">{errorMessage}</p>
+        <button onClick={() => router.push('/')} className="py-[0.75rem] px-[2rem] bg-charcoal text-white border-none rounded-[8px] cursor-pointer text-[0.9375rem]">Back to Home</button>
       </div>
     );
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      gap: '1rem',
-      fontFamily: 'var(--font-body, system-ui)',
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        border: '3px solid var(--border, #e5e5e5)',
-        borderTopColor: 'var(--charcoal, #1a1a1a)',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }} />
-      <p style={{ color: 'var(--muted, #666)' }}>
-        Completing sign in...
-      </p>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-[1rem] font-body">
+      <div className="w-[40px] h-[40px] border-[3px] border-border border-t-charcoal rounded-full animate-spin" />
+      <p className="text-muted">Completing sign in...</p>
     </div>
   );
 }
 
 export default function SocialCallbackPage() {
   return (
-    <Suspense fallback={
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-      }}>
-        <p>Loading...</p>
-      </div>
-    }>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><p>Loading...</p></div>}>
       <SocialCallbackContent />
     </Suspense>
   );

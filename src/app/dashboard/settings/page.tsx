@@ -8,7 +8,6 @@ import {
   deleteAccount,
   AuthError,
 } from '@/lib/auth';
-import styles from './settings.module.css';
 
 type ToastVariant = 'success' | 'error';
 
@@ -143,22 +142,22 @@ export default function SettingsPage() {
   function getRoleBadgeClass(role: string): string {
     switch (role) {
       case 'ADMIN':
-        return styles.roleBadgeAdmin;
+        return 'bg-[rgba(200,80,80,0.06)] text-error';
       case 'SELLER':
-        return styles.roleBadgeSeller;
+        return 'bg-[rgba(180,160,100,0.1)] text-gold-dark';
       default:
-        return styles.roleBadgeBuyer;
+        return 'bg-[rgba(90,138,106,0.08)] text-success';
     }
   }
 
   if (loading) return null;
 
   return (
-    <div className={styles.settings}>
+    <div className="flex flex-col gap-[2rem] max-w-[720px] max-sm:max-w-full">
       {/* Header */}
-      <div className={styles.pageHeader}>
-        <h2 className={styles.pageTitle}>Settings</h2>
-        <p className={styles.pageSubtitle}>
+      <div className="mb-[0.5rem]">
+        <h2 className="font-display text-[1.75rem] font-normal">Settings</h2>
+        <p className="text-[0.8125rem] text-muted mt-[2px]">
           Manage your account and preferences
         </p>
       </div>
@@ -166,7 +165,7 @@ export default function SettingsPage() {
       {/* Toast */}
       {toast && (
         <div
-          className={`${styles.toast} ${toast.variant === 'error' ? styles.toastError : ''}`}
+          className={`flex items-center gap-[0.5rem] py-[0.75rem] px-[1rem] rounded-[8px] text-[0.8125rem] font-medium animate-fade-in ${toast.variant === 'error' ? 'bg-[rgba(200,80,80,0.06)] text-error border border-[rgba(200,80,80,0.2)]' : 'bg-[rgba(90,138,106,0.08)] text-success border border-[rgba(90,138,106,0.2)]'}`}
         >
           <svg
             width="16"
@@ -194,68 +193,68 @@ export default function SettingsPage() {
       )}
 
       {/* Profile Section */}
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Profile</h3>
-        <p className={styles.sectionDesc}>Your personal information</p>
+      <section className="bg-white border border-border-light rounded-[12px] p-[2rem] max-sm:p-[1.5rem]">
+        <h3 className="font-body text-[1rem] font-semibold text-charcoal mb-[2px]">Profile</h3>
+        <p className="text-[0.8125rem] text-muted mb-[1.5rem]">Your personal information</p>
 
-        <div className={styles.profileHeader}>
-          <div className={styles.avatar}>
+        <div className="flex items-center gap-[1.5rem] mb-[2rem] pb-[1.5rem] border-b border-border-light max-sm:flex-col max-sm:items-start">
+          <div className="w-[64px] h-[64px] rounded-full bg-[linear-gradient(135deg,var(--color-ivory-warm)_0%,var(--color-border)_100%)] flex items-center justify-center font-display text-[1.5rem] font-normal text-charcoal shrink-0 overflow-hidden">
             {profileImageUrl ? (
               <img
                 src={profileImageUrl}
                 alt="Profile"
-                className={styles.avatarImage}
+                className="w-full h-full object-cover"
               />
             ) : (
               (user?.name ?? 'U').charAt(0)
             )}
           </div>
-          <div className={styles.avatarInfo}>
-            <p className={styles.avatarName}>{user?.name ?? 'User'}</p>
-            <p className={styles.avatarRole}>{user?.role ?? 'BUYER'}</p>
+          <div className="flex flex-col gap-[2px]">
+            <p className="text-[1rem] font-medium text-charcoal">{user?.name ?? 'User'}</p>
+            <p className="text-[0.75rem] text-gold-dark font-medium uppercase tracking-[0.05em]">{user?.role ?? 'BUYER'}</p>
           </div>
         </div>
 
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Full Name</label>
+        <div className="flex flex-col gap-[1.5rem]">
+          <div className="flex flex-col gap-[0.25rem]">
+            <label className="text-[0.8125rem] font-medium text-charcoal">Full Name</label>
             <input
               type="text"
-              className={styles.input}
+              className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
             />
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Nickname</label>
+          <div className="flex flex-col gap-[0.25rem]">
+            <label className="text-[0.8125rem] font-medium text-charcoal">Nickname</label>
             <input
               type="text"
-              className={styles.input}
+              className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="Optional"
             />
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Profile Image URL</label>
+          <div className="flex flex-col gap-[0.25rem]">
+            <label className="text-[0.8125rem] font-medium text-charcoal">Profile Image URL</label>
             <input
               type="url"
-              className={styles.input}
+              className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
               value={profileImageUrl}
               onChange={(e) => setProfileImageUrl(e.target.value)}
               placeholder="https://example.com/avatar.jpg"
             />
-            <p className={styles.inputHint}>
+            <p className="text-[0.75rem] text-muted mt-[2px]">
               Paste a direct link to your profile image
             </p>
           </div>
         </div>
 
-        <div className={styles.sectionActions}>
+        <div className="flex gap-[0.5rem] justify-end mt-[1.5rem]">
           <button
             type="button"
-            className={styles.primaryBtn}
+            className="py-[0.625rem] px-[1.5rem] bg-charcoal text-white border-none rounded-[8px] font-body text-[0.8125rem] font-medium cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:not-disabled:bg-charcoal-light hover:not-disabled:-translate-y-px hover:not-disabled:shadow-soft disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={handleSaveProfile}
             disabled={profileSaving}
           >
@@ -265,16 +264,16 @@ export default function SettingsPage() {
       </section>
 
       {/* Security Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
+      <section className="bg-white border border-border-light rounded-[12px] p-[2rem] max-sm:p-[1.5rem]">
+        <div className="flex items-start justify-between max-sm:flex-col max-sm:gap-[1rem]">
           <div>
-            <h3 className={styles.sectionTitle}>Security</h3>
-            <p className={styles.sectionDesc}>Change your account password</p>
+            <h3 className="font-body text-[1rem] font-semibold text-charcoal mb-[2px]">Security</h3>
+            <p className="text-[0.8125rem] text-muted mb-[1.5rem]">Change your account password</p>
           </div>
           {!showPasswordSection && (
             <button
               type="button"
-              className={styles.outlineBtn}
+              className="py-[0.625rem] px-[1.25rem] bg-transparent text-slate border border-border rounded-[8px] font-body text-[0.8125rem] cursor-pointer transition-all duration-[200ms] hover:border-charcoal hover:text-charcoal"
               onClick={() => setShowPasswordSection(true)}
             >
               Change Password
@@ -283,36 +282,36 @@ export default function SettingsPage() {
         </div>
 
         {showPasswordSection && (
-          <div className={styles.passwordForm}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Current Password</label>
+          <div className="flex flex-col gap-[1.5rem]">
+            <div className="flex flex-col gap-[0.25rem]">
+              <label className="text-[0.8125rem] font-medium text-charcoal">Current Password</label>
               <input
                 type="password"
-                className={styles.input}
+                className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
               />
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>New Password</label>
+            <div className="flex flex-col gap-[0.25rem]">
+              <label className="text-[0.8125rem] font-medium text-charcoal">New Password</label>
               <input
                 type="password"
-                className={styles.input}
+                className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
               />
-              <p className={styles.inputHint}>
+              <p className="text-[0.75rem] text-muted mt-[2px]">
                 Min 8 characters with uppercase, lowercase, number, and special
                 character
               </p>
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Confirm New Password</label>
+            <div className="flex flex-col gap-[0.25rem]">
+              <label className="text-[0.8125rem] font-medium text-charcoal">Confirm New Password</label>
               <input
                 type="password"
-                className={styles.input}
+                className="py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.875rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
@@ -320,13 +319,13 @@ export default function SettingsPage() {
               {newPassword &&
                 confirmPassword &&
                 newPassword !== confirmPassword && (
-                  <p className={styles.inputError}>Passwords do not match</p>
+                  <p className="text-[0.75rem] text-error mt-[2px]">Passwords do not match</p>
                 )}
             </div>
-            <div className={styles.sectionActions}>
+            <div className="flex gap-[0.5rem] justify-end mt-[1.5rem]">
               <button
                 type="button"
-                className={styles.outlineBtn}
+                className="py-[0.625rem] px-[1.25rem] bg-transparent text-slate border border-border rounded-[8px] font-body text-[0.8125rem] cursor-pointer transition-all duration-[200ms] hover:border-charcoal hover:text-charcoal"
                 onClick={() => {
                   setShowPasswordSection(false);
                   setCurrentPassword('');
@@ -338,7 +337,7 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                className={styles.primaryBtn}
+                className="py-[0.625rem] px-[1.5rem] bg-charcoal text-white border-none rounded-[8px] font-body text-[0.8125rem] font-medium cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:not-disabled:bg-charcoal-light hover:not-disabled:-translate-y-px hover:not-disabled:shadow-soft disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={handleChangePassword}
                 disabled={
                   passwordSaving ||
@@ -355,28 +354,28 @@ export default function SettingsPage() {
       </section>
 
       {/* Account Section */}
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Account</h3>
-        <p className={styles.sectionDesc}>Your account information</p>
+      <section className="bg-white border border-border-light rounded-[12px] p-[2rem] max-sm:p-[1.5rem]">
+        <h3 className="font-body text-[1rem] font-semibold text-charcoal mb-[2px]">Account</h3>
+        <p className="text-[0.8125rem] text-muted mb-[1.5rem]">Your account information</p>
 
-        <div className={styles.accountInfoGrid}>
-          <div className={styles.accountInfoItem}>
-            <span className={styles.accountInfoLabel}>Email</span>
-            <span className={styles.accountInfoValue}>
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between py-[1rem] max-sm:flex-col max-sm:items-start max-sm:gap-[0.25rem]">
+            <span className="text-[0.8125rem] font-medium text-muted">Email</span>
+            <span className="text-[0.875rem] text-charcoal font-medium">
               {user?.email ?? '--'}
             </span>
           </div>
-          <div className={styles.accountInfoItem}>
-            <span className={styles.accountInfoLabel}>Role</span>
+          <div className="flex items-center justify-between py-[1rem] border-t border-border-light max-sm:flex-col max-sm:items-start max-sm:gap-[0.25rem]">
+            <span className="text-[0.8125rem] font-medium text-muted">Role</span>
             <span
-              className={`${styles.roleBadge} ${getRoleBadgeClass(user?.role ?? 'BUYER')}`}
+              className={`inline-flex items-center py-[0.25rem] px-[0.625rem] rounded-full text-[0.6875rem] font-semibold uppercase tracking-[0.05em] ${getRoleBadgeClass(user?.role ?? 'BUYER')}`}
             >
               {user?.role ?? 'BUYER'}
             </span>
           </div>
-          <div className={styles.accountInfoItem}>
-            <span className={styles.accountInfoLabel}>Member Since</span>
-            <span className={styles.accountInfoValue}>
+          <div className="flex items-center justify-between py-[1rem] border-t border-border-light max-sm:flex-col max-sm:items-start max-sm:gap-[0.25rem]">
+            <span className="text-[0.8125rem] font-medium text-muted">Member Since</span>
+            <span className="text-[0.875rem] text-charcoal font-medium">
               {formatDate(
                 (user as Record<string, unknown> | null)?.createdAt as
                   | string
@@ -388,30 +387,30 @@ export default function SettingsPage() {
       </section>
 
       {/* Danger Zone */}
-      <section className={`${styles.section} ${styles.dangerSection}`}>
-        <h3 className={styles.sectionTitle}>Danger Zone</h3>
-        <p className={styles.sectionDesc}>Irreversible actions</p>
+      <section className="bg-white border border-[rgba(200,80,80,0.15)] rounded-[12px] p-[2rem] max-sm:p-[1.5rem]">
+        <h3 className="font-body text-[1rem] font-semibold text-charcoal mb-[2px]">Danger Zone</h3>
+        <p className="text-[0.8125rem] text-muted mb-[1.5rem]">Irreversible actions</p>
 
-        <div className={styles.dangerActions}>
-          <div className={styles.dangerItem}>
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between gap-[1.5rem] py-[1rem] max-sm:flex-col max-sm:items-start max-sm:gap-[0.5rem]">
             <div>
-              <p className={styles.dangerLabel}>Log out of all devices</p>
-              <p className={styles.dangerDesc}>Revoke all active sessions</p>
+              <p className="text-[0.875rem] font-medium text-charcoal">Log out of all devices</p>
+              <p className="text-[0.75rem] text-muted mt-[2px]">Revoke all active sessions</p>
             </div>
-            <button type="button" className={styles.dangerBtn} onClick={logout}>
+            <button type="button" className="py-[0.5rem] px-[1rem] bg-transparent text-slate border border-border rounded-[8px] font-body text-[0.8125rem] cursor-pointer whitespace-nowrap transition-all duration-[200ms] hover:border-charcoal hover:text-charcoal" onClick={logout}>
               Log Out All
             </button>
           </div>
-          <div className={styles.dangerItem}>
+          <div className="flex items-center justify-between gap-[1.5rem] py-[1rem] border-t border-border-light max-sm:flex-col max-sm:items-start max-sm:gap-[0.5rem]">
             <div>
-              <p className={styles.dangerLabel}>Delete account</p>
-              <p className={styles.dangerDesc}>
+              <p className="text-[0.875rem] font-medium text-charcoal">Delete account</p>
+              <p className="text-[0.75rem] text-muted mt-[2px]">
                 Permanently remove your account and all data
               </p>
             </div>
             <button
               type="button"
-              className={`${styles.dangerBtn} ${styles.dangerBtnRed}`}
+              className="py-[0.5rem] px-[1rem] bg-transparent text-error border border-[rgba(200,80,80,0.3)] rounded-[8px] font-body text-[0.8125rem] cursor-pointer whitespace-nowrap transition-all duration-[200ms] hover:bg-[rgba(200,80,80,0.06)] hover:border-error hover:text-error"
               onClick={() => setShowDeleteConfirm(true)}
             >
               Delete Account
@@ -423,11 +422,11 @@ export default function SettingsPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div
-          className={styles.modalOverlay}
+          className="fixed inset-0 bg-[rgba(0,0,0,0.3)] backdrop-blur-[4px] flex items-center justify-center z-[100] animate-fade-in p-[2rem]"
           onClick={() => !deleteLoading && setShowDeleteConfirm(false)}
         >
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalIcon}>
+          <div className="bg-white rounded-[16px] w-full max-w-[420px] p-[2rem] text-center animate-scale-in shadow-elevated" onClick={(e) => e.stopPropagation()}>
+            <div className="text-error mb-[1rem]">
               <svg
                 width="32"
                 height="32"
@@ -441,15 +440,15 @@ export default function SettingsPage() {
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <h3 className={styles.modalTitle}>Delete your account?</h3>
-            <p className={styles.modalDesc}>
+            <h3 className="font-display text-[1.25rem] font-normal text-charcoal mb-[0.5rem]">Delete your account?</h3>
+            <p className="text-[0.875rem] text-slate leading-[1.5] mb-[2rem]">
               This action cannot be undone. All your data, orders, and messages
               will be permanently deleted.
             </p>
-            <div className={styles.modalActions}>
+            <div className="flex gap-[0.5rem] justify-center max-sm:flex-col">
               <button
                 type="button"
-                className={styles.outlineBtn}
+                className="py-[0.625rem] px-[1.25rem] bg-transparent text-slate border border-border rounded-[8px] font-body text-[0.8125rem] cursor-pointer transition-all duration-[200ms] hover:border-charcoal hover:text-charcoal"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleteLoading}
               >
@@ -457,7 +456,7 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                className={`${styles.dangerBtn} ${styles.dangerBtnRed}`}
+                className="py-[0.5rem] px-[1rem] bg-transparent text-error border border-[rgba(200,80,80,0.3)] rounded-[8px] font-body text-[0.8125rem] cursor-pointer whitespace-nowrap transition-all duration-[200ms] hover:bg-[rgba(200,80,80,0.06)] hover:border-error hover:text-error"
                 onClick={handleDeleteAccount}
                 disabled={deleteLoading}
               >

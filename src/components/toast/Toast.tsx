@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import styles from './toast.module.css';
 
 export interface ToastMessage {
   id: string;
@@ -63,14 +62,17 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className={styles.container}>
+    <div className="fixed bottom-[3rem] right-[3rem] z-[9999] flex flex-col gap-[0.5rem] pointer-events-none max-sm:bottom-[1.5rem] max-sm:right-[1rem] max-sm:left-[1rem]">
       {toasts.map((toast) => (
-        <div key={toast.id} className={`${styles.toast} ${styles[toast.type]}`}>
-          <span className={styles.icon}>{ICONS[toast.type]}</span>
-          <span className={styles.message}>{toast.message}</span>
+        <div
+          key={toast.id}
+          className={`flex items-center gap-[1rem] py-[1rem] px-[2rem] ${toast.type === 'error' ? 'bg-error' : 'bg-charcoal'} text-white rounded-[8px] font-body text-[0.875rem] font-medium shadow-elevated animate-toast-in pointer-events-auto max-w-[360px] max-sm:max-w-full`}
+        >
+          <span className="text-[1rem] shrink-0 opacity-80">{ICONS[toast.type]}</span>
+          <span className="flex-1 leading-[1.4]">{toast.message}</span>
           <button
             type="button"
-            className={styles.closeBtn}
+            className="bg-transparent border-none text-white/60 cursor-pointer p-[2px] text-[0.875rem] transition-colors duration-[200ms] shrink-0 hover:text-white"
             onClick={() => dismiss(toast.id)}
           >
             &#x2715;

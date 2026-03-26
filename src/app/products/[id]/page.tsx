@@ -10,7 +10,6 @@ import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { UserMenu } from '@/components/user-menu/UserMenu';
 import { ToastContainer, showToast } from '@/components/toast/Toast';
-import styles from './product-detail.module.css';
 
 export default function PublicProductDetailPage() {
   const params = useParams();
@@ -90,25 +89,25 @@ export default function PublicProductDetailPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className="min-h-screen flex flex-col">
       {/* Top Bar */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarInner}>
-          <div className={styles.topBarLinks}>
+      <div className="bg-charcoal text-white/70 text-[0.75rem] max-sm:hidden">
+        <div className="max-w-[1280px] mx-auto py-[0.5rem] px-[2rem] flex items-center justify-between">
+          <div className="flex items-center gap-[1rem]">
             <span>Download App</span>
-            <span className={styles.topBarDivider}>|</span>
+            <span className="opacity-30">|</span>
             <span>Help Center</span>
           </div>
-          <div className={styles.topBarLinks}>
+          <div className="flex items-center gap-[1rem]">
             {loggedIn ? (
               <span>Welcome, {user?.nickname || user?.name}!</span>
             ) : (
               <>
-                <button type="button" className={styles.topBarBtn} onClick={openSignup}>
+                <button type="button" className="bg-none border-none text-white/70 font-body text-[0.75rem] cursor-pointer transition-colors duration-[200ms] p-0 hover:text-white" onClick={openSignup}>
                   Sign Up
                 </button>
-                <span className={styles.topBarDivider}>|</span>
-                <button type="button" className={styles.topBarBtn} onClick={openLogin}>
+                <span className="opacity-30">|</span>
+                <button type="button" className="bg-none border-none text-white/70 font-body text-[0.75rem] cursor-pointer transition-colors duration-[200ms] p-0 hover:text-white" onClick={openLogin}>
                   Sign In
                 </button>
               </>
@@ -118,27 +117,27 @@ export default function PublicProductDetailPage() {
       </div>
 
       {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <Link href="/" className={styles.logo}>
+      <header className="sticky top-0 z-100 bg-white border-b border-border-light shadow-subtle">
+        <div className="max-w-[1280px] mx-auto py-[0.75rem] px-[2rem] flex items-center justify-between max-sm:px-[1rem] max-sm:py-[0.625rem]">
+          <Link href="/" className="font-display text-[1.75rem] font-semibold text-gold-dark tracking-[-0.03em] shrink-0 max-sm:text-[1.375rem]">
             Vibe
           </Link>
 
-          <div className={styles.headerActions}>
-            <Link href="/cart" className={styles.cartBtn}>
+          <div className="flex items-center gap-[1rem] shrink-0 max-[479px]:gap-[0.5rem]">
+            <Link href="/cart" className="relative flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-transparent border-none text-charcoal cursor-pointer transition-all duration-[200ms] hover:bg-ivory hover:text-gold-dark">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 01-8 0" />
               </svg>
               {cartCount > 0 && (
-                <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
+                <span className="absolute top-[2px] right-0 min-w-[18px] h-[18px] px-[5px] flex items-center justify-center text-[0.625rem] font-bold text-white bg-error rounded-[9px] leading-none pointer-events-none">{cartCount > 99 ? '99+' : cartCount}</span>
               )}
             </Link>
             {loggedIn && user ? (
               <UserMenu user={user} onLogout={handleLogout} />
             ) : (
-              <button type="button" className={styles.cartBtn} onClick={openLogin}>
+              <button type="button" className="relative flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-transparent border-none text-charcoal cursor-pointer transition-all duration-[200ms] hover:bg-ivory hover:text-gold-dark" onClick={openLogin}>
                 Sign In
               </button>
             )}
@@ -155,10 +154,10 @@ export default function PublicProductDetailPage() {
       />
 
       {/* Main Content */}
-      <main className={styles.main}>
-        <div className={styles.container}>
+      <main className="flex-1 bg-ivory py-[2rem] pb-[4rem]">
+        <div className="max-w-[1280px] mx-auto px-[2rem] max-sm:px-[1rem]">
           {/* Back Link */}
-          <Link href="/" className={styles.backLink}>
+          <Link href="/" className="inline-flex items-center gap-[0.5rem] font-body text-[0.875rem] text-slate no-underline mb-[2rem] transition-colors duration-[200ms] hover:text-gold-dark">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5" />
               <path d="M12 19l-7-7 7-7" />
@@ -168,17 +167,17 @@ export default function PublicProductDetailPage() {
 
           {/* Loading */}
           {loading && (
-            <div className={styles.loadingState}>
-              <div className={styles.spinner} />
+            <div className="flex flex-col items-center justify-center py-[8rem] px-[2rem] text-muted text-[0.9375rem] gap-[1rem]">
+              <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
               <p>Loading product...</p>
             </div>
           )}
 
           {/* Error */}
           {error && !loading && (
-            <div className={styles.errorState}>
+            <div className="text-center py-[4rem] px-[2rem] text-error text-[0.9375rem]">
               <p>{error}</p>
-              <Link href="/" className={styles.errorBtn}>
+              <Link href="/" className="inline-block mt-[1.5rem] py-[0.625rem] px-[1.5rem] bg-charcoal text-white rounded-[8px] font-body text-[0.875rem] font-medium no-underline transition-colors duration-[200ms] hover:bg-charcoal-light">
                 Back to Store
               </Link>
             </div>
@@ -186,35 +185,35 @@ export default function PublicProductDetailPage() {
 
           {/* Product Detail */}
           {product && !loading && !error && (
-            <div className={styles.detail}>
+            <div className="grid grid-cols-2 gap-[4rem] bg-white rounded-[12px] border border-border-light p-[3rem] max-md:gap-[3rem] max-md:p-[2rem] max-sm:grid-cols-1 max-sm:gap-[2rem] max-sm:p-[1.5rem]">
               {/* Image Gallery */}
-              <div className={styles.gallery}>
-                <div className={styles.mainImage}>
+              <div className="flex flex-col gap-[1rem]">
+                <div className="aspect-square bg-[linear-gradient(145deg,#E8E4DE_0%,#D4CFC6_50%,#C8C0B4_100%)] rounded-[12px] overflow-hidden relative">
                   {allImages.length > 0 ? (
                     <img
                       src={allImages[selectedImage] || allImages[0]}
                       alt={product.name}
-                      className={styles.mainImg}
+                      className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className={styles.noImage}>No Image</div>
+                    <div className="w-full h-full flex items-center justify-center text-[1rem] text-muted">No Image</div>
                   )}
                   {product.salePrice !== null && (
-                    <span className={styles.saleBadge}>
+                    <span className="absolute top-[1rem] left-[1rem] bg-error text-white text-[0.8125rem] font-bold py-[6px] px-[12px] rounded-[8px]">
                       {Math.round(((product.price - product.salePrice) / product.price) * 100)}% OFF
                     </span>
                   )}
                 </div>
                 {allImages.length > 1 && (
-                  <div className={styles.thumbnails}>
+                  <div className="flex gap-[0.5rem] overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
                     {allImages.map((img, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        className={`${styles.thumbnail} ${idx === selectedImage ? styles.thumbnailActive : ''}`}
+                        className={`w-[64px] h-[64px] rounded-[8px] overflow-hidden border-2 cursor-pointer shrink-0 p-0 bg-none transition-colors duration-[200ms] hover:border-gold max-[479px]:w-[52px] max-[479px]:h-[52px] ${idx === selectedImage ? 'border-gold-dark' : 'border-border-light'}`}
                         onClick={() => setSelectedImage(idx)}
                       >
-                        <img src={img} alt={`${product.name} ${idx + 1}`} className={styles.thumbImg} />
+                        <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover block" />
                       </button>
                     ))}
                   </div>
@@ -222,52 +221,52 @@ export default function PublicProductDetailPage() {
               </div>
 
               {/* Product Info */}
-              <div className={styles.info}>
-                <span className={styles.categoryTag}>{getCategoryLabel(product.category)}</span>
-                <h1 className={styles.productName}>{product.name}</h1>
+              <div className="flex flex-col">
+                <span className="inline-block w-fit text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] bg-[rgba(200,169,110,0.12)] text-gold-dark tracking-[0.02em] uppercase mb-[1rem]">{getCategoryLabel(product.category)}</span>
+                <h1 className="font-display text-[1.75rem] font-normal text-charcoal leading-[1.3] tracking-[-0.02em] mb-[1rem] max-md:text-[1.5rem] max-sm:text-[1.375rem]">{product.name}</h1>
 
-                <div className={styles.ratingRow}>
-                  <span className={styles.star}>&#9733;</span>
-                  <span className={styles.ratingValue}>{product.rating.toFixed(1)}</span>
-                  <span className={styles.reviewCount}>({product.reviewCount} reviews)</span>
-                  <span className={styles.soldCount}>{product.sold} sold</span>
+                <div className="flex items-center gap-[0.5rem] mb-[1.5rem] text-[0.875rem] text-slate max-sm:flex-wrap">
+                  <span className="text-gold text-[1rem]">&#9733;</span>
+                  <span className="font-medium text-charcoal">{product.rating.toFixed(1)}</span>
+                  <span className="text-muted">({product.reviewCount} reviews)</span>
+                  <span className="text-muted ml-[0.5rem] pl-[1rem] border-l border-border max-sm:ml-0 max-sm:pl-0 max-sm:border-l-0">{product.sold} sold</span>
                 </div>
 
-                <div className={styles.priceSection}>
-                  <span className={styles.price}>
+                <div className="flex items-baseline gap-[1rem] mb-[2rem] p-[1.5rem] bg-ivory rounded-[8px] max-[479px]:p-[1rem]">
+                  <span className="font-display text-[2rem] font-medium text-error tracking-[-0.02em] max-md:text-[1.75rem] max-sm:text-[1.5rem]">
                     {formatPrice(product.salePrice ?? product.price)}
                   </span>
                   {product.salePrice !== null && (
-                    <span className={styles.originalPrice}>{formatPrice(product.price)}</span>
+                    <span className="text-[1rem] text-muted line-through">{formatPrice(product.price)}</span>
                   )}
                 </div>
 
-                <p className={styles.description}>{product.description}</p>
+                <p className="text-[0.9375rem] text-slate leading-[1.7] mb-[2rem]">{product.description}</p>
 
-                <div className={styles.metaGrid}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Seller</span>
-                    <span className={styles.metaValue}>{product.seller?.name || 'Unknown'}</span>
+                <div className="grid grid-cols-2 gap-[1rem] mb-[2rem] max-sm:grid-cols-1">
+                  <div className="flex flex-col gap-[4px] p-[1rem] bg-ivory rounded-[8px]">
+                    <span className="text-[0.75rem] font-medium text-muted uppercase tracking-[0.05em]">Seller</span>
+                    <span className="text-[0.9375rem] font-medium text-charcoal">{product.seller?.name || 'Unknown'}</span>
                   </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Stock</span>
-                    <span className={`${styles.metaValue} ${product.stock <= 0 ? styles.outOfStock : ''}`}>
+                  <div className="flex flex-col gap-[4px] p-[1rem] bg-ivory rounded-[8px]">
+                    <span className="text-[0.75rem] font-medium text-muted uppercase tracking-[0.05em]">Stock</span>
+                    <span className={`text-[0.9375rem] font-medium ${product.stock <= 0 ? 'text-error' : 'text-charcoal'}`}>
                       {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
                     </span>
                   </div>
                 </div>
 
                 {product.tags && product.tags.length > 0 && (
-                  <div className={styles.tags}>
+                  <div className="flex flex-wrap gap-[0.5rem] mb-[2rem]">
                     {product.tags.map((tag) => (
-                      <span key={tag} className={styles.tag}>{tag}</span>
+                      <span key={tag} className="text-[0.75rem] py-[4px] px-[12px] bg-ivory-warm text-slate rounded-[100px] border border-border-light">{tag}</span>
                     ))}
                   </div>
                 )}
 
                 <button
                   type="button"
-                  className={styles.addToCartBtn}
+                  className="w-full p-[1rem] font-body text-[1rem] font-semibold text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] mt-auto hover:not-disabled:bg-charcoal-light hover:not-disabled:-translate-y-[1px] hover:not-disabled:shadow-soft disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
                 >
@@ -280,10 +279,10 @@ export default function PublicProductDetailPage() {
       </main>
 
       {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <span className={styles.footerLogo}>Vibe</span>
-          <p>&copy; 2026 Vibe. All rights reserved.</p>
+      <footer className="bg-white border-t-4 border-gold">
+        <div className="max-w-[1280px] mx-auto py-[2rem] px-[2rem] flex items-center justify-between max-sm:flex-col max-sm:gap-[0.5rem] max-sm:text-center">
+          <span className="font-display text-[1.25rem] font-semibold text-gold-dark tracking-[-0.03em]">Vibe</span>
+          <p className="text-[0.8125rem] text-muted">&copy; 2026 Vibe. All rights reserved.</p>
         </div>
       </footer>
 
