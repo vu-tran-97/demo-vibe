@@ -13,7 +13,6 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useCart } from '@/hooks/use-cart';
 import { showToast } from '@/components/toast/Toast';
-import styles from './products.module.css';
 
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
@@ -179,19 +178,19 @@ function ProductsContent() {
   return (
     <div>
       {/* Header */}
-      <div className={styles.pageHeader}>
+      <div className="flex items-center justify-between mb-[3rem] max-sm:flex-col max-sm:items-start max-sm:gap-[1rem]">
         <div>
-          <h2 className={styles.pageTitle}>Products</h2>
-          <p className={styles.pageSubtitle}>
+          <h2 className="font-display text-[1.75rem] font-normal text-charcoal">Products</h2>
+          <p className="text-[0.875rem] text-muted mt-[0.25rem]">
             {pagination ? `${pagination.total} items available` : 'Loading...'}
           </p>
         </div>
         {isSeller && (
-          <div className={styles.headerActions}>
-            <Link href="/dashboard/products/my" className={styles.myProductsBtn}>
+          <div className="flex gap-[1rem] items-center max-sm:w-full">
+            <Link href="/dashboard/products/my" className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] no-underline hover:border-charcoal hover:bg-ivory">
               My Products
             </Link>
-            <Link href="/dashboard/products/create" className={styles.addProductBtn}>
+            <Link href="/dashboard/products/create" className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border border-charcoal rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] no-underline hover:bg-charcoal-light hover:-translate-y-[1px]">
               + Add Product
             </Link>
           </div>
@@ -199,24 +198,24 @@ function ProductsContent() {
       </div>
 
       {/* Search */}
-      <form className={styles.searchForm} onSubmit={handleSearch}>
+      <form className="flex gap-[0.5rem] mb-[1.5rem] max-sm:flex-col" onSubmit={handleSearch}>
         <input
           type="text"
-          className={styles.searchInput}
+          className="flex-1 py-[0.625rem] px-[1rem] font-body text-[0.875rem] text-charcoal bg-white border border-border-light rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-charcoal placeholder:text-muted"
           placeholder="Search products..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button type="submit" className={styles.searchBtn}>
+        <button type="submit" className="py-[0.625rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal-light">
           Search
         </button>
       </form>
 
       {/* Mobile filter toggle */}
-      <div className={styles.mobileFilterToggle}>
+      <div className="hidden max-sm:flex gap-[0.5rem] mb-[1.5rem] items-center">
         <button
           type="button"
-          className={styles.filterToggleBtn}
+          className="flex items-center gap-[0.5rem] py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-charcoal"
           onClick={() => setMobileFiltersOpen((prev) => !prev)}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -233,7 +232,7 @@ function ProductsContent() {
           Filters {hasActiveFilters ? `(${[selectedCategories.length > 0, !!minPrice || !!maxPrice, minRating !== null, inStock].filter(Boolean).length})` : ''}
         </button>
         <select
-          className={styles.sortSelect}
+          className="py-[0.5rem] px-[0.875rem] font-body text-[0.8125rem] text-slate bg-white border border-border-light rounded-[8px] cursor-pointer outline-none transition-[border-color] duration-[200ms] ml-auto focus:border-charcoal"
           value={sortBy}
           onChange={(e) => handleSortChange(e.target.value as SortOption)}
         >
@@ -244,32 +243,32 @@ function ProductsContent() {
       </div>
 
       {/* Filters + Sort */}
-      <div className={`${styles.filterPanel} ${mobileFiltersOpen ? styles.filterPanelOpen : ''}`}>
+      <div className={`flex flex-wrap gap-[1.5rem] items-start mb-[2rem] p-[1.5rem] bg-white border border-border-light rounded-[12px] max-md:flex-col max-md:gap-[1rem] max-sm:flex-col max-sm:gap-[1rem] max-sm:max-h-0 max-sm:overflow-hidden max-sm:py-0 max-sm:px-[1.5rem] max-sm:mb-0 max-sm:border-transparent max-sm:opacity-0 max-sm:transition-all max-sm:duration-300 max-sm:ease-[cubic-bezier(0.16,1,0.3,1)] ${mobileFiltersOpen ? 'max-sm:!max-h-[800px] max-sm:!p-[1.5rem] max-sm:!mb-[2rem] max-sm:!border-border-light max-sm:!opacity-100' : ''}`}>
         {/* Categories — multi-select checkboxes */}
-        <div className={styles.filterGroup}>
-          <h4 className={styles.filterGroupTitle}>Categories</h4>
-          <div className={styles.categoryCheckboxes}>
+        <div className="min-w-[160px]">
+          <h4 className="font-body text-[0.6875rem] font-semibold text-muted uppercase tracking-[0.08em] mb-[0.5rem]">Categories</h4>
+          <div className="flex flex-wrap gap-[0.25rem]">
             {CATEGORIES.map((cat) => (
-              <label key={cat.code} className={styles.checkboxLabel}>
+              <label key={cat.code} className="flex items-center gap-[6px] py-[0.375rem] px-[0.75rem] font-body text-[0.8125rem] text-slate cursor-pointer border border-border-light rounded-[8px] transition-all duration-[200ms] whitespace-nowrap hover:border-border hover:text-charcoal has-[input:checked]:bg-charcoal has-[input:checked]:text-white has-[input:checked]:border-charcoal">
                 <input
                   type="checkbox"
-                  className={styles.checkbox}
+                  className="hidden"
                   checked={selectedCategories.includes(cat.code)}
                   onChange={() => handleCategoryToggle(cat.code)}
                 />
-                <span className={styles.checkboxText}>{cat.label}</span>
+                <span className="pointer-events-none">{cat.label}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* Price Range */}
-        <div className={styles.filterGroup}>
-          <h4 className={styles.filterGroupTitle}>Price Range</h4>
-          <div className={styles.priceRange}>
+        <div className="min-w-[160px]">
+          <h4 className="font-body text-[0.6875rem] font-semibold text-muted uppercase tracking-[0.08em] mb-[0.5rem]">Price Range</h4>
+          <div className="flex items-center gap-[0.5rem]">
             <input
               type="number"
-              className={styles.priceInput}
+              className="w-[90px] py-[0.5rem] px-[0.625rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border-light rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-charcoal placeholder:text-muted max-sm:w-full max-sm:flex-1"
               placeholder="Min"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
@@ -278,10 +277,10 @@ function ProductsContent() {
               min="0"
               step="0.01"
             />
-            <span className={styles.priceSep}>&mdash;</span>
+            <span className="text-muted text-[0.8125rem]">&mdash;</span>
             <input
               type="number"
-              className={styles.priceInput}
+              className="w-[90px] py-[0.5rem] px-[0.625rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border-light rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-charcoal placeholder:text-muted max-sm:w-full max-sm:flex-1"
               placeholder="Max"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
@@ -294,34 +293,34 @@ function ProductsContent() {
         </div>
 
         {/* Rating Filter */}
-        <div className={styles.filterGroup}>
-          <h4 className={styles.filterGroupTitle}>Minimum Rating</h4>
-          <div className={styles.ratingButtons}>
+        <div className="min-w-[160px]">
+          <h4 className="font-body text-[0.6875rem] font-semibold text-muted uppercase tracking-[0.08em] mb-[0.5rem]">Minimum Rating</h4>
+          <div className="flex gap-[0.25rem]">
             {RATING_OPTIONS.map((rating) => (
               <button
                 key={rating}
                 type="button"
-                className={`${styles.ratingBtn} ${minRating === rating ? styles.ratingBtnActive : ''}`}
+                className={`flex items-center gap-[4px] py-[0.375rem] px-[0.75rem] font-body text-[0.8125rem] text-slate bg-white border border-border-light rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-border hover:text-charcoal ${minRating === rating ? 'bg-charcoal text-white border-charcoal' : ''}`}
                 onClick={() => handleRatingFilter(rating)}
               >
-                {rating}+ <span className={styles.ratingStar}>&#9733;</span>
+                {rating}+ <span className={`text-gold ${minRating === rating ? 'text-gold' : ''}`}>&#9733;</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* In Stock Toggle */}
-        <div className={styles.filterGroup}>
-          <label className={styles.toggleLabel}>
-            <span className={styles.toggleText}>In Stock Only</span>
+        <div className="min-w-[160px]">
+          <label className="flex items-center justify-between gap-[1rem] cursor-pointer">
+            <span className="font-body text-[0.8125rem] text-charcoal">In Stock Only</span>
             <button
               type="button"
-              className={`${styles.toggleSwitch} ${inStock ? styles.toggleSwitchOn : ''}`}
+              className={`relative w-[40px] h-[22px] border-none rounded-[11px] cursor-pointer transition-[background] duration-[200ms] p-0 ${inStock ? 'bg-charcoal' : 'bg-border'}`}
               onClick={handleInStockToggle}
               role="switch"
               aria-checked={inStock}
             >
-              <span className={styles.toggleKnob} />
+              <span className={`absolute top-[3px] left-[3px] w-[16px] h-[16px] bg-white rounded-full transition-transform duration-[200ms] shadow-[0_1px_3px_rgba(0,0,0,0.15)] ${inStock ? 'translate-x-[18px]' : ''}`} />
             </button>
           </label>
         </div>
@@ -330,7 +329,7 @@ function ProductsContent() {
         {hasActiveFilters && (
           <button
             type="button"
-            className={styles.clearFiltersBtn}
+            className="py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-medium text-muted bg-transparent border border-border-light rounded-[8px] cursor-pointer transition-all duration-[200ms] self-end hover:text-charcoal hover:border-charcoal"
             onClick={handleClearFilters}
           >
             Clear All Filters
@@ -338,10 +337,10 @@ function ProductsContent() {
         )}
 
         {/* Sort (desktop — inside filter panel) */}
-        <div className={styles.desktopSort}>
-          <h4 className={styles.filterGroupTitle}>Sort By</h4>
+        <div className="ml-auto max-md:ml-0 max-sm:hidden">
+          <h4 className="font-body text-[0.6875rem] font-semibold text-muted uppercase tracking-[0.08em] mb-[0.5rem]">Sort By</h4>
           <select
-            className={styles.sortSelectInline}
+            className="py-[0.5rem] px-[0.875rem] font-body text-[0.8125rem] text-slate bg-white border border-border-light rounded-[8px] cursor-pointer outline-none transition-[border-color] duration-[200ms] focus:border-charcoal"
             value={sortBy}
             onChange={(e) => handleSortChange(e.target.value as SortOption)}
           >
@@ -354,17 +353,17 @@ function ProductsContent() {
 
       {/* Loading */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center justify-center py-[8rem] px-[2rem] text-muted text-[0.9375rem] gap-[1rem]">
+          <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
           <p>Loading products...</p>
         </div>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <div className={styles.errorState}>
+        <div className="text-center py-[4rem] px-[2rem] text-error text-[0.9375rem]">
           <p>{error}</p>
-          <button type="button" className={styles.retryBtn} onClick={loadProducts}>
+          <button type="button" className="mt-[1rem] py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-charcoal" onClick={loadProducts}>
             Retry
           </button>
         </div>
@@ -372,42 +371,42 @@ function ProductsContent() {
 
       {/* Product Grid */}
       {!loading && !error && products.length > 0 && (
-        <div className={styles.productGrid}>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[1.5rem] animate-fade-in max-md:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] max-sm:gap-[1rem]">
           {products.map((product) => (
-            <div key={product.id} className={styles.productCard}>
+            <div key={product.id} className="bg-white border border-border-light rounded-[12px] overflow-hidden transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col hover:border-border hover:shadow-soft hover:-translate-y-[4px]">
               <Link
                 href={`/dashboard/products/${product.id}`}
-                className={styles.productCardLink}
+                className="block no-underline text-inherit cursor-pointer flex-1"
               >
-                <div className={styles.productImage}>
+                <div className="aspect-[4/3] bg-[linear-gradient(145deg,#E8E4DE_0%,#D4CFC6_50%,#C8C0B4_100%)] relative overflow-hidden">
                   {product.imageUrl && (
-                    <img src={product.imageUrl} alt={product.name} className={styles.productImg} />
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover absolute inset-0" />
                   )}
                   {product.salePrice !== null && (
-                    <span className={styles.saleBadge}>Sale</span>
+                    <span className="absolute top-[1rem] left-[1rem] py-[4px] px-[10px] text-[0.6875rem] font-semibold tracking-[0.08em] uppercase text-white bg-error rounded-[4px] z-[1]">Sale</span>
                   )}
                 </div>
-                <div className={styles.productBody}>
-                  <p className={styles.productCategory}>
+                <div className="p-[1.5rem]">
+                  <p className="text-[0.6875rem] font-medium tracking-[0.1em] uppercase text-gold mb-[0.25rem]">
                     {product.categoryLabel}
                   </p>
-                  <h3 className={styles.productName}>{product.name}</h3>
-                  <p className={styles.productSeller}>
+                  <h3 className="font-display text-[1.125rem] font-medium text-charcoal mb-[0.5rem] leading-[1.3]">{product.name}</h3>
+                  <p className="text-[0.75rem] text-muted mt-[0.5rem]">
                     by {product.seller.name}
                   </p>
-                  <div className={styles.productMeta}>
+                  <div className="flex items-center justify-between mt-[1rem]">
                     <div>
-                      <span className={styles.productPrice}>
+                      <span className="text-[0.9375rem] font-medium text-charcoal">
                         {formatPrice(product.salePrice ?? product.price)}
                       </span>
                       {product.salePrice !== null && (
-                        <span className={styles.originalPrice}>
+                        <span className="text-[0.8125rem] text-muted line-through ml-[0.5rem]">
                           {formatPrice(product.price)}
                         </span>
                       )}
                     </div>
-                    <span className={styles.productRating}>
-                      <span className={styles.ratingStar}>&#9733;</span>
+                    <span className="flex items-center gap-[4px] text-[0.8125rem] text-slate">
+                      <span className="text-gold">&#9733;</span>
                       {product.rating}
                     </span>
                   </div>
@@ -416,7 +415,7 @@ function ProductsContent() {
               {product.stock > 0 && (
                 <button
                   type="button"
-                  className={styles.quickAddBtn}
+                  className="block w-full py-[0.625rem] font-body text-[0.8125rem] font-medium text-charcoal bg-ivory border-none border-t border-t-border-light cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal hover:text-white"
                   onClick={() => {
                     const result = addItem(product);
                     if (result.success) {
@@ -430,7 +429,7 @@ function ProductsContent() {
                 </button>
               )}
               {product.stock === 0 && (
-                <span className={styles.outOfStockLabel}>Out of Stock</span>
+                <span className="block w-full py-[0.625rem] font-body text-[0.8125rem] font-medium text-muted bg-ivory border-t border-t-border-light text-center">Out of Stock</span>
               )}
             </div>
           ))}
@@ -439,18 +438,17 @@ function ProductsContent() {
 
       {/* Empty State */}
       {!loading && !error && products.length === 0 && (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>&#9671;</div>
-          <h3 className={styles.emptyTitle}>No products found</h3>
-          <p className={styles.emptyDesc}>
+        <div className="text-center py-[8rem] px-[2rem]">
+          <div className="text-[3rem] mb-[1.5rem] opacity-30">&#9671;</div>
+          <h3 className="font-display text-[1.5rem] text-charcoal mb-[0.5rem]">No products found</h3>
+          <p className="text-[0.9375rem] text-muted">
             Try selecting a different category or adjusting your filters.
           </p>
           {hasActiveFilters && (
             <button
               type="button"
-              className={styles.clearFiltersBtn}
+              className="py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-medium text-muted bg-transparent border border-border-light rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:text-charcoal hover:border-charcoal mt-[1rem]"
               onClick={handleClearFilters}
-              style={{ marginTop: '1rem' }}
             >
               Clear All Filters
             </button>
@@ -460,21 +458,21 @@ function ProductsContent() {
 
       {/* Pagination */}
       {!loading && pagination && pagination.totalPages > 1 && (
-        <div className={styles.pagination}>
+        <div className="flex items-center justify-center gap-[1.5rem] mt-[3rem] pt-[2rem] border-t border-t-border-light">
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
           >
             &#8592; Previous
           </button>
-          <span className={styles.pageInfo}>
+          <span className="text-[0.8125rem] text-slate">
             Page {pagination.page} of {pagination.totalPages}
           </span>
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
@@ -490,8 +488,8 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center justify-center py-[8rem] px-[2rem] text-muted text-[0.9375rem] gap-[1rem]">
+          <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
           <p>Loading products...</p>
         </div>
       }

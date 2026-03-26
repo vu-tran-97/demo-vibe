@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import styles from './chat.module.css';
 
 interface ChatRoom {
   id: string;
@@ -120,6 +119,9 @@ export default function ChatPage() {
   const activeRoom = MOCK_ROOMS.find((r) => r.id === selectedRoom);
   const messages = selectedRoom ? (MOCK_MESSAGES[selectedRoom] ?? []) : [];
 
+  // Track whether a chat is active (replaces CSS :has() selector for mobile)
+  const isChatActive = !!activeRoom;
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedRoom]);
@@ -141,12 +143,12 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={styles.chat}>
+    <div className="flex h-[calc(100vh-80px)] bg-white rounded-[16px] border border-border-light overflow-hidden max-sm:h-[calc(100vh-60px)] max-sm:rounded-none max-sm:border-none">
       {/* Room List */}
-      <div className={styles.roomList}>
-        <div className={styles.roomListHeader}>
-          <h2 className={styles.roomListTitle}>Messages</h2>
-          <button type="button" className={styles.newChatBtn} title="New chat">
+      <div className={`w-[340px] min-w-[340px] border-r border-border-light flex flex-col bg-ivory max-sm:w-full max-sm:min-w-0 ${isChatActive ? 'max-sm:hidden' : ''}`}>
+        <div className="flex items-center justify-between py-[1.5rem] px-[2rem] border-b border-border-light">
+          <h2 className="font-display text-[1.375rem] font-normal text-charcoal">Messages</h2>
+          <button type="button" className="w-[36px] h-[36px] flex items-center justify-center bg-charcoal text-white border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal-light hover:-translate-y-px hover:shadow-soft" title="New chat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               <line x1="12" y1="8" x2="12" y2="16" />
@@ -155,40 +157,40 @@ export default function ChatPage() {
           </button>
         </div>
 
-        <div className={styles.roomSearch}>
+        <div className="flex items-center gap-[0.5rem] mx-[1.5rem] my-[1rem] py-[0.5rem] px-[0.75rem] bg-white border border-border rounded-[8px] text-muted transition-colors duration-[200ms] focus-within:border-charcoal">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
           <input
             type="text"
-            className={styles.roomSearchInput}
+            className="flex-1 border-none bg-transparent font-body text-[0.8125rem] text-charcoal outline-none placeholder:text-muted"
             placeholder="Search conversations..."
             value={searchRooms}
             onChange={(e) => setSearchRooms(e.target.value)}
           />
         </div>
 
-        <div className={styles.rooms}>
+        <div className="flex-1 overflow-y-auto py-[0.5rem]">
           {filteredRooms.map((room) => (
             <button
               key={room.id}
               type="button"
-              className={`${styles.roomItem} ${selectedRoom === room.id ? styles.roomActive : ''}`}
+              className={`flex items-center gap-[1rem] w-full py-[1rem] px-[1.5rem] bg-transparent border-none cursor-pointer text-left transition-colors duration-[200ms] hover:bg-[rgba(200,169,110,0.06)] ${selectedRoom === room.id ? 'bg-white shadow-[inset_3px_0_0_var(--color-gold)] hover:bg-white' : ''}`}
               onClick={() => setSelectedRoom(room.id)}
             >
-              <div className={`${styles.roomAvatar} ${room.type === 'GROUP' ? styles.groupAvatar : ''}`}>
+              <div className={`w-[44px] h-[44px] rounded-full bg-[linear-gradient(135deg,var(--color-ivory-warm)_0%,var(--color-border)_100%)] flex items-center justify-center font-display text-[1rem] font-medium text-charcoal shrink-0 ${room.type === 'GROUP' ? 'rounded-[8px] bg-[linear-gradient(135deg,rgba(200,169,110,0.15)_0%,rgba(200,169,110,0.05)_100%)] text-gold-dark' : ''}`}>
                 {room.avatar}
               </div>
-              <div className={styles.roomInfo}>
-                <div className={styles.roomTop}>
-                  <span className={styles.roomName}>{room.name}</span>
-                  <span className={styles.roomTime}>{room.lastMessageTime}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-[3px]">
+                  <span className="text-[0.875rem] font-medium text-charcoal whitespace-nowrap overflow-hidden text-ellipsis">{room.name}</span>
+                  <span className="text-[0.6875rem] text-muted shrink-0 ml-[0.5rem]">{room.lastMessageTime}</span>
                 </div>
-                <div className={styles.roomBottom}>
-                  <span className={styles.roomLastMsg}>{room.lastMessage}</span>
+                <div className="flex items-center justify-between gap-[0.5rem]">
+                  <span className="text-[0.75rem] text-slate whitespace-nowrap overflow-hidden text-ellipsis">{room.lastMessage}</span>
                   {room.unread > 0 && (
-                    <span className={styles.unreadBadge}>{room.unread}</span>
+                    <span className="min-w-[18px] h-[18px] px-[5px] bg-gold text-white text-[0.625rem] font-semibold rounded-[9px] flex items-center justify-center shrink-0">{room.unread}</span>
                   )}
                 </div>
               </div>
@@ -198,49 +200,49 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Area */}
-      <div className={styles.chatArea}>
+      <div className="flex-1 flex flex-col min-w-0">
         {!activeRoom ? (
-          <div className={styles.noChatSelected}>
-            <div className={styles.noChatIcon}>
+          <div className="flex-1 flex flex-col items-center justify-center gap-[1rem] text-muted">
+            <div className="opacity-30">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
             </div>
-            <h3 className={styles.noChatTitle}>Select a conversation</h3>
-            <p className={styles.noChatDesc}>
+            <h3 className="font-display text-[1.25rem] font-normal text-charcoal">Select a conversation</h3>
+            <p className="text-[0.875rem] text-muted">
               Choose a chat from the list to start messaging.
             </p>
           </div>
         ) : (
           <>
             {/* Chat Header */}
-            <div className={styles.chatHeader}>
+            <div className="flex items-center gap-[1rem] py-[1rem] px-[2rem] border-b border-border-light bg-white">
               <button
                 type="button"
-                className={styles.backBtn}
+                className="hidden max-sm:flex w-[32px] h-[32px] items-center justify-center bg-ivory border-none rounded-[8px] cursor-pointer text-[1rem] text-charcoal transition-colors duration-[200ms] hover:bg-ivory-warm"
                 onClick={() => setSelectedRoom(null)}
               >
                 ←
               </button>
-              <div className={`${styles.chatHeaderAvatar} ${activeRoom.type === 'GROUP' ? styles.groupAvatar : ''}`}>
+              <div className={`w-[40px] h-[40px] rounded-full bg-[linear-gradient(135deg,var(--color-ivory-warm)_0%,var(--color-border)_100%)] flex items-center justify-center font-display text-[0.9375rem] font-medium text-charcoal shrink-0 ${activeRoom.type === 'GROUP' ? 'rounded-[8px] bg-[linear-gradient(135deg,rgba(200,169,110,0.15)_0%,rgba(200,169,110,0.05)_100%)] text-gold-dark' : ''}`}>
                 {activeRoom.avatar}
               </div>
-              <div className={styles.chatHeaderInfo}>
-                <h3 className={styles.chatHeaderName}>{activeRoom.name}</h3>
-                <p className={styles.chatHeaderStatus}>
+              <div className="flex-1">
+                <h3 className="font-body text-[0.9375rem] font-medium text-charcoal">{activeRoom.name}</h3>
+                <p className="text-[0.75rem] text-success mt-[1px]">
                   {activeRoom.type === 'GROUP'
                     ? `${activeRoom.members.length} members`
                     : 'Online'}
                 </p>
               </div>
-              <div className={styles.chatHeaderActions}>
-                <button type="button" className={styles.headerAction} title="Search">
+              <div className="flex gap-[0.5rem]">
+                <button type="button" className="w-[36px] h-[36px] flex items-center justify-center bg-transparent border-none rounded-[8px] cursor-pointer text-slate transition-all duration-[200ms] hover:bg-ivory hover:text-charcoal" title="Search">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                   </svg>
                 </button>
-                <button type="button" className={styles.headerAction} title="Info">
+                <button type="button" className="w-[36px] h-[36px] flex items-center justify-center bg-transparent border-none rounded-[8px] cursor-pointer text-slate transition-all duration-[200ms] hover:bg-ivory hover:text-charcoal" title="Info">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 16v-4" />
@@ -251,23 +253,23 @@ export default function ChatPage() {
             </div>
 
             {/* Messages */}
-            <div className={styles.messages}>
+            <div className="flex-1 overflow-y-auto p-[2rem] flex flex-col gap-[1rem] bg-ivory">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`${styles.message} ${msg.isOwn ? styles.messageOwn : styles.messageOther}`}
+                  className={`flex gap-[0.5rem] max-w-[70%] animate-fade-in max-sm:max-w-[85%] ${msg.isOwn ? 'self-end flex-row-reverse' : 'self-start'}`}
                 >
                   {!msg.isOwn && (
-                    <div className={styles.messageAvatar}>
+                    <div className="w-[32px] h-[32px] rounded-full bg-ivory-warm flex items-center justify-center font-display text-[0.75rem] font-medium text-gold-dark shrink-0 mt-[2px]">
                       {msg.sender.charAt(0)}
                     </div>
                   )}
-                  <div className={styles.messageBubble}>
+                  <div className={`py-[0.625rem] px-[0.875rem] rounded-[12px] relative ${msg.isOwn ? 'bg-charcoal text-white rounded-br-[4px]' : 'bg-white text-charcoal border border-border-light rounded-bl-[4px]'}`}>
                     {!msg.isOwn && activeRoom.type === 'GROUP' && (
-                      <span className={styles.messageSender}>{msg.sender}</span>
+                      <span className="block text-[0.6875rem] font-semibold text-gold-dark mb-[3px]">{msg.sender}</span>
                     )}
-                    <p className={styles.messageText}>{msg.content}</p>
-                    <span className={styles.messageTime}>{msg.time}</span>
+                    <p className="text-[0.8125rem] leading-[1.5] m-0">{msg.content}</p>
+                    <span className={`block text-[0.625rem] mt-[4px] opacity-60 ${msg.isOwn ? 'text-right' : ''}`}>{msg.time}</span>
                   </div>
                 </div>
               ))}
@@ -275,15 +277,15 @@ export default function ChatPage() {
             </div>
 
             {/* Input */}
-            <div className={styles.chatInput}>
-              <button type="button" className={styles.attachBtn} title="Attach file">
+            <div className="flex items-center gap-[0.5rem] py-[1rem] px-[2rem] border-t border-border-light bg-white max-sm:py-[0.5rem] max-sm:px-[1rem]">
+              <button type="button" className="w-[36px] h-[36px] flex items-center justify-center bg-transparent border-none rounded-[8px] cursor-pointer text-slate transition-all duration-[200ms] hover:bg-ivory hover:text-charcoal" title="Attach file">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                 </svg>
               </button>
               <input
                 type="text"
-                className={styles.messageInput}
+                className="flex-1 py-[0.625rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.8125rem] text-charcoal outline-none transition-colors duration-[200ms] focus:border-charcoal placeholder:text-muted"
                 placeholder="Type a message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -291,7 +293,7 @@ export default function ChatPage() {
               />
               <button
                 type="button"
-                className={styles.sendBtn}
+                className="w-[36px] h-[36px] flex items-center justify-center bg-charcoal text-white border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:not-disabled:bg-charcoal-light hover:not-disabled:-translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={handleSend}
                 disabled={!message.trim()}
               >

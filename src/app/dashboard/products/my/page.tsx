@@ -12,7 +12,6 @@ import {
   type Pagination,
 } from '@/lib/products';
 import { useAuth } from '@/hooks/use-auth';
-import styles from './my-products.module.css';
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
@@ -24,15 +23,15 @@ const STATUS_LABELS: Record<string, string> = {
 function getStatusClass(status?: string): string {
   switch (status) {
     case 'ACTIVE':
-      return styles.statusActive;
+      return 'text-success bg-[rgba(74,149,115,0.08)]';
     case 'DRAFT':
-      return styles.statusDraft;
+      return 'text-muted bg-ivory-warm';
     case 'SOLD_OUT':
-      return styles.statusSoldOut;
+      return 'text-error bg-[rgba(196,91,91,0.08)]';
     case 'HIDDEN':
-      return styles.statusHidden;
+      return 'text-slate bg-ivory';
     default:
-      return styles.statusDraft;
+      return 'text-muted bg-ivory-warm';
   }
 }
 
@@ -104,8 +103,8 @@ export default function MyProductsPage() {
 
   if (authLoading) {
     return (
-      <div className={styles.loadingState}>
-        <div className={styles.spinner} />
+      <div className="flex flex-col items-center justify-center py-[8rem] px-[2rem] text-muted text-[0.9375rem] gap-[1rem]">
+        <div className="w-[32px] h-[32px] border-[2px] border-border-light border-t-charcoal rounded-full animate-spin" />
         <p>Loading...</p>
       </div>
     );
@@ -113,12 +112,12 @@ export default function MyProductsPage() {
 
   if (!isSeller) {
     return (
-      <div className={styles.accessDenied}>
-        <h2 className={styles.accessDeniedTitle}>Access Denied</h2>
-        <p className={styles.accessDeniedDesc}>
+      <div className="text-center py-[8rem] px-[2rem]">
+        <h2 className="font-display text-[1.5rem] font-normal text-charcoal mb-[0.5rem]">Access Denied</h2>
+        <p className="text-[0.9375rem] text-muted mb-[2rem]">
           Only sellers and administrators can manage products.
         </p>
-        <Link href="/dashboard/products" className={styles.accessDeniedLink}>
+        <Link href="/dashboard/products" className="text-[0.875rem] font-medium text-gold-dark transition-colors duration-[200ms] hover:text-gold">
           &#8592; Back to Products
         </Link>
       </div>
@@ -128,35 +127,35 @@ export default function MyProductsPage() {
   return (
     <div>
       {/* Header */}
-      <div className={styles.pageHeader}>
+      <div className="flex items-center justify-between mb-[1.5rem] max-sm:flex-col max-sm:items-start max-sm:gap-[1rem]">
         <div>
-          <h2 className={styles.pageTitle}>{isAdmin ? 'All Products' : 'My Products'}</h2>
-          <p className={styles.pageSubtitle}>
+          <h2 className="font-display text-[1.75rem] font-normal text-charcoal">{isAdmin ? 'All Products' : 'My Products'}</h2>
+          <p className="text-[0.875rem] text-muted mt-[0.25rem]">
             {pagination ? `${pagination.total} products` : 'Loading...'}
           </p>
         </div>
-        <Link href="/dashboard/products/create" className={styles.addBtn}>
+        <Link href="/dashboard/products/create" className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border border-charcoal rounded-[8px] cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] no-underline hover:bg-charcoal-light hover:-translate-y-px">
           + Add Product
         </Link>
       </div>
 
       {/* Search & Filters */}
-      <div className={styles.toolbar}>
+      <div className="flex items-center gap-[1rem] mb-[2rem] flex-wrap max-sm:flex-col max-sm:items-stretch">
         <form
-          className={styles.searchForm}
+          className="flex flex-1 min-w-[200px] max-w-[480px] border border-border rounded-[8px] overflow-hidden transition-colors duration-[200ms] focus-within:border-gold max-sm:max-w-full"
           onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); setPage(1); }}
         >
           <input
             type="text"
-            className={styles.searchInput}
+            className="flex-1 py-[0.5rem] px-[0.875rem] font-body text-[0.8125rem] text-charcoal border-none outline-none bg-white placeholder:text-muted"
             placeholder={isAdmin ? 'Search by product name or seller...' : 'Search products...'}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
-          <button type="submit" className={styles.searchBtn}>Search</button>
+          <button type="submit" className="py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border-none cursor-pointer transition-colors duration-[200ms] hover:bg-charcoal-light">Search</button>
         </form>
         <select
-          className={styles.statusSelect}
+          className="py-[0.5rem] px-[0.875rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border rounded-[8px] outline-none cursor-pointer transition-colors duration-[200ms] focus:border-gold"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
         >
@@ -169,7 +168,7 @@ export default function MyProductsPage() {
         {(search || statusFilter) && (
           <button
             type="button"
-            className={styles.clearFiltersBtn}
+            className="py-[0.5rem] px-[0.875rem] font-body text-[0.75rem] font-medium text-error bg-transparent border-none cursor-pointer transition-opacity duration-[200ms] hover:opacity-70"
             onClick={() => { setSearchInput(''); setSearch(''); setStatusFilter(''); setPage(1); }}
           >
             Clear
@@ -179,17 +178,17 @@ export default function MyProductsPage() {
 
       {/* Loading */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center justify-center py-[8rem] px-[2rem] text-muted text-[0.9375rem] gap-[1rem]">
+          <div className="w-[32px] h-[32px] border-[2px] border-border-light border-t-charcoal rounded-full animate-spin" />
           <p>Loading your products...</p>
         </div>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <div className={styles.errorState}>
+        <div className="text-center py-[4rem] px-[2rem] text-error text-[0.9375rem]">
           <p>{error}</p>
-          <button type="button" className={styles.retryBtn} onClick={loadProducts}>
+          <button type="button" className="mt-[1rem] py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-charcoal" onClick={loadProducts}>
             Retry
           </button>
         </div>
@@ -197,59 +196,59 @@ export default function MyProductsPage() {
 
       {/* Product List */}
       {!loading && !error && products.length > 0 && (
-        <div className={styles.productList}>
+        <div className="flex flex-col gap-[1rem] animate-fade-in">
           {products.map((product) => (
-            <div key={product.id} className={styles.productRow}>
-              <div className={styles.productThumb}>
+            <div key={product.id} className="flex items-center gap-[1.5rem] p-[1.5rem] bg-white border border-border-light rounded-[12px] transition-all duration-[200ms] hover:border-border hover:shadow-soft max-sm:flex-col max-sm:items-start">
+              <div className="w-[80px] h-[60px] rounded-[8px] bg-[linear-gradient(145deg,#E8E4DE,#D4CFC6)] shrink-0 overflow-hidden relative">
                 {product.imageUrl && (
                   <img
                     src={product.imageUrl}
                     alt={product.name}
-                    className={styles.productThumbImg}
+                    className="w-full h-full object-cover absolute inset-0"
                   />
                 )}
               </div>
-              <div className={styles.productInfo}>
+              <div className="flex-1 min-w-0">
                 <Link
                   href={`/dashboard/products/${product.id}`}
-                  className={styles.productName}
+                  className="font-display text-[1rem] font-medium text-charcoal mb-[4px] no-underline block hover:text-gold-dark"
                 >
                   {product.name}
                 </Link>
                 {isAdmin && product.seller && (
-                  <p className={styles.productSeller}>
-                    Seller: <strong>{product.seller.nickname || product.seller.name}</strong>
+                  <p className="text-[0.8125rem] text-slate mb-[4px]">
+                    Seller: <strong className="text-charcoal font-semibold">{product.seller.nickname || product.seller.name}</strong>
                   </p>
                 )}
-                <div className={styles.productMeta}>
+                <div className="flex items-center gap-[1rem] text-[0.75rem] text-muted">
                   <span>{getCategoryLabel(product.category)}</span>
                   <span>Stock: {product.stock}</span>
                   <span>Sold: {product.sold}</span>
                 </div>
               </div>
-              <span className={`${styles.statusBadge} ${getStatusClass(product.status)}`}>
+              <span className={`inline-flex py-[3px] px-[10px] text-[0.6875rem] font-semibold tracking-[0.06em] uppercase rounded-[4px] shrink-0 ${getStatusClass(product.status)}`}>
                 {STATUS_LABELS[product.status || 'DRAFT'] || product.status}
               </span>
-              <span className={styles.productPrice}>
+              <span className="text-[0.9375rem] font-medium text-charcoal shrink-0 min-w-[80px] text-right max-sm:text-left">
                 {formatPrice(product.salePrice ?? product.price)}
               </span>
-              <div className={styles.productActions}>
+              <div className="flex gap-[0.5rem] shrink-0 max-sm:w-full">
                 <Link
                   href={`/dashboard/products/${product.id}/edit`}
-                  className={styles.actionBtn}
+                  className="py-[0.375rem] px-[0.875rem] font-body text-[0.75rem] font-medium text-slate bg-white border border-border-light rounded-[4px] cursor-pointer transition-all duration-[200ms] no-underline whitespace-nowrap hover:border-charcoal hover:text-charcoal max-sm:flex-1 max-sm:text-center"
                 >
                   Edit
                 </Link>
                 <button
                   type="button"
-                  className={styles.actionBtn}
+                  className="py-[0.375rem] px-[0.875rem] font-body text-[0.75rem] font-medium text-slate bg-white border border-border-light rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:border-charcoal hover:text-charcoal max-sm:flex-1 max-sm:text-center"
                   onClick={() => handleToggleStatus(product)}
                 >
                   {getToggleLabel(product.status)}
                 </button>
                 <button
                   type="button"
-                  className={styles.actionBtnDanger}
+                  className="py-[0.375rem] px-[0.875rem] font-body text-[0.75rem] font-medium text-slate bg-white border border-border-light rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:border-error hover:text-error max-sm:flex-1 max-sm:text-center"
                   onClick={() => handleDelete(product)}
                 >
                   Delete
@@ -262,13 +261,13 @@ export default function MyProductsPage() {
 
       {/* Empty State */}
       {!loading && !error && products.length === 0 && (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>&#9671;</div>
-          <h3 className={styles.emptyTitle}>No products yet</h3>
-          <p className={styles.emptyDesc}>
+        <div className="text-center py-[8rem] px-[2rem]">
+          <div className="text-[3rem] mb-[1.5rem] opacity-30">&#9671;</div>
+          <h3 className="font-display text-[1.5rem] text-charcoal mb-[0.5rem]">No products yet</h3>
+          <p className="text-[0.9375rem] text-muted mb-[2rem]">
             Start selling by adding your first product.
           </p>
-          <Link href="/dashboard/products/create" className={styles.emptyAddBtn}>
+          <Link href="/dashboard/products/create" className="inline-block py-[0.75rem] px-[2rem] font-body text-[0.9375rem] font-medium text-white bg-charcoal rounded-[8px] no-underline transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal-light hover:-translate-y-[2px]">
             + Add Your First Product
           </Link>
         </div>
@@ -276,21 +275,21 @@ export default function MyProductsPage() {
 
       {/* Pagination */}
       {!loading && pagination && pagination.totalPages > 1 && (
-        <div className={styles.pagination}>
+        <div className="flex items-center justify-center gap-[1.5rem] mt-[3rem] pt-[2rem] border-t border-border-light">
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
           >
             &#8592; Previous
           </button>
-          <span className={styles.pageInfo}>
+          <span className="text-[0.8125rem] text-slate">
             Page {pagination.page} of {pagination.totalPages}
           </span>
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-30 disabled:cursor-not-allowed"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
