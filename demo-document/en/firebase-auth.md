@@ -74,7 +74,7 @@
 │  │              FirebaseAuthGuard (Global Guard)                │    │
 │  │                                                              │    │
 │  │  1. Extract Bearer token from Authorization header           │    │
-│  │  2. Verify token via Google Public Certs (RS256)             │    │
+│  │  2. Verify token via Firebase Admin SDK                      │    │
 │  │  3. Find user by Firebase UID → fallback by email            │    │
 │  │  4. Auto-create user if first login                          │    │
 │  │  5. Check account status (ACTV / INAC / SUSP)               │    │
@@ -110,8 +110,8 @@
 │                                                                      │
 │  - User management (email/password, Google OAuth)                    │
 │  - ID Token issuance (JWT, RS256, 1-hour expiry, auto-refresh)      │
-│  - Public certs for server-side verification                         │
-│  - Project: vibe-ecommerce-app                                       │
+│  - Admin SDK for server-side verification                            │
+│  - Project: vibe-shop-ecommerce                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -135,7 +135,7 @@
 ### 2.1 Firebase Console Configuration
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create project: `vibe-ecommerce-app`
+2. Create project: `vibe-shop-ecommerce`
 3. Enable **Authentication** → Sign-in providers:
    - Email/Password: **Enabled**
    - Google: **Enabled** (optional)
@@ -150,12 +150,12 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAlVpwJ91xzok_uMSdX4a57TrxX3R8nNRw",
-  authDomain: "vibe-ecommerce-app.firebaseapp.com",
-  projectId: "vibe-ecommerce-app",
-  storageBucket: "vibe-ecommerce-app.firebasestorage.app",
-  messagingSenderId: "388829286580",
-  appId: "1:388829286580:web:32caaf92c41fcaf71287e1",
+  apiKey: "AIzaSyB6bGyC5pqbou49aqLNuFz4P9OH0eRv9X8",
+  authDomain: "vibe-shop-ecommerce.firebaseapp.com",
+  projectId: "vibe-shop-ecommerce",
+  storageBucket: "vibe-shop-ecommerce.firebasestorage.app",
+  messagingSenderId: "953565200792",
+  appId: "1:953565200792:web:140b95fcde12cd13426bed",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -183,7 +183,7 @@ A **Service Account** is a special Google account that belongs to your **applica
 │  │    ○ Node.js  ○ Java  ○ Python  ○ Go                  │    │
 │  │                                                       │    │
 │  │  Service account:                                     │    │
-│  │  firebase-adminsdk-xxxxx@vibe-ecommerce-app.iam...    │    │
+│  │  firebase-adminsdk-xxxxx@vibe-shop-ecommerce.iam...   │    │
 │  │                                                       │    │
 │  │  [Generate new private key]  ← Downloads JSON file    │    │
 │  └──────────────────────────────────────────────────────┘    │
@@ -195,57 +195,61 @@ A **Service Account** is a special Google account that belongs to your **applica
 
 | Approach | How | Pros | Cons |
 |----------|-----|------|------|
-| **Firebase Admin SDK** | Download service account JSON key → init admin SDK → `admin.auth().verifyIdToken()` | Simple, official | Extra dependency (50MB+), need to store secret JSON file |
-| **Google Public Certs** (our approach) | Fetch public certs → verify JWT signature manually | Zero dependency, no secrets to manage | More code, must handle cert rotation |
+| **Firebase Admin SDK** (our approach) | Download service account JSON key → init admin SDK → `admin.auth().verifyIdToken()` | Simple, official, handles key rotation automatically | Extra dependency, need to store secret JSON file |
+| **Google Public Certs** | Fetch public certs → verify JWT signature manually | Zero dependency, no secrets to manage | More code, must handle cert rotation |
 
-#### Approach A: Firebase Admin SDK (common approach)
+#### Setup: Firebase Admin SDK (this project's approach)
 
 ```
 1. Firebase Console → Project Settings → Service accounts
-2. Click "Generate new private key" → Downloads serviceAccountKey.json
-3. Store the JSON file securely (NEVER commit to git!)
+2. Click "Generate new private key" → Downloads firebase-service-account.json
+3. Store the JSON file in project root (NEVER commit to git!)
+4. Add to .gitignore: firebase-service-account.json
 ```
-
-```typescript
-// How it WOULD look with Admin SDK (NOT used in this project)
-import * as admin from 'firebase-admin';
-import serviceAccount from './serviceAccountKey.json';
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-// Verify token — one line!
-const decoded = await admin.auth().verifyIdToken(idToken);
-```
-
-> The `serviceAccountKey.json` contains a **private key** that grants full admin access to your Firebase project. If leaked, an attacker can read/write all data, create/delete users, etc.
-
-#### Approach B: Google Public Certs (this project's approach)
-
-Firebase Admin SDK is **NOT** used in this project. Instead, the backend verifies tokens directly using Google's public certificates (zero-dependency approach).
 
 **File: `server/src/firebase/firebase.service.ts`**
 
-```
-Token Verification Flow:
-1. Decode JWT header → extract `kid` (Key ID)
-2. Fetch Google public certs from:
-   https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com
-3. Find matching cert by `kid`
-4. Verify signature (RS256) + audience + issuer
-5. Extract uid, email, name, picture from payload
+```typescript
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import * as admin from 'firebase-admin';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+@Injectable()
+export class FirebaseService implements OnModuleInit {
+  onModuleInit() {
+    if (admin.apps.length > 0) return;
+
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+      || join(process.cwd(), '..', 'firebase-service-account.json');
+
+    if (existsSync(serviceAccountPath)) {
+      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } else {
+      admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    }
+  }
+
+  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return {
+      uid: decoded.uid,
+      email: decoded.email as string,
+      email_verified: decoded.email_verified ?? false,
+      name: decoded.name as string | undefined,
+      picture: decoded.picture as string | undefined,
+    };
+  }
+}
 ```
 
-**Why this approach?**
-- No secret file to manage (public certs are... public)
-- No `firebase-admin` dependency (lighter build)
-- Same security — RSA signature verification is the same either way
+> The `firebase-service-account.json` contains a **private key** that grants full admin access to your Firebase project. If leaked, an attacker can read/write all data, create/delete users, etc.
 
-**Certificate Caching:**
-- Certs cached for 1 hour (`CACHE_DURATION_MS = 3,600,000ms`)
-- If `kid` not found in cache → invalidate + re-fetch (handles key rotation)
-- Reduces latency from ~200ms (network) to ~1ms (cache hit)
+**Why Firebase Admin SDK?**
+- Official Google-supported approach — handles key rotation, token verification, and revocation checks automatically
+- Single line verification: `admin.auth().verifyIdToken(idToken)`
+- Access to additional admin features: user management, custom claims, token revocation
 
 ---
 
@@ -409,8 +413,8 @@ export async function login(email: string, password: string): Promise<{ user: Us
     "typ": "JWT"
   },
   "payload": {
-    "iss": "https://securetoken.google.com/vibe-ecommerce-app",
-    "aud": "vibe-ecommerce-app", // Must match PROJECT_ID
+    "iss": "https://securetoken.google.com/vibe-shop-ecommerce",
+    "aud": "vibe-shop-ecommerce", // Must match PROJECT_ID
     "sub": "NQ913ow61XSJ...",   // Firebase UID (unique per user)
     "email": "user@example.com",
     "email_verified": false,
@@ -523,67 +527,51 @@ if (user.delYn === 'Y' || user.userSttsCd === 'INAC') {
 
 ## 6. Token Verification — Server Side
 
-### How the backend verifies Firebase tokens WITHOUT Firebase Admin SDK
+### How the backend verifies Firebase tokens using Firebase Admin SDK
 
 ```typescript
 // server/src/firebase/firebase.service.ts
 
 @Injectable()
-export class FirebaseService {
-  private certCache: CachedCerts | null = null;  // 1-hour TTL cache
+export class FirebaseService implements OnModuleInit {
+  onModuleInit() {
+    // Initialize Firebase Admin SDK with service account
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+      || join(process.cwd(), '..', 'firebase-service-account.json');
 
-  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
-    // 1. Decode JWT header (without verification) to get `kid`
-    const decoded = jwt.decode(idToken, { complete: true });
-    const kid = decoded.header.kid;
-
-    // 2. Fetch Google public certs (cached)
-    const certs = await this.getGoogleCerts();
-    const publicKey = certs[kid];
-
-    // 3. If kid not found, invalidate cache and retry (key rotation)
-    if (!publicKey) {
-      this.certCache = null;
-      const freshCerts = await this.getGoogleCerts();
-      const freshKey = freshCerts[kid];
-      if (!freshKey) throw new Error('kid not found in Google certs');
-      return this.verifyWithKey(idToken, freshKey);
+    if (existsSync(serviceAccountPath)) {
+      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     }
-
-    return this.verifyWithKey(idToken, publicKey);
   }
 
-  private verifyWithKey(idToken: string, publicKey: string): DecodedFirebaseToken {
-    // 4. Verify signature + claims
-    const payload = jwt.verify(idToken, publicKey, {
-      algorithms: ['RS256'],           // Must be RS256
-      audience: 'vibe-ecommerce-app',  // Must match project ID
-      issuer: 'https://securetoken.google.com/vibe-ecommerce-app',
-    });
+  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
+    // Firebase Admin SDK handles everything:
+    // - Fetches and caches Google public certs automatically
+    // - Verifies RS256 signature
+    // - Validates audience, issuer, expiry
+    // - Checks token revocation (if enabled)
+    const decoded = await admin.auth().verifyIdToken(idToken);
 
     return {
-      uid: payload.sub,         // Firebase UID
-      email: payload.email,
-      email_verified: payload.email_verified,
-      name: payload.name,
-      picture: payload.picture,
+      uid: decoded.uid,
+      email: decoded.email as string,
+      email_verified: decoded.email_verified ?? false,
+      name: decoded.name as string | undefined,
+      picture: decoded.picture as string | undefined,
     };
   }
 }
 ```
 
-### Google Public Certs URL
-```
-https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com
-```
+### What `admin.auth().verifyIdToken()` does internally
 
-Returns a JSON object mapping `kid` → PEM-encoded X.509 certificate:
-```json
-{
-  "abc123...": "-----BEGIN CERTIFICATE-----\nMIIDH...\n-----END CERTIFICATE-----\n",
-  "def456...": "-----BEGIN CERTIFICATE-----\nMIIDH...\n-----END CERTIFICATE-----\n"
-}
-```
+1. Fetches Google public certs and caches them (with automatic rotation)
+2. Decodes JWT header to find matching `kid` (Key ID)
+3. Verifies RS256 signature against the public cert
+4. Validates claims: `aud` = project ID, `iss` = `https://securetoken.google.com/{projectId}`
+5. Checks expiry (`exp`) and issued-at (`iat`) timestamps
+6. Returns decoded token payload
 
 ---
 

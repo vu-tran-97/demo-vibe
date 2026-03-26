@@ -5,7 +5,7 @@
  * Usage: npx tsx scripts/seed-users.ts
  */
 
-const FIREBASE_API_KEY = 'AIzaSyAlVpwJ91xzok_uMSdX4a57TrxX3R8nNRw';
+const FIREBASE_API_KEY = 'AIzaSyB6bGyC5pqbou49aqLNuFz4P9OH0eRv9X8';
 const API_BASE = 'http://localhost:4000';
 const PASSWORD = 'Test@1234';
 

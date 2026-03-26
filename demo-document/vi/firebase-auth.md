@@ -75,7 +75,7 @@
 │  │              FirebaseAuthGuard (Guard Toan cuc)              │    │
 │  │                                                              │    │
 │  │  1. Trich xuat Bearer token tu header Authorization          │    │
-│  │  2. Xac minh token qua Google Public Certs (RS256)           │    │
+│  │  2. Xac minh token qua Firebase Admin SDK                     │    │
 │  │  3. Tim nguoi dung theo Firebase UID → du phong theo email   │    │
 │  │  4. Tu dong tao nguoi dung neu dang nhap lan dau             │    │
 │  │  5. Kiem tra trang thai tai khoan (ACTV / INAC / SUSP)      │    │
@@ -111,8 +111,8 @@
 │                                                                      │
 │  - Quan ly nguoi dung (email/mat khau, Google OAuth)                │
 │  - Cap phat ID Token (JWT, RS256, het han 1 gio, tu dong lam moi)  │
-│  - Chung chi cong khai de xac minh phia server                      │
-│  - Du an: vibe-ecommerce-app                                        │
+│  - Admin SDK de xac minh phia server                                │
+│  - Du an: vibe-shop-ecommerce                                       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -136,7 +136,7 @@
 ### 2.1 Cau hinh Firebase Console
 
 1. Truy cap [Firebase Console](https://console.firebase.google.com/)
-2. Tao du an: `vibe-ecommerce-app`
+2. Tao du an: `vibe-shop-ecommerce`
 3. Kich hoat **Authentication** → Nha cung cap dang nhap:
    - Email/Mat khau: **Da kich hoat**
    - Google: **Da kich hoat** (tuy chon)
@@ -151,12 +151,12 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAlVpwJ91xzok_uMSdX4a57TrxX3R8nNRw",
-  authDomain: "vibe-ecommerce-app.firebaseapp.com",
-  projectId: "vibe-ecommerce-app",
-  storageBucket: "vibe-ecommerce-app.firebasestorage.app",
-  messagingSenderId: "388829286580",
-  appId: "1:388829286580:web:32caaf92c41fcaf71287e1",
+  apiKey: "AIzaSyB6bGyC5pqbou49aqLNuFz4P9OH0eRv9X8",
+  authDomain: "vibe-shop-ecommerce.firebaseapp.com",
+  projectId: "vibe-shop-ecommerce",
+  storageBucket: "vibe-shop-ecommerce.firebasestorage.app",
+  messagingSenderId: "953565200792",
+  appId: "1:953565200792:web:140b95fcde12cd13426bed",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -184,7 +184,7 @@ Mot **Service Account** (Tai khoan dich vu) la mot tai khoan Google dac biet thu
 │  │    ○ Node.js  ○ Java  ○ Python  ○ Go                  │    │
 │  │                                                       │    │
 │  │  Tai khoan dich vu:                                   │    │
-│  │  firebase-adminsdk-xxxxx@vibe-ecommerce-app.iam...    │    │
+│  │  firebase-adminsdk-xxxxx@vibe-shop-ecommerce.iam...   │    │
 │  │                                                       │    │
 │  │  [Tao khoa rieng moi]  ← Tai xuong tep JSON          │    │
 │  └──────────────────────────────────────────────────────┘    │
@@ -196,57 +196,61 @@ Mot **Service Account** (Tai khoan dich vu) la mot tai khoan Google dac biet thu
 
 | Cach tiep can | Cach thuc | Uu diem | Nhuoc diem |
 |---------------|-----------|---------|------------|
-| **Firebase Admin SDK** | Tai xuong tep JSON khoa tai khoan dich vu → khoi tao admin SDK → `admin.auth().verifyIdToken()` | Don gian, chinh thuc | Phu thuoc them (50MB+), can luu tru tep JSON bi mat |
-| **Google Public Certs** (cach cua chung ta) | Lay chung chi cong khai → xac minh chu ky JWT thu cong | Khong phu thuoc, khong bi mat can quan ly | Nhieu ma hon, phai xu ly viec xoay vong chung chi |
+| **Firebase Admin SDK** (cach cua chung ta) | Tai xuong tep JSON khoa tai khoan dich vu → khoi tao admin SDK → `admin.auth().verifyIdToken()` | Don gian, chinh thuc, tu dong xu ly xoay vong khoa | Phu thuoc them, can luu tru tep JSON bi mat |
+| **Google Public Certs** | Lay chung chi cong khai → xac minh chu ky JWT thu cong | Khong phu thuoc, khong bi mat can quan ly | Nhieu ma hon, phai xu ly viec xoay vong chung chi |
 
-#### Cach A: Firebase Admin SDK (cach tiep can pho bien)
+#### Cai dat: Firebase Admin SDK (cach tiep can cua du an nay)
 
 ```
 1. Firebase Console → Project Settings → Service accounts
-2. Nhan "Generate new private key" → Tai xuong serviceAccountKey.json
-3. Luu tru tep JSON an toan (KHONG BAO GIO commit vao git!)
+2. Nhan "Generate new private key" → Tai xuong firebase-service-account.json
+3. Luu tru tep JSON tai thu muc goc du an (KHONG BAO GIO commit vao git!)
+4. Them vao .gitignore: firebase-service-account.json
 ```
-
-```typescript
-// Cach nay SE TREN nhu the nao voi Admin SDK (KHONG duoc su dung trong du an nay)
-import * as admin from 'firebase-admin';
-import serviceAccount from './serviceAccountKey.json';
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-// Xac minh token — mot dong!
-const decoded = await admin.auth().verifyIdToken(idToken);
-```
-
-> Tep `serviceAccountKey.json` chua mot **khoa rieng** cap quyen admin day du cho du an Firebase cua ban. Neu bi lo, ke tan cong co the doc/ghi tat ca du lieu, tao/xoa nguoi dung, v.v.
-
-#### Cach B: Google Public Certs (cach tiep can cua du an nay)
-
-Firebase Admin SDK **KHONG** duoc su dung trong du an nay. Thay vao do, backend xac minh token truc tiep bang chung chi cong khai cua Google (cach tiep can khong phu thuoc).
 
 **Tep: `server/src/firebase/firebase.service.ts`**
 
-```
-Luong Xac minh Token:
-1. Giai ma header JWT → trich xuat `kid` (Ma Khoa)
-2. Lay chung chi cong khai cua Google tu:
-   https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com
-3. Tim chung chi phu hop theo `kid`
-4. Xac minh chu ky (RS256) + audience + issuer
-5. Trich xuat uid, email, name, picture tu payload
+```typescript
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import * as admin from 'firebase-admin';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+@Injectable()
+export class FirebaseService implements OnModuleInit {
+  onModuleInit() {
+    if (admin.apps.length > 0) return;
+
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+      || join(process.cwd(), '..', 'firebase-service-account.json');
+
+    if (existsSync(serviceAccountPath)) {
+      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } else {
+      admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    }
+  }
+
+  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return {
+      uid: decoded.uid,
+      email: decoded.email as string,
+      email_verified: decoded.email_verified ?? false,
+      name: decoded.name as string | undefined,
+      picture: decoded.picture as string | undefined,
+    };
+  }
+}
 ```
 
-**Tai sao chon cach tiep can nay?**
-- Khong co tep bi mat can quan ly (chung chi cong khai la... cong khai)
-- Khong phu thuoc `firebase-admin` (ban build nhe hon)
-- Bao mat tuong duong — xac minh chu ky RSA deu giong nhau
+> Tep `firebase-service-account.json` chua mot **khoa rieng** cap quyen admin day du cho du an Firebase cua ban. Neu bi lo, ke tan cong co the doc/ghi tat ca du lieu, tao/xoa nguoi dung, v.v.
 
-**Cache Chung chi:**
-- Chung chi duoc cache trong 1 gio (`CACHE_DURATION_MS = 3,600,000ms`)
-- Neu khong tim thay `kid` trong cache → vo hieu hoa + lay lai (xu ly xoay vong khoa)
-- Giam do tre tu ~200ms (mang) xuong ~1ms (cache hit)
+**Tai sao chon Firebase Admin SDK?**
+- Cach tiep can chinh thuc duoc Google ho tro — tu dong xu ly xoay vong khoa, xac minh token va kiem tra thu hoi
+- Xac minh chi mot dong: `admin.auth().verifyIdToken(idToken)`
+- Truy cap cac tinh nang quan tri bo sung: quan ly nguoi dung, custom claims, thu hoi token
 
 ---
 
@@ -410,8 +414,8 @@ export async function login(email: string, password: string): Promise<{ user: Us
     "typ": "JWT"
   },
   "payload": {
-    "iss": "https://securetoken.google.com/vibe-ecommerce-app",
-    "aud": "vibe-ecommerce-app", // Phai khop voi PROJECT_ID
+    "iss": "https://securetoken.google.com/vibe-shop-ecommerce",
+    "aud": "vibe-shop-ecommerce", // Phai khop voi PROJECT_ID
     "sub": "NQ913ow61XSJ...",   // Firebase UID (duy nhat cho moi nguoi dung)
     "email": "user@example.com",
     "email_verified": false,
@@ -524,67 +528,51 @@ if (user.delYn === 'Y' || user.userSttsCd === 'INAC') {
 
 ## 6. Xac minh Token — Phia Server
 
-### Cach backend xac minh Firebase token MA KHONG dung Firebase Admin SDK
+### Cach backend xac minh Firebase token bang Firebase Admin SDK
 
 ```typescript
 // server/src/firebase/firebase.service.ts
 
 @Injectable()
-export class FirebaseService {
-  private certCache: CachedCerts | null = null;  // Cache voi TTL 1 gio
+export class FirebaseService implements OnModuleInit {
+  onModuleInit() {
+    // Khoi tao Firebase Admin SDK voi tai khoan dich vu
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+      || join(process.cwd(), '..', 'firebase-service-account.json');
 
-  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
-    // 1. Giai ma header JWT (khong xac minh) de lay `kid`
-    const decoded = jwt.decode(idToken, { complete: true });
-    const kid = decoded.header.kid;
-
-    // 2. Lay chung chi cong khai cua Google (da cache)
-    const certs = await this.getGoogleCerts();
-    const publicKey = certs[kid];
-
-    // 3. Neu khong tim thay kid, vo hieu hoa cache va thu lai (xoay vong khoa)
-    if (!publicKey) {
-      this.certCache = null;
-      const freshCerts = await this.getGoogleCerts();
-      const freshKey = freshCerts[kid];
-      if (!freshKey) throw new Error('kid not found in Google certs');
-      return this.verifyWithKey(idToken, freshKey);
+    if (existsSync(serviceAccountPath)) {
+      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf-8'));
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     }
-
-    return this.verifyWithKey(idToken, publicKey);
   }
 
-  private verifyWithKey(idToken: string, publicKey: string): DecodedFirebaseToken {
-    // 4. Xac minh chu ky + cac truong claim
-    const payload = jwt.verify(idToken, publicKey, {
-      algorithms: ['RS256'],           // Phai la RS256
-      audience: 'vibe-ecommerce-app',  // Phai khop voi project ID
-      issuer: 'https://securetoken.google.com/vibe-ecommerce-app',
-    });
+  async verifyIdToken(idToken: string): Promise<DecodedFirebaseToken> {
+    // Firebase Admin SDK xu ly moi thu:
+    // - Lay va cache chung chi cong khai cua Google tu dong
+    // - Xac minh chu ky RS256
+    // - Xac thuc audience, issuer, thoi han
+    // - Kiem tra thu hoi token (neu duoc kich hoat)
+    const decoded = await admin.auth().verifyIdToken(idToken);
 
     return {
-      uid: payload.sub,         // Firebase UID
-      email: payload.email,
-      email_verified: payload.email_verified,
-      name: payload.name,
-      picture: payload.picture,
+      uid: decoded.uid,
+      email: decoded.email as string,
+      email_verified: decoded.email_verified ?? false,
+      name: decoded.name as string | undefined,
+      picture: decoded.picture as string | undefined,
     };
   }
 }
 ```
 
-### URL Chung chi Cong khai cua Google
-```
-https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com
-```
+### `admin.auth().verifyIdToken()` thuc hien nhung gi ben trong
 
-Tra ve mot doi tuong JSON anh xa `kid` → chung chi X.509 duoc ma hoa PEM:
-```json
-{
-  "abc123...": "-----BEGIN CERTIFICATE-----\nMIIDH...\n-----END CERTIFICATE-----\n",
-  "def456...": "-----BEGIN CERTIFICATE-----\nMIIDH...\n-----END CERTIFICATE-----\n"
-}
-```
+1. Lay chung chi cong khai cua Google va cache chung (voi xoay vong tu dong)
+2. Giai ma header JWT de tim `kid` (Ma Khoa) phu hop
+3. Xac minh chu ky RS256 voi chung chi cong khai
+4. Xac thuc cac truong claim: `aud` = project ID, `iss` = `https://securetoken.google.com/{projectId}`
+5. Kiem tra thoi han het han (`exp`) va thoi diem cap phat (`iat`)
+6. Tra ve payload token da giai ma
 
 ---
 
