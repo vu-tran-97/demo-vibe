@@ -30,20 +30,23 @@ export class MailService {
     this.provider = this.resolveProvider();
 
     if (this.provider === 'ses') {
-      // AWS SES via SMTP interface (no SDK dependency needed)
-      // Uses SES SMTP credentials (created in SES console, NOT IAM credentials)
-      const region = this.configService.get<string>('AWS_SES_REGION') || 'ap-northeast-2';
+      // AWS SES via SMTP interface
+      // Uses port 465 (SSL) to avoid cloud providers blocking port 587
+      const region = this.configService.get<string>('AWS_SES_REGION') || 'us-east-1';
+      const port = Number(this.configService.get<string>('AWS_SES_SMTP_PORT') || 465);
+      const secure = port === 465;
+
       this.transporter = nodemailer.createTransport({
         host: `email-smtp.${region}.amazonaws.com`,
-        port: 587,
-        secure: false,
+        port,
+        secure,
         auth: {
           user: this.configService.get<string>('AWS_SES_SMTP_USER') || '',
           pass: this.configService.get<string>('AWS_SES_SMTP_PASSWORD') || '',
         },
       });
 
-      this.logger.log(`Mail provider: AWS SES SMTP (${region})`);
+      this.logger.log(`Mail provider: AWS SES SMTP (${region}, port ${port})`);
     } else {
       this.transporter = nodemailer.createTransport({
         host: this.configService.get<string>('MAIL_HOST'),
