@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile as firebaseUpdateProfile,
+  deleteUser,
 } from 'firebase/auth';
 
 const API_BASE = '';
@@ -34,6 +35,24 @@ export class AuthError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+
+export function validateSignupFields(
+  name: string,
+  email: string,
+  password: string,
+): string | null {
+  if (!name.trim()) return 'Full name is required.';
+  if (name.trim().length < 2) return 'Name must be at least 2 characters.';
+  if (!email.trim()) return 'Email is required.';
+  if (!password) return 'Password is required.';
+  if (password.length < 8) return 'Password must be at least 8 characters.';
+  if (!PASSWORD_REGEX.test(password)) {
+    return 'Password must include uppercase, lowercase, number, and special character.';
+  }
+  return null;
 }
 
 async function apiFetch<T>(
@@ -76,29 +95,35 @@ export async function signup(
   // Create Firebase user
   const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-  // Set display name in Firebase
-  await firebaseUpdateProfile(cred.user, { displayName: name });
+  try {
+    // Set display name in Firebase
+    await firebaseUpdateProfile(cred.user, { displayName: name });
 
-  // Update profile in backend (guard auto-creates user, then we set role/nickname)
-  const updateBody: Record<string, unknown> = { name };
-  if (nickname) updateBody.nickname = nickname;
-  const profile = await apiFetch<UserInfo>('/api/auth/profile', {
-    method: 'PATCH',
-    body: JSON.stringify(updateBody),
-  });
-
-  // Set role if provided
-  if (role) {
-    const updatedProfile = await apiFetch<UserInfo>('/api/auth/role', {
+    // Update profile in backend (guard auto-creates user, then we set role/nickname)
+    const updateBody: Record<string, unknown> = { name };
+    if (nickname) updateBody.nickname = nickname;
+    const profile = await apiFetch<UserInfo>('/api/auth/profile', {
       method: 'PATCH',
-      body: JSON.stringify({ role }),
+      body: JSON.stringify(updateBody),
     });
-    localStorage.setItem('user', JSON.stringify(updatedProfile));
-    return { user: updatedProfile };
-  }
 
-  localStorage.setItem('user', JSON.stringify(profile));
-  return { user: profile };
+    // Set role if provided
+    if (role) {
+      const updatedProfile = await apiFetch<UserInfo>('/api/auth/role', {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      });
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+      return { user: updatedProfile };
+    }
+
+    localStorage.setItem('user', JSON.stringify(profile));
+    return { user: profile };
+  } catch (error) {
+    // Rollback: delete Firebase user if backend sync fails
+    await deleteUser(cred.user).catch(() => {});
+    throw error;
+  }
 }
 
 export async function login(

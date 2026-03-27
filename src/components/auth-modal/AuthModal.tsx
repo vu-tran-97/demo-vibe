@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { login, signup, loginWithGoogle, AuthError } from "@/lib/auth";
+import { login, signup, loginWithGoogle, AuthError, validateSignupFields } from "@/lib/auth";
 
 type ModalView = "login" | "signup";
 
@@ -121,6 +121,13 @@ export function AuthModal({
   async function handleSignup(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    const validationError = validateSignupFields(signupName, signupEmail, signupPassword);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await signup(signupEmail, signupPassword, signupName, signupNickname || undefined, signupRole);

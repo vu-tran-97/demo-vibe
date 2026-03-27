@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signup, isLoggedIn, getUser, AuthError } from "@/lib/auth";
+import { signup, isLoggedIn, getUser, AuthError, validateSignupFields } from "@/lib/auth";
 
 const inputCls = "py-[0.75rem] px-[1rem] border border-border rounded-[8px] font-body text-[0.9375rem] text-charcoal bg-white transition-all duration-[200ms] outline-none placeholder:text-muted placeholder:font-light focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.06)]";
 const submitCls = "py-[0.875rem] font-body text-[0.9375rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] tracking-[0.01em] hover:bg-charcoal-light hover:-translate-y-px hover:shadow-soft disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none";
@@ -29,6 +29,13 @@ export default function SignupPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    const validationError = validateSignupFields(name, email, password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await signup(email, password, name, nickname || undefined, role);
