@@ -17,6 +17,7 @@
     "db:seed": "npx tsx ../prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1018.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.1.0",

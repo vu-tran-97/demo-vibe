@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 import { MAIL_TEMPLATES } from './mail.constants';
@@ -20,35 +21,30 @@ interface MailOptions {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: nodemailer.Transporter;
   private readonly provider: MailProvider;
+  private readonly sesClient: SESClient | null = null;
+  private readonly smtpTransporter: nodemailer.Transporter | null = null;
+  private readonly mailFrom: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
     this.provider = this.resolveProvider();
+    this.mailFrom = this.configService.get<string>('MAIL_FROM') || '';
 
     if (this.provider === 'ses') {
-      // AWS SES via SMTP interface
-      // Uses port 465 (SSL) to avoid cloud providers blocking port 587
       const region = this.configService.get<string>('AWS_SES_REGION') || 'us-east-1';
-      const port = Number(this.configService.get<string>('AWS_SES_SMTP_PORT') || 465);
-      const secure = port === 465;
-
-      this.transporter = nodemailer.createTransport({
-        host: `email-smtp.${region}.amazonaws.com`,
-        port,
-        secure,
-        auth: {
-          user: this.configService.get<string>('AWS_SES_SMTP_USER') || '',
-          pass: this.configService.get<string>('AWS_SES_SMTP_PASSWORD') || '',
+      this.sesClient = new SESClient({
+        region,
+        credentials: {
+          accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID') || '',
+          secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
         },
       });
-
-      this.logger.log(`Mail provider: AWS SES SMTP (${region}, port ${port})`);
+      this.logger.log(`Mail provider: AWS SES API (${region})`);
     } else {
-      this.transporter = nodemailer.createTransport({
+      this.smtpTransporter = nodemailer.createTransport({
         host: this.configService.get<string>('MAIL_HOST'),
         port: Number(this.configService.get<string>('MAIL_PORT') || 587),
         secure: false,
@@ -57,7 +53,6 @@ export class MailService {
           pass: this.configService.get<string>('MAIL_PASSWORD'),
         },
       });
-
       this.logger.log(`Mail provider: SMTP (${this.configService.get<string>('MAIL_HOST')})`);
     }
   }
@@ -67,8 +62,7 @@ export class MailService {
     if (explicit === 'ses' || explicit === 'smtp') {
       return explicit;
     }
-    // Auto-detect: if AWS SES SMTP credentials are set, use SES
-    if (this.configService.get<string>('AWS_SES_SMTP_USER')) {
+    if (this.configService.get<string>('AWS_ACCESS_KEY_ID')) {
       return 'ses';
     }
     return 'smtp';
@@ -113,15 +107,17 @@ export class MailService {
     templateName: string,
     metadata?: Record<string, string>,
   ): Promise<void> {
-    const from = this.configService.get<string>('MAIL_FROM');
-
     try {
-      await this.transporter.sendMail({
-        from,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-      });
+      if (this.provider === 'ses' && this.sesClient) {
+        await this.sendViaSesApi(options);
+      } else if (this.smtpTransporter) {
+        await this.smtpTransporter.sendMail({
+          from: this.mailFrom,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+        });
+      }
 
       this.logger.log(
         `Email sent successfully: provider=${this.provider}, template=${templateName}, to=${options.to}`,
@@ -151,6 +147,29 @@ export class MailService {
         metadata,
       );
     }
+  }
+
+  private async sendViaSesApi(options: MailOptions): Promise<void> {
+    const command = new SendEmailCommand({
+      Source: this.mailFrom,
+      Destination: {
+        ToAddresses: [options.to],
+      },
+      Message: {
+        Subject: {
+          Data: options.subject,
+          Charset: 'UTF-8',
+        },
+        Body: {
+          Html: {
+            Data: options.html,
+            Charset: 'UTF-8',
+          },
+        },
+      },
+    });
+
+    await this.sesClient!.send(command);
   }
 
   private async logEmailSend(
