@@ -131,7 +131,7 @@ export function AdminUserTable({
   return (
     <>
       {/* Desktop / Tablet table */}
-      <div className="overflow-x-auto max-sm:hidden">
+      <div className="max-sm:hidden">
         <table className="w-full border-collapse [&_th]:text-left [&_th]:p-[1rem_2rem] [&_th]:text-[0.75rem] [&_th]:font-medium [&_th]:text-muted [&_th]:tracking-[0.05em] [&_th]:uppercase [&_th]:bg-ivory [&_td]:p-[1rem_2rem] [&_td]:text-[0.875rem] [&_td]:text-charcoal [&_td]:border-b [&_td]:border-border-light [&_td]:align-middle [&_tbody_tr:last-child_td]:border-b-0" aria-label="User list">
           <thead>
             <tr>

@@ -322,7 +322,7 @@ export function AdminUsersPageClient() {
         onStatusChange={handleStatusChange}
       />
 
-      <div className="bg-white border border-border-light rounded-[12px] overflow-hidden">
+      <div className="bg-white border border-border-light rounded-[12px]">
         <AdminUserTable
           users={users}
           loading={loading}
