@@ -1,10 +1,45 @@
 import { PrismaClient } from "@prisma/client";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const bcrypt = require("../server/node_modules/bcrypt");
+import * as admin from "firebase-admin";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
 const prisma = new PrismaClient();
 
-const BCRYPT_SALT_ROUNDS = 12;
+// ── Firebase Admin SDK init ──
+function initFirebase() {
+  if (admin.apps.length > 0) return;
+  const saPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+    || join(process.cwd(), "..", "firebase-service-account.json");
+  if (!existsSync(saPath)) {
+    const altPath = join(process.cwd(), "firebase-service-account.json");
+    if (existsSync(altPath)) {
+      const sa = JSON.parse(readFileSync(altPath, "utf-8"));
+      admin.initializeApp({ credential: admin.credential.cert(sa) });
+      return;
+    }
+    console.warn("Firebase service account not found, skipping Firebase user creation");
+    return;
+  }
+  const sa = JSON.parse(readFileSync(saPath, "utf-8"));
+  admin.initializeApp({ credential: admin.credential.cert(sa) });
+}
+
+async function ensureFirebaseUser(email: string, password: string, displayName: string): Promise<string> {
+  if (admin.apps.length === 0) return `firebase-placeholder-${email}`;
+  try {
+    const existing = await admin.auth().getUserByEmail(email);
+    console.info(`Firebase user exists: ${email} (uid: ${existing.uid})`);
+    return existing.uid;
+  } catch (err: unknown) {
+    const fbErr = err as { code?: string };
+    if (fbErr.code === "auth/user-not-found") {
+      const created = await admin.auth().createUser({ email, password, displayName });
+      console.info(`Firebase user created: ${email} (uid: ${created.uid})`);
+      return created.uid;
+    }
+    throw err;
+  }
+}
 
 const CODE_GROUPS = [
   { cdGrpId: "USER_STTS", cdGrpNm: "User Status", cdGrpDc: "User account status codes" },
@@ -189,11 +224,8 @@ const COLORS = [
   "Terracotta", "Sand", "Ocean Blue", "Slate", "Cream",
 ];
 
-function generateProducts(sellerId: string, sellerIndex: number) {
+function generateProducts(sellerId: number, sellerIndex: number) {
   const products = [];
-  // Each seller gets products across all 6 categories
-  // 10 base templates × 5 variants = 50 products per seller
-  // Rotate categories so each seller has variety
   const catOrder = [...CATEGORIES].sort(() => (sellerIndex * 7 + Math.random()) % 1 - 0.5);
 
   for (let i = 0; i < 50; i++) {
@@ -263,30 +295,40 @@ async function main() {
     }
   }
 
-  const hashedPassword = await bcrypt.hash("Admin@123", BCRYPT_SALT_ROUNDS);
+  // ── Firebase init ──
+  initFirebase();
 
   // ── Super Admin ──
   const adminEmail = "admin@astratech.vn";
-  let admin = await prisma.user.findFirst({ where: { userEmail: adminEmail } });
-  if (!admin) {
-    admin = await prisma.user.create({
+  const adminPassword = "Admin@123";
+  const adminFirebaseUid = await ensureFirebaseUser(adminEmail, adminPassword, "Super Admin");
+  let adminUser = await prisma.user.findFirst({ where: { userEmail: adminEmail } });
+  if (!adminUser) {
+    adminUser = await prisma.user.create({
       data: {
         userEmail: adminEmail,
-        userPswd: hashedPassword,
+        firebaseUid: adminFirebaseUid,
         userNm: "Super Admin",
         userNcnm: "superadmin",
         useRoleCd: "SUPER_ADMIN",
         userSttsCd: "ACTV",
-        emailVrfcYn: "Y",
         rgtrId: "SYSTEM",
         mdfrId: "SYSTEM",
       },
     });
     console.info("Super admin created: admin@astratech.vn / Admin@123");
   } else {
-    if (admin.useRoleCd !== "SUPER_ADMIN") {
+    // Update firebaseUid if it was a placeholder
+    if (adminUser.firebaseUid !== adminFirebaseUid) {
       await prisma.user.update({
-        where: { id: admin.id },
+        where: { id: adminUser.id },
+        data: { firebaseUid: adminFirebaseUid, mdfrId: "SYSTEM" },
+      });
+      console.info("Super admin firebaseUid updated");
+    }
+    if (adminUser.useRoleCd !== "SUPER_ADMIN") {
+      await prisma.user.update({
+        where: { id: adminUser.id },
         data: { useRoleCd: "SUPER_ADMIN", mdfrId: "SYSTEM" },
       });
     }
@@ -295,52 +337,58 @@ async function main() {
 
   // ── Buyer ──
   const buyerEmail = "buyer@vibe.com";
+  const buyerPassword = "Buyer@123";
+  const buyerFirebaseUid = await ensureFirebaseUser(buyerEmail, buyerPassword, "Demo Buyer");
   const existingBuyer = await prisma.user.findFirst({ where: { userEmail: buyerEmail } });
   if (!existingBuyer) {
-    const buyerPswd = await bcrypt.hash("Buyer@123", BCRYPT_SALT_ROUNDS);
     await prisma.user.create({
       data: {
         userEmail: buyerEmail,
-        userPswd: buyerPswd,
+        firebaseUid: buyerFirebaseUid,
         userNm: "Demo Buyer",
         userNcnm: "demo_buyer",
         useRoleCd: "BUYER",
         userSttsCd: "ACTV",
-        emailVrfcYn: "Y",
         rgtrId: "SYSTEM",
         mdfrId: "SYSTEM",
       },
     });
     console.info("Buyer created: buyer@vibe.com / Buyer@123");
+  } else if (existingBuyer.firebaseUid !== buyerFirebaseUid) {
+    await prisma.user.update({ where: { id: existingBuyer.id }, data: { firebaseUid: buyerFirebaseUid } });
+    console.info("Buyer firebaseUid updated");
   }
 
   // ── 4 Sellers (seller1~4@yopmail.com) ──
-  const sellerPassword = await bcrypt.hash("Admin@123", BCRYPT_SALT_ROUNDS);
   const sellers = [
     { email: "seller1@yopmail.com", name: "Seoul Craft Studio", nickname: "seoul_craft" },
     { email: "seller2@yopmail.com", name: "Hanok Living", nickname: "hanok_living" },
     { email: "seller3@yopmail.com", name: "Jeju Art Gallery", nickname: "jeju_art" },
     { email: "seller4@yopmail.com", name: "Busan Market", nickname: "busan_market" },
   ];
+  const sellerPassword = "Seller@123";
 
-  const sellerIds: string[] = [];
+  const sellerIds: number[] = [];
   for (const s of sellers) {
+    const fbUid = await ensureFirebaseUser(s.email, sellerPassword, s.name);
     let seller = await prisma.user.findFirst({ where: { userEmail: s.email } });
     if (!seller) {
       seller = await prisma.user.create({
         data: {
           userEmail: s.email,
-          userPswd: sellerPassword,
+          firebaseUid: fbUid,
           userNm: s.name,
           userNcnm: s.nickname,
           useRoleCd: "SELLER",
           userSttsCd: "ACTV",
-          emailVrfcYn: "Y",
           rgtrId: "SYSTEM",
           mdfrId: "SYSTEM",
         },
       });
-      console.info(`Seller created: ${s.email} / Admin@123`);
+      console.info(`Seller created: ${s.email} / ${sellerPassword}`);
+    } else if (seller.firebaseUid !== fbUid) {
+      await prisma.user.update({ where: { id: seller.id }, data: { firebaseUid: fbUid } });
+      console.info(`Seller firebaseUid updated: ${s.email}`);
     }
     sellerIds.push(seller.id);
   }

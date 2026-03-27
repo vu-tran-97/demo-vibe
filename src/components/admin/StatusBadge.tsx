@@ -1,7 +1,5 @@
 'use client';
 
-import styles from './admin.module.css';
-
 interface StatusBadgeProps {
   status: string;
 }
@@ -13,19 +11,19 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const dotClass =
+  const dotColor =
     status === 'ACTV'
-      ? styles.dotGreen
+      ? 'bg-success'
       : status === 'SUSP'
-        ? styles.dotRed
-        : styles.dotGray;
+        ? 'bg-error'
+        : 'bg-muted';
 
   return (
     <span
-      className={styles.statusBadge}
+      className="inline-flex items-center gap-[0.5rem] text-[0.8125rem] text-charcoal"
       aria-label={`Status: ${STATUS_LABELS[status] || status}`}
     >
-      <span className={`${styles.statusDot} ${dotClass}`} />
+      <span className={`w-2 h-2 rounded-full ${dotColor}`} />
       {STATUS_LABELS[status] || status}
     </span>
   );

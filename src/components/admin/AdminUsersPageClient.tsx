@@ -16,7 +16,6 @@ import { AdminUserTable } from './AdminUserTable';
 import { AdminCreateUserModal } from './AdminCreateUserModal';
 import { ConfirmActionModal } from './ConfirmActionModal';
 import { Pagination } from './Pagination';
-import styles from './admin.module.css';
 
 interface Toast {
   id: number;
@@ -287,18 +286,18 @@ export function AdminUsersPageClient() {
   }
 
   return (
-    <div className={styles.adminPage}>
-      <div className={styles.pageHeader}>
+    <div className="flex flex-col gap-[2rem]">
+      <div className="flex items-start justify-between gap-[1.5rem] max-sm:flex-col max-sm:gap-[1rem]">
         <div>
-          <h1 className={styles.pageTitle}>User Management</h1>
-          <p className={styles.pageSubtitle}>
+          <h1 className="font-display text-[1.5rem] font-normal text-charcoal tracking-[-0.02em]">User Management</h1>
+          <p className="text-[0.8125rem] text-muted mt-[0.25rem] tracking-[0.02em]">
             Manage all platform users, roles, and account statuses
           </p>
         </div>
-        <div className={styles.actionBtns}>
+        <div className="flex items-center gap-[0.5rem]">
           <button
             type="button"
-            className={styles.exportBtn}
+            className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap flex items-center gap-[0.5rem] hover:bg-ivory hover:border-charcoal disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleExportCsv}
             disabled={exporting}
           >
@@ -306,7 +305,7 @@ export function AdminUsersPageClient() {
           </button>
           <button
             type="button"
-            className={styles.primaryBtn}
+            className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap no-underline inline-flex items-center hover:bg-charcoal-light disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => setIsCreateOpen(true)}
           >
             + New User
@@ -323,7 +322,7 @@ export function AdminUsersPageClient() {
         onStatusChange={handleStatusChange}
       />
 
-      <div className={styles.tableCard}>
+      <div className="bg-white border border-border-light rounded-[12px] overflow-hidden">
         <AdminUserTable
           users={users}
           loading={loading}
@@ -363,54 +362,60 @@ export function AdminUsersPageClient() {
 
       {/* Edit User Modal */}
       {editModalUser && (
-        <div className={styles.modalOverlay} onClick={() => setEditModalUser(null)}>
-          <div className={styles.createModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.createModalHeader}>
-              <h3 className={styles.createModalTitle}>Edit User</h3>
+        <div
+          className="fixed inset-0 z-100 bg-[rgba(26,26,26,0.4)] flex items-center justify-center p-[1.5rem] animate-fade-in backdrop-blur-[4px]"
+          onClick={() => setEditModalUser(null)}
+        >
+          <div
+            className="bg-white rounded-[12px] shadow-medium max-w-[480px] w-full animate-scale-in overflow-hidden max-sm:max-w-full max-sm:m-[1.5rem]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-[2rem] py-[1.5rem] border-b border-border-light">
+              <h3 className="font-display text-[1.125rem] font-normal text-charcoal">Edit User</h3>
               <button
                 type="button"
-                className={styles.modalCloseBtn}
+                className="w-[32px] h-[32px] flex items-center justify-center text-[0.875rem] text-muted bg-transparent border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:text-charcoal hover:bg-ivory"
                 onClick={() => setEditModalUser(null)}
               >
                 &#x2715;
               </button>
             </div>
-            <div className={styles.modalBody}>
-              <div className={styles.formField}>
-                <label className={styles.fieldLabel}>Email</label>
+            <div className="flex flex-col gap-[1.5rem] p-[2rem]">
+              <div className="flex flex-col gap-[0.25rem]">
+                <label className="text-[0.8125rem] font-medium text-charcoal">Email</label>
                 <input
                   type="email"
-                  className={`${styles.fieldInput} ${styles.fieldInputReadonly}`}
+                  className="py-[0.5rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.8125rem] text-muted bg-ivory outline-none transition-[border-color] duration-[200ms] cursor-not-allowed"
                   value={editModalUser.email}
                   readOnly
                 />
               </div>
-              <div className={styles.formField}>
-                <label className={styles.fieldLabel}>
-                  Name <span className={styles.required}>*</span>
+              <div className="flex flex-col gap-[0.25rem]">
+                <label className="text-[0.8125rem] font-medium text-charcoal">
+                  Name <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
-                  className={styles.fieldInput}
+                  className="py-[0.5rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.8125rem] text-charcoal bg-white outline-none transition-[border-color] duration-[200ms] placeholder:text-muted focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.04)]"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="Full name"
                 />
               </div>
-              <div className={styles.formField}>
-                <label className={styles.fieldLabel}>Nickname</label>
+              <div className="flex flex-col gap-[0.25rem]">
+                <label className="text-[0.8125rem] font-medium text-charcoal">Nickname</label>
                 <input
                   type="text"
-                  className={styles.fieldInput}
+                  className="py-[0.5rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.8125rem] text-charcoal bg-white outline-none transition-[border-color] duration-[200ms] placeholder:text-muted focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.04)]"
                   value={editNickname}
                   onChange={(e) => setEditNickname(e.target.value)}
                   placeholder="Nickname (optional)"
                 />
               </div>
-              <div className={styles.createFormActions}>
+              <div className="flex justify-end gap-[1rem] pt-[0.5rem]">
                 <button
                   type="button"
-                  className={styles.cancelBtn}
+                  className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => setEditModalUser(null)}
                   disabled={editLoading}
                 >
@@ -418,7 +423,7 @@ export function AdminUsersPageClient() {
                 </button>
                 <button
                   type="button"
-                  className={styles.primaryBtn}
+                  className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap no-underline inline-flex items-center hover:bg-charcoal-light disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleEditSubmit}
                   disabled={editLoading || !editName.trim()}
                 >
@@ -432,17 +437,23 @@ export function AdminUsersPageClient() {
 
       {/* Change Role Modal */}
       {roleModalUser && (
-        <div className={styles.modalOverlay} onClick={() => setRoleModalUser(null)}>
-          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.confirmTitle}>Change Role</h3>
-            <p className={styles.confirmMessage}>
+        <div
+          className="fixed inset-0 z-100 bg-[rgba(26,26,26,0.4)] flex items-center justify-center p-[1.5rem] animate-fade-in backdrop-blur-[4px]"
+          onClick={() => setRoleModalUser(null)}
+        >
+          <div
+            className="bg-white rounded-[12px] shadow-medium p-[2rem] max-w-[420px] w-full animate-scale-in max-sm:max-w-full max-sm:m-[1.5rem]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display text-[1.125rem] font-normal text-charcoal mb-[0.5rem]">Change Role</h3>
+            <p className="text-[0.8125rem] text-slate leading-[1.6] mb-[2rem]">
               Change the role for <strong>{roleModalUser.name}</strong> ({roleModalUser.email}).
               This will affect the user&apos;s access permissions.
             </p>
-            <div className={styles.formField}>
-              <label className={styles.fieldLabel}>New Role</label>
+            <div className="flex flex-col gap-[0.25rem]">
+              <label className="text-[0.8125rem] font-medium text-charcoal">New Role</label>
               <select
-                className={styles.fieldSelect}
+                className="py-[0.5rem] px-[0.875rem] border border-border rounded-[8px] font-body text-[0.8125rem] text-charcoal bg-white outline-none cursor-pointer transition-[border-color] duration-[200ms] focus:border-charcoal"
                 value={roleModalValue}
                 onChange={(e) => setRoleModalValue(e.target.value)}
               >
@@ -450,10 +461,10 @@ export function AdminUsersPageClient() {
                 <option value="SELLER">Seller</option>
               </select>
             </div>
-            <div className={styles.confirmActions}>
+            <div className="flex justify-end gap-[1rem] mt-[2rem]">
               <button
                 type="button"
-                className={styles.cancelBtn}
+                className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => setRoleModalUser(null)}
                 disabled={roleModalLoading}
               >
@@ -461,7 +472,7 @@ export function AdminUsersPageClient() {
               </button>
               <button
                 type="button"
-                className={`${styles.confirmBtn} ${styles.confirmWarning}`}
+                className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-white border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] bg-gold-dark hover:enabled:bg-gold disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleRoleSubmit}
                 disabled={roleModalLoading}
               >
@@ -474,53 +485,59 @@ export function AdminUsersPageClient() {
 
       {/* Reset Password Modal */}
       {passwordModalUser && (
-        <div className={styles.modalOverlay} onClick={() => setPasswordModalUser(null)}>
-          <div className={styles.createModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.createModalHeader}>
-              <h3 className={styles.createModalTitle}>Reset Password</h3>
+        <div
+          className="fixed inset-0 z-100 bg-[rgba(26,26,26,0.4)] flex items-center justify-center p-[1.5rem] animate-fade-in backdrop-blur-[4px]"
+          onClick={() => setPasswordModalUser(null)}
+        >
+          <div
+            className="bg-white rounded-[12px] shadow-medium max-w-[480px] w-full animate-scale-in overflow-hidden max-sm:max-w-full max-sm:m-[1.5rem]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-[2rem] py-[1.5rem] border-b border-border-light">
+              <h3 className="font-display text-[1.125rem] font-normal text-charcoal">Reset Password</h3>
               <button
                 type="button"
-                className={styles.modalCloseBtn}
+                className="w-[32px] h-[32px] flex items-center justify-center text-[0.875rem] text-muted bg-transparent border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:text-charcoal hover:bg-ivory"
                 onClick={() => setPasswordModalUser(null)}
               >
                 &#x2715;
               </button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalDescription}>
+            <div className="flex flex-col gap-[1.5rem] p-[2rem]">
+              <p className="text-[0.8125rem] text-slate leading-[1.6]">
                 Reset the password for <strong>{passwordModalUser.name}</strong> ({passwordModalUser.email}).
               </p>
-              <div className={styles.formField}>
-                <label className={styles.fieldLabel}>
-                  New Password <span className={styles.required}>*</span>
+              <div className="flex flex-col gap-[0.25rem]">
+                <label className="text-[0.8125rem] font-medium text-charcoal">
+                  New Password <span className="text-error">*</span>
                 </label>
                 <input
                   type="password"
-                  className={`${styles.fieldInput} ${passwordError ? styles.fieldInputError : ''}`}
+                  className={`py-[0.5rem] px-[0.875rem] border rounded-[8px] font-body text-[0.8125rem] text-charcoal bg-white outline-none transition-[border-color] duration-[200ms] placeholder:text-muted ${passwordError ? 'border-error focus:border-error focus:shadow-[0_0_0_3px_rgba(196,91,91,0.1)]' : 'border-border focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.04)]'}`}
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }}
                   placeholder="Minimum 8 characters"
                 />
               </div>
-              <div className={styles.formField}>
-                <label className={styles.fieldLabel}>
-                  Confirm Password <span className={styles.required}>*</span>
+              <div className="flex flex-col gap-[0.25rem]">
+                <label className="text-[0.8125rem] font-medium text-charcoal">
+                  Confirm Password <span className="text-error">*</span>
                 </label>
                 <input
                   type="password"
-                  className={`${styles.fieldInput} ${passwordError ? styles.fieldInputError : ''}`}
+                  className={`py-[0.5rem] px-[0.875rem] border rounded-[8px] font-body text-[0.8125rem] text-charcoal bg-white outline-none transition-[border-color] duration-[200ms] placeholder:text-muted ${passwordError ? 'border-error focus:border-error focus:shadow-[0_0_0_3px_rgba(196,91,91,0.1)]' : 'border-border focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.04)]'}`}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }}
                   placeholder="Confirm new password"
                 />
               </div>
               {passwordError && (
-                <p className={styles.fieldError}>{passwordError}</p>
+                <p className="text-[0.75rem] text-error">{passwordError}</p>
               )}
-              <div className={styles.createFormActions}>
+              <div className="flex justify-end gap-[1rem] pt-[0.5rem]">
                 <button
                   type="button"
-                  className={styles.cancelBtn}
+                  className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => setPasswordModalUser(null)}
                   disabled={passwordLoading}
                 >
@@ -528,7 +545,7 @@ export function AdminUsersPageClient() {
                 </button>
                 <button
                   type="button"
-                  className={styles.primaryBtn}
+                  className="py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap no-underline inline-flex items-center hover:bg-charcoal-light disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handlePasswordSubmit}
                   disabled={passwordLoading || !newPassword || !confirmPassword}
                 >
@@ -542,14 +559,14 @@ export function AdminUsersPageClient() {
 
       {/* Toast notifications */}
       {toasts.length > 0 && (
-        <div className={styles.toastContainer}>
+        <div className="fixed top-[2rem] right-[2rem] z-200 flex flex-col gap-[0.5rem] pointer-events-none max-sm:top-[1.5rem] max-sm:right-[1.5rem] max-sm:left-[1.5rem]">
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`${styles.toast} ${toast.type === 'success' ? styles.toastSuccess : styles.toastError}`}
+              className={`flex items-center gap-[0.5rem] py-[1rem] px-[1.5rem] rounded-[8px] text-[0.8125rem] font-medium shadow-medium animate-toast-in pointer-events-auto ${toast.type === 'success' ? 'bg-white text-success border border-[rgba(90,138,106,0.2)]' : 'bg-white text-error border border-[rgba(196,91,91,0.2)]'}`}
               role="alert"
             >
-              <span className={styles.toastIcon}>
+              <span className="text-[0.875rem] shrink-0">
                 {toast.type === 'success' ? '\u2713' : '\u2717'}
               </span>
               {toast.message}

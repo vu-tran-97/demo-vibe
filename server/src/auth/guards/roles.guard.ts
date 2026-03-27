@@ -2,7 +2,7 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { RequestUser } from '../../firebase/firebase-auth.guard';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -26,7 +26,7 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user as JwtPayload;
+    const user = request.user as RequestUser;
     if (!user || !user.role) {
       return false;
     }

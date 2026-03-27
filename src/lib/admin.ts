@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = '';
 
 /* -- Types -- */
 
@@ -90,16 +90,16 @@ interface ApiResponse<T> {
 
 /* -- Helpers -- */
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
+async function getToken(): Promise<string | null> {
+  const { getAccessToken } = await import('@/lib/auth');
+  return getAccessToken();
 }
 
 async function adminFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = getToken();
+  const token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {

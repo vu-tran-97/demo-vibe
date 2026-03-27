@@ -1,18 +1,18 @@
 import { getAccessToken } from '@/lib/auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = '';
 
 // ── Types ──
 
 export interface PostAuthor {
-  id: string;
+  id: number;
   name: string;
   nickname: string;
   profileImageUrl: string | null;
 }
 
 export interface Post {
-  id: string;
+  id: number;
   title: string;
   content: string;
   category: string;
@@ -28,11 +28,11 @@ export interface Post {
 }
 
 export interface Comment {
-  id: string;
-  postId: string;
-  userId: string;
+  id: number;
+  postId: number;
+  userId: number;
   content: string;
-  parentCommentId: string | null;
+  parentCommentId: number | null;
   depth: number;
   createdAt: string;
   updatedAt: string;
@@ -110,8 +110,8 @@ export function getCategoryLabel(code: string): string {
 
 // ── Helpers ──
 
-function getAuthHeaders(): Record<string, string> {
-  const token = getAccessToken();
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAccessToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -180,7 +180,7 @@ export async function fetchBanner(): Promise<Banner | null> {
 export async function updateBanner(data: UpdateBannerData): Promise<Banner> {
   const res = await fetch(`${API_BASE}/api/posts/banner`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   const json = await res.json();
@@ -205,7 +205,7 @@ export async function fetchPosts(params: FetchPostsParams = {}): Promise<PostLis
   };
 }
 
-export async function fetchPostById(id: string): Promise<Post> {
+export async function fetchPostById(id: string | number): Promise<Post> {
   const res = await fetch(`${API_BASE}/api/posts/${id}`);
   const json = await res.json();
   if (!json.success) {
@@ -217,7 +217,7 @@ export async function fetchPostById(id: string): Promise<Post> {
 export async function createPost(data: CreatePostData): Promise<Post> {
   const res = await fetch(`${API_BASE}/api/posts`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   const json = await res.json();
@@ -227,10 +227,10 @@ export async function createPost(data: CreatePostData): Promise<Post> {
   return mapPost(json.data);
 }
 
-export async function updatePost(id: string, data: UpdatePostData): Promise<Post> {
+export async function updatePost(id: string | number, data: UpdatePostData): Promise<Post> {
   const res = await fetch(`${API_BASE}/api/posts/${id}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   const json = await res.json();
@@ -240,10 +240,10 @@ export async function updatePost(id: string, data: UpdatePostData): Promise<Post
   return mapPost(json.data);
 }
 
-export async function deletePost(id: string): Promise<void> {
+export async function deletePost(id: string | number): Promise<void> {
   const res = await fetch(`${API_BASE}/api/posts/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
   });
   const json = await res.json();
   if (!json.success) {
@@ -253,7 +253,7 @@ export async function deletePost(id: string): Promise<void> {
 
 // ── API Functions — Comments ──
 
-export async function fetchComments(postId: string): Promise<Comment[]> {
+export async function fetchComments(postId: string | number): Promise<Comment[]> {
   const res = await fetch(`${API_BASE}/api/posts/${postId}/comments`);
   const json = await res.json();
   if (!json.success) {
@@ -263,16 +263,16 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
 }
 
 export async function createComment(
-  postId: string,
+  postId: string | number,
   cmntCn: string,
-  prntCmntId?: string,
+  prntCmntId?: number,
 ): Promise<Comment> {
-  const body: Record<string, string> = { cmntCn };
+  const body: Record<string, unknown> = { cmntCn };
   if (prntCmntId) body.prntCmntId = prntCmntId;
 
   const res = await fetch(`${API_BASE}/api/posts/${postId}/comments`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify(body),
   });
   const json = await res.json();
@@ -283,13 +283,13 @@ export async function createComment(
 }
 
 export async function updateComment(
-  postId: string,
-  commentId: string,
+  postId: string | number,
+  commentId: string | number,
   cmntCn: string,
 ): Promise<Comment> {
   const res = await fetch(`${API_BASE}/api/posts/${postId}/comments/${commentId}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ cmntCn }),
   });
   const json = await res.json();
@@ -300,12 +300,12 @@ export async function updateComment(
 }
 
 export async function deleteComment(
-  postId: string,
-  commentId: string,
+  postId: string | number,
+  commentId: string | number,
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/api/posts/${postId}/comments/${commentId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
   });
   const json = await res.json();
   if (!json.success) {

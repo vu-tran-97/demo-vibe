@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { formatPrice } from '@/utils/format';
 import {
   fetchSellerSales,
   fetchSellerSummary,
@@ -16,7 +17,6 @@ import {
   type SellerSummary,
   type SellerOrderDetail,
 } from '@/lib/orders';
-import styles from './sales.module.css';
 
 const ITEM_STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
@@ -39,6 +39,25 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   BANK_TRANSFER: 'Bank Transfer',
   EMAIL_INVOICE: 'Email Invoice',
 };
+
+function getItemStatusClasses(status: string) {
+  switch (status) {
+    case 'PENDING':
+      return 'text-[#b8860b] bg-[rgba(184,134,11,0.08)]';
+    case 'CONFIRMED':
+      return 'text-[#6B7AE8] bg-[rgba(107,122,232,0.08)]';
+    case 'SHIPPED':
+      return 'text-gold-dark bg-[rgba(200,169,110,0.12)]';
+    case 'DELIVERED':
+      return 'text-success bg-[rgba(90,138,106,0.08)]';
+    case 'CANCELLED':
+      return 'text-error bg-[rgba(200,80,80,0.08)]';
+    case 'PAID':
+      return 'text-[#2E7D32] bg-[rgba(46,125,50,0.08)]';
+    default:
+      return '';
+  }
+}
 
 export default function SalesPage() {
   const { user } = useAuth(true);
@@ -205,25 +224,6 @@ export default function SalesPage() {
     }
   }
 
-  function getItemStatusClass(status: string) {
-    switch (status) {
-      case 'PENDING':
-        return styles.statusPending;
-      case 'CONFIRMED':
-        return styles.statusConfirmed;
-      case 'SHIPPED':
-        return styles.statusShipped;
-      case 'DELIVERED':
-        return styles.statusDelivered;
-      case 'CANCELLED':
-        return styles.statusCancelled;
-      case 'PAID':
-        return styles.statusPaid;
-      default:
-        return '';
-    }
-  }
-
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -243,55 +243,55 @@ export default function SalesPage() {
   }
 
   return (
-    <div className={styles.sales}>
+    <div className="flex flex-col gap-[2rem]">
       {/* Header */}
-      <div className={styles.pageHeader}>
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className={styles.pageTitle}>Sales Dashboard</h2>
-          <p className={styles.pageSubtitle}>
+          <h2 className="font-display text-[1.75rem] font-normal">Sales Dashboard</h2>
+          <p className="text-[0.8125rem] text-muted mt-[2px]">
             {loading
               ? 'Loading...'
               : `${totalCount} sale${totalCount !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Link href="/dashboard/orders" className={styles.backLink}>
+        <Link href="/dashboard/orders" className="text-[0.8125rem] text-gold-dark transition-colors duration-[200ms] hover:text-gold">
           Back to Orders
         </Link>
       </div>
 
       {/* Revenue Summary */}
       {summaryLoading ? (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center gap-[1rem] py-[6rem] px-[2rem] text-muted text-[0.875rem]">
+          <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
         </div>
       ) : summary ? (
         <>
-          <div className={styles.summaryGrid}>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Total Revenue</span>
-              <span className={styles.summaryValue}>
-                ${summary.totalRevenue.toFixed(2)}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-[1rem] max-sm:grid-cols-1">
+            <div className="flex flex-col gap-[0.25rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px]">
+              <span className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]">Total Revenue</span>
+              <span className="font-display text-[1.75rem] font-normal text-charcoal">
+                {formatPrice(summary.totalRevenue)}
               </span>
             </div>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Total Orders</span>
-              <span className={styles.summaryValue}>
+            <div className="flex flex-col gap-[0.25rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px]">
+              <span className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]">Total Orders</span>
+              <span className="font-display text-[1.75rem] font-normal text-charcoal">
                 {summary.totalOrders}
               </span>
             </div>
           </div>
 
           {summary.monthlyBreakdown.length > 0 && (
-            <div className={styles.monthlySection}>
-              <h3 className={styles.sectionTitle}>Monthly Breakdown</h3>
-              <div className={styles.monthlyGrid}>
+            <div className="flex flex-col gap-[1rem]">
+              <h3 className="font-body text-[0.8125rem] font-semibold text-slate uppercase tracking-[0.05em]">Monthly Breakdown</h3>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-[0.5rem]">
                 {summary.monthlyBreakdown.map((m) => (
-                  <div key={m.month} className={styles.monthCard}>
-                    <span className={styles.monthName}>{m.month}</span>
-                    <span className={styles.monthRevenue}>
-                      ${m.revenue.toFixed(2)}
+                  <div key={m.month} className="flex flex-col gap-[4px] py-[1rem] px-[1.5rem] bg-ivory rounded-[8px]">
+                    <span className="text-[0.75rem] font-medium text-slate">{m.month}</span>
+                    <span className="font-display text-[1.125rem] text-charcoal">
+                      {formatPrice(m.revenue)}
                     </span>
-                    <span className={styles.monthOrders}>
+                    <span className="text-[0.6875rem] text-muted">
                       {m.orderCount} order{m.orderCount !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -303,13 +303,13 @@ export default function SalesPage() {
       ) : null}
 
       {/* Filters */}
-      <div className={styles.filters}>
-        <div className={styles.statusTabs}>
+      <div className="flex items-end gap-[1rem] flex-wrap max-sm:flex-col max-sm:items-stretch">
+        <div className="flex gap-[2px] bg-ivory-warm rounded-[8px] p-[3px] overflow-x-auto [-webkit-overflow-scrolling:touch]">
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               type="button"
-              className={`${styles.tab} ${statusFilter === s ? styles.tabActive : ''}`}
+              className={`py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-normal text-slate bg-transparent border-none rounded-[6px] cursor-pointer whitespace-nowrap transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-charcoal ${statusFilter === s ? 'bg-white text-charcoal font-medium shadow-subtle' : ''}`}
               onClick={() => setStatusFilter(s)}
             >
               {s === 'ALL' ? 'All' : ITEM_STATUS_LABELS[s]}
@@ -317,26 +317,26 @@ export default function SalesPage() {
           ))}
         </div>
 
-        <div className={styles.dateField}>
-          <label className={styles.dateLabel} htmlFor="salesStartDate">
+        <div className="flex flex-col gap-[4px]">
+          <label className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]" htmlFor="salesStartDate">
             From
           </label>
           <input
             id="salesStartDate"
             type="date"
-            className={styles.dateInput}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-gold"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
-        <div className={styles.dateField}>
-          <label className={styles.dateLabel} htmlFor="salesEndDate">
+        <div className="flex flex-col gap-[4px]">
+          <label className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]" htmlFor="salesEndDate">
             To
           </label>
           <input
             id="salesEndDate"
             type="date"
-            className={styles.dateInput}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-gold"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
@@ -344,7 +344,7 @@ export default function SalesPage() {
         {(startDate || endDate) && (
           <button
             type="button"
-            className={styles.clearDatesBtn}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.75rem] text-error bg-transparent border-none cursor-pointer transition-opacity duration-[200ms] hover:opacity-70"
             onClick={() => {
               setStartDate('');
               setEndDate('');
@@ -357,11 +357,11 @@ export default function SalesPage() {
 
       {/* Error */}
       {error && (
-        <div className={styles.errorState}>
+        <div className="text-center py-[3rem] px-[2rem] text-error text-[0.875rem]">
           <p>{error}</p>
           <button
             type="button"
-            className={styles.retryBtn}
+            className="mt-[1rem] py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-charcoal"
             onClick={loadSales}
           >
             Retry
@@ -371,33 +371,33 @@ export default function SalesPage() {
 
       {/* Loading */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center gap-[1rem] py-[6rem] px-[2rem] text-muted text-[0.875rem]">
+          <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
           <p>Loading sales...</p>
         </div>
       )}
 
       {/* Sales List */}
       {!loading && !error && (
-        <div className={styles.salesList}>
+        <div className="flex flex-col gap-[0.5rem]">
           {sales.length === 0 ? (
-            <div className={styles.emptyState}>
-              <h3 className={styles.emptyTitle}>No sales found</h3>
-              <p className={styles.emptyDesc}>
+            <div className="text-center py-[6rem] px-[2rem]">
+              <h3 className="font-display text-[1.25rem] text-charcoal mb-[0.5rem]">No sales found</h3>
+              <p className="text-[0.875rem] text-muted">
                 Sales matching this filter will appear here.
               </p>
             </div>
           ) : (
             <>
               {/* Select All */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <div className="flex items-center gap-[8px] mb-[4px]">
                 <input
                   type="checkbox"
-                  className={styles.checkbox}
+                  className="w-[18px] h-[18px] accent-charcoal cursor-pointer"
                   checked={selectedIds.size === sales.length && sales.length > 0}
                   onChange={toggleSelectAll}
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--slate)' }}>
+                <span className="text-[0.75rem] text-slate">
                   Select all
                 </span>
               </div>
@@ -405,63 +405,63 @@ export default function SalesPage() {
               {sales.map((sale, i) => (
                 <div
                   key={sale.id}
-                  className={`${styles.saleCard} ${selectedIds.has(sale.id) ? styles.saleCardSelected : ''} animate-fade-up delay-${Math.min(i + 1, 8)}`}
+                  className={`flex items-center gap-[1.5rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px] transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-border hover:shadow-soft max-sm:flex-col max-sm:items-start max-sm:gap-[1rem] max-sm:py-[1rem] max-sm:px-[1.5rem] max-md:flex-wrap animate-fade-up delay-${Math.min(i + 1, 8)} ${selectedIds.has(sale.id) ? 'border-gold bg-[rgba(200,169,110,0.03)]' : ''}`}
                 >
                   {/* Checkbox */}
-                  <div className={styles.checkboxCol}>
+                  <div className="shrink-0">
                     <input
                       type="checkbox"
-                      className={styles.checkbox}
+                      className="w-[18px] h-[18px] accent-charcoal cursor-pointer"
                       checked={selectedIds.has(sale.id)}
                       onChange={() => toggleSelect(sale.id)}
                     />
                   </div>
 
                   {/* Info */}
-                  <div className={styles.saleInfo}>
+                  <div className="flex-1 min-w-0">
                     <p
-                      className={styles.saleOrderNum}
+                      className="text-[0.75rem] text-gold-dark cursor-pointer transition-colors duration-[200ms] hover:text-charcoal hover:underline"
                       onClick={() => handleOpenDetail(sale.orderId)}
                     >
                       {sale.orderNo}
                     </p>
-                    <p className={styles.saleProduct}>{sale.productName}</p>
-                    <p className={styles.saleQty}>
-                      Qty: {sale.quantity} x ${sale.unitPrice.toFixed(2)}
+                    <p className="text-[0.875rem] font-medium text-charcoal">{sale.productName}</p>
+                    <p className="text-[0.75rem] text-muted">
+                      Qty: {sale.quantity} x {formatPrice(sale.unitPrice)}
                     </p>
                     {sale.trackingNumber && (
-                      <p className={styles.saleTracking}>
+                      <p className="text-[0.6875rem] text-gold-dark mt-[2px]">
                         Tracking: {sale.trackingNumber}
                       </p>
                     )}
                   </div>
 
                   {/* Meta */}
-                  <div className={styles.saleMeta}>
-                    <span className={styles.salePrice}>
-                      ${sale.subtotalAmount.toFixed(2)}
+                  <div className="flex flex-col items-end gap-[4px] shrink-0 max-sm:items-start max-sm:flex-row max-sm:gap-[1rem]">
+                    <span className="font-display text-[1rem] font-normal text-charcoal">
+                      {formatPrice(sale.subtotalAmount)}
                     </span>
-                    <span className={styles.saleDate}>
+                    <span className="text-[0.6875rem] text-muted">
                       {formatDate(sale.orderedAt)}
                     </span>
                     <span
-                      className={`${styles.statusBadge} ${getItemStatusClass(sale.orderStatus === 'PAID' ? 'PAID' : sale.itemStatus)}`}
+                      className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getItemStatusClasses(sale.orderStatus === 'PAID' ? 'PAID' : sale.itemStatus)}`}
                     >
                       {ITEM_STATUS_LABELS[sale.itemStatus] || sale.itemStatus}
                     </span>
                     <span
-                      className={`${styles.statusBadge} ${sale.paymentStatus === 'PAID' ? styles.statusPaid : styles.statusPending}`}
+                      className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${sale.paymentStatus === 'PAID' ? 'text-[#2E7D32] bg-[rgba(46,125,50,0.08)]' : 'text-[#b8860b] bg-[rgba(184,134,11,0.08)]'}`}
                     >
                       {sale.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
                     </span>
                   </div>
 
                   {/* Actions */}
-                  <div className={styles.saleActions}>
+                  <div className="flex flex-col gap-[4px] shrink-0 max-sm:flex-row max-sm:flex-wrap">
                     {sale.paymentStatus !== 'PAID' && (
                       <button
                         type="button"
-                        className={styles.payBtn}
+                        className="py-[0.375rem] px-[0.75rem] font-body text-[0.6875rem] font-medium text-white bg-[#2E7D32] border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:not-disabled:bg-[#1B5E20] disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={updatingId === sale.id}
                         onClick={() => handleConfirmPayment(sale)}
                       >
@@ -471,7 +471,7 @@ export default function SalesPage() {
                     {sale.itemStatus === 'PENDING' && (
                       <button
                         type="button"
-                        className={styles.statusBtn}
+                        className="py-[0.375rem] px-[0.75rem] font-body text-[0.6875rem] font-medium text-white bg-charcoal border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:not-disabled:bg-charcoal-light disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={updatingId === sale.id}
                         onClick={() =>
                           handleUpdateItemStatus(sale, 'CONFIRMED')
@@ -481,10 +481,10 @@ export default function SalesPage() {
                       </button>
                     )}
                     {sale.itemStatus === 'CONFIRMED' && (
-                      <div className={styles.trackingRow}>
+                      <div className="flex gap-[4px] items-center max-sm:flex-col max-sm:items-stretch">
                         <input
                           type="text"
-                          className={styles.trackingInput}
+                          className="py-[0.3rem] px-[0.5rem] font-body text-[0.6875rem] text-charcoal bg-white border border-border rounded-[4px] outline-none w-[120px] transition-[border-color] duration-[200ms] focus:border-gold max-sm:w-full"
                           placeholder="Tracking #"
                           value={trackingInputs[sale.id] || ''}
                           onChange={(e) =>
@@ -496,7 +496,7 @@ export default function SalesPage() {
                         />
                         <button
                           type="button"
-                          className={styles.shipBtn}
+                          className="py-[0.375rem] px-[0.75rem] font-body text-[0.6875rem] font-medium text-white bg-gold-dark border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:not-disabled:bg-gold disabled:opacity-40 disabled:cursor-not-allowed"
                           disabled={updatingId === sale.id}
                           onClick={() =>
                             handleUpdateItemStatus(sale, 'SHIPPED')
@@ -509,7 +509,7 @@ export default function SalesPage() {
                     {sale.itemStatus === 'SHIPPED' && (
                       <button
                         type="button"
-                        className={styles.statusBtn}
+                        className="py-[0.375rem] px-[0.75rem] font-body text-[0.6875rem] font-medium text-white bg-charcoal border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:not-disabled:bg-charcoal-light disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={updatingId === sale.id}
                         onClick={() =>
                           handleUpdateItemStatus(sale, 'DELIVERED')
@@ -528,14 +528,14 @@ export default function SalesPage() {
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className={styles.bulkBar}>
-          <span className={styles.bulkInfo}>
+        <div className="sticky bottom-[1.5rem] flex items-center justify-between gap-[1rem] py-[1rem] px-[2rem] bg-charcoal text-white rounded-[12px] shadow-elevated z-10 animate-[slideUp_0.2s_cubic-bezier(0.16,1,0.3,1)] max-sm:flex-col max-sm:gap-[0.5rem] max-sm:p-[1rem] max-sm:bottom-[0.5rem] max-sm:mx-[0.5rem]">
+          <span className="text-[0.8125rem] font-medium">
             {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
           </span>
-          <div className={styles.bulkActions}>
+          <div className="flex gap-[0.5rem] items-center max-sm:flex-wrap max-sm:justify-center">
             <button
               type="button"
-              className={styles.bulkBtn}
+              className="py-[0.5rem] px-[1rem] font-body text-[0.75rem] font-medium text-charcoal bg-white border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={bulkProcessing}
               onClick={() => handleBulkAction('CONFIRMED')}
             >
@@ -543,14 +543,14 @@ export default function SalesPage() {
             </button>
             <input
               type="text"
-              className={styles.bulkTrackingInput}
+              className="py-[0.4rem] px-[0.6rem] font-body text-[0.75rem] text-charcoal bg-white border-none rounded-[4px] outline-none w-[140px]"
               placeholder="Tracking # (optional)"
               value={bulkTracking}
               onChange={(e) => setBulkTracking(e.target.value)}
             />
             <button
               type="button"
-              className={styles.bulkBtn}
+              className="py-[0.5rem] px-[1rem] font-body text-[0.75rem] font-medium text-charcoal bg-white border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={bulkProcessing}
               onClick={() => handleBulkAction('SHIPPED')}
             >
@@ -558,7 +558,7 @@ export default function SalesPage() {
             </button>
             <button
               type="button"
-              className={styles.bulkBtn}
+              className="py-[0.5rem] px-[1rem] font-body text-[0.75rem] font-medium text-charcoal bg-white border-none rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:bg-ivory disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={bulkProcessing}
               onClick={() => handleBulkAction('DELIVERED')}
             >
@@ -566,7 +566,7 @@ export default function SalesPage() {
             </button>
             <button
               type="button"
-              className={styles.bulkCancelBtn}
+              className="py-[0.5rem] px-[1rem] font-body text-[0.75rem] font-medium text-white bg-transparent border border-[rgba(255,255,255,0.3)] rounded-[4px] cursor-pointer transition-all duration-[200ms] hover:border-white"
               onClick={() => {
                 setSelectedIds(new Set());
                 setBulkTracking('');
@@ -580,21 +580,21 @@ export default function SalesPage() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className={styles.pagination}>
+        <div className="flex items-center justify-center gap-[1.5rem]">
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-35 disabled:cursor-not-allowed"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
           >
             Previous
           </button>
-          <span className={styles.pageInfo}>
+          <span className="text-[0.8125rem] text-slate">
             Page {page} of {totalPages}
           </span>
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-35 disabled:cursor-not-allowed"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
@@ -606,27 +606,27 @@ export default function SalesPage() {
       {/* Order Detail Modal */}
       {(detailOrder || detailLoading) && (
         <div
-          className={styles.modalOverlay}
+          className="fixed inset-0 bg-[rgba(0,0,0,0.3)] backdrop-blur-[4px] flex items-center justify-center z-[100] animate-fade-in p-[2rem]"
           onClick={() => !detailLoading && setDetailOrder(null)}
         >
           <div
-            className={styles.modalContent}
+            className="bg-white rounded-[16px] w-full max-w-[640px] max-h-[85vh] overflow-y-auto p-[2rem] animate-scale-in shadow-elevated max-sm:max-w-full max-sm:m-[1rem] max-sm:p-[1.5rem]"
             onClick={(e) => e.stopPropagation()}
           >
             {detailLoading ? (
-              <div className={styles.loadingState}>
-                <div className={styles.spinner} />
+              <div className="flex flex-col items-center gap-[1rem] py-[6rem] px-[2rem] text-muted text-[0.875rem]">
+                <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
                 <p>Loading order details...</p>
               </div>
             ) : detailOrder ? (
               <>
-                <div className={styles.modalHeader}>
-                  <h2 className={styles.modalTitle}>
+                <div className="flex items-center justify-between mb-[1.5rem]">
+                  <h2 className="font-display text-[1.375rem] font-normal text-charcoal">
                     Order {detailOrder.orderNo}
                   </h2>
                   <button
                     type="button"
-                    className={styles.modalClose}
+                    className="w-[32px] h-[32px] flex items-center justify-center bg-ivory border-none rounded-[8px] cursor-pointer text-slate text-[0.875rem] transition-all duration-[200ms] hover:bg-ivory-warm hover:text-charcoal"
                     onClick={() => setDetailOrder(null)}
                   >
                     &#10005;
@@ -634,112 +634,112 @@ export default function SalesPage() {
                 </div>
 
                 {/* Order Info */}
-                <div className={styles.modalSection}>
-                  <h4 className={styles.modalSectionTitle}>Order Information</h4>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Status</span>
+                <div className="mb-[1.5rem]">
+                  <h4 className="text-[0.75rem] font-semibold text-slate uppercase tracking-[0.04em] mb-[0.5rem]">Order Information</h4>
+                  <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                    <span className="text-slate">Status</span>
                     <span
-                      className={`${styles.statusBadge} ${getItemStatusClass(detailOrder.status)}`}
+                      className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getItemStatusClasses(detailOrder.status)}`}
                     >
                       {ITEM_STATUS_LABELS[detailOrder.status] || detailOrder.status}
                     </span>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Payment Method</span>
-                    <span className={styles.detailValue}>
+                  <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                    <span className="text-slate">Payment Method</span>
+                    <span className="font-medium text-charcoal">
                       {detailOrder.paymentMethod
                         ? PAYMENT_METHOD_LABELS[detailOrder.paymentMethod] ||
                           detailOrder.paymentMethod
                         : 'N/A'}
                     </span>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Total Amount</span>
-                    <span className={styles.detailValue}>
-                      ${detailOrder.totalAmount.toFixed(2)}
+                  <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                    <span className="text-slate">Total Amount</span>
+                    <span className="font-medium text-charcoal">
+                      {formatPrice(detailOrder.totalAmount)}
                     </span>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Date</span>
-                    <span className={styles.detailValue}>
+                  <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                    <span className="text-slate">Date</span>
+                    <span className="font-medium text-charcoal">
                       {formatDateTime(detailOrder.createdAt)}
                     </span>
                   </div>
                 </div>
 
-                <div className={styles.detailDivider} />
+                <div className="h-[1px] bg-border-light my-[1rem]" />
 
                 {/* Buyer Info */}
-                <div className={styles.modalSection}>
-                  <h4 className={styles.modalSectionTitle}>Buyer Information</h4>
+                <div className="mb-[1.5rem]">
+                  <h4 className="text-[0.75rem] font-semibold text-slate uppercase tracking-[0.04em] mb-[0.5rem]">Buyer Information</h4>
                   {detailOrder.buyer ? (
                     <>
-                      <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Name</span>
-                        <span className={styles.detailValue}>
+                      <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                        <span className="text-slate">Name</span>
+                        <span className="font-medium text-charcoal">
                           {detailOrder.buyer.name}
                         </span>
                       </div>
-                      <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Email</span>
-                        <span className={styles.detailValue}>
+                      <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                        <span className="text-slate">Email</span>
+                        <span className="font-medium text-charcoal">
                           {detailOrder.buyer.email}
                         </span>
                       </div>
                     </>
                   ) : (
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                    <p className="text-[0.8125rem] text-muted">
                       Buyer information unavailable
                     </p>
                   )}
                   {detailOrder.receiverName && (
-                    <div className={styles.detailRow}>
-                      <span className={styles.detailLabel}>Receiver</span>
-                      <span className={styles.detailValue}>
+                    <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                      <span className="text-slate">Receiver</span>
+                      <span className="font-medium text-charcoal">
                         {detailOrder.receiverName}
                       </span>
                     </div>
                   )}
                   {detailOrder.receiverPhone && (
-                    <div className={styles.detailRow}>
-                      <span className={styles.detailLabel}>Phone</span>
-                      <span className={styles.detailValue}>
+                    <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                      <span className="text-slate">Phone</span>
+                      <span className="font-medium text-charcoal">
                         {detailOrder.receiverPhone}
                       </span>
                     </div>
                   )}
                   {detailOrder.shippingAddress && (
-                    <div className={styles.detailRow}>
-                      <span className={styles.detailLabel}>Address</span>
-                      <span className={styles.detailValue}>
+                    <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
+                      <span className="text-slate">Address</span>
+                      <span className="font-medium text-charcoal">
                         {detailOrder.shippingAddress}
                       </span>
                     </div>
                   )}
                 </div>
 
-                <div className={styles.detailDivider} />
+                <div className="h-[1px] bg-border-light my-[1rem]" />
 
                 {/* Items */}
-                <div className={styles.modalSection}>
-                  <h4 className={styles.modalSectionTitle}>Items</h4>
+                <div className="mb-[1.5rem]">
+                  <h4 className="text-[0.75rem] font-semibold text-slate uppercase tracking-[0.04em] mb-[0.5rem]">Items</h4>
                   {detailOrder.items.map((item) => (
-                    <div key={item.id} className={styles.detailItem}>
-                      <div className={styles.detailItemInfo}>
-                        <p className={styles.detailItemName}>
+                    <div key={item.id} className="flex items-center gap-[1rem] py-[0.5rem] border-b border-b-border-light last:border-b-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[0.8125rem] font-medium text-charcoal">
                           {item.productName}
                         </p>
-                        <p className={styles.detailItemMeta}>
-                          Qty: {item.quantity} x ${item.unitPrice.toFixed(2)} ={' '}
-                          ${item.subtotalAmount.toFixed(2)}
+                        <p className="text-[0.75rem] text-muted">
+                          Qty: {item.quantity} x {formatPrice(item.unitPrice)} ={' '}
+                          {formatPrice(item.subtotalAmount)}
                           {item.trackingNumber && (
                             <> | Tracking: {item.trackingNumber}</>
                           )}
                         </p>
                       </div>
-                      <div className={styles.detailItemStatus}>
+                      <div className="shrink-0">
                         <span
-                          className={`${styles.statusBadge} ${getItemStatusClass(item.itemStatus)}`}
+                          className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getItemStatusClasses(item.itemStatus)}`}
                         >
                           {ITEM_STATUS_LABELS[item.itemStatus] || item.itemStatus}
                         </span>
@@ -748,24 +748,24 @@ export default function SalesPage() {
                   ))}
                 </div>
 
-                <div className={styles.detailDivider} />
+                <div className="h-[1px] bg-border-light my-[1rem]" />
 
                 {/* Status Timeline */}
-                <div className={styles.modalSection}>
-                  <h4 className={styles.modalSectionTitle}>Status Timeline</h4>
-                  <div className={styles.timeline}>
+                <div className="mb-[1.5rem]">
+                  <h4 className="text-[0.75rem] font-semibold text-slate uppercase tracking-[0.04em] mb-[0.5rem]">Status Timeline</h4>
+                  <div className="flex flex-col gap-[0.5rem]">
                     {detailOrder.statusHistory.map((h) => (
-                      <div key={h.id} className={styles.timelineItem}>
-                        <div className={styles.timelineDot} />
-                        <div className={styles.timelineContent}>
-                          <span className={styles.timelineStatus}>
+                      <div key={h.id} className="flex gap-[1rem] text-[0.8125rem]">
+                        <div className="w-[8px] h-[8px] bg-charcoal rounded-full shrink-0 mt-[5px]" />
+                        <div className="flex-1">
+                          <span className="font-medium text-charcoal">
                             {h.previousStatus || '(new)'} &rarr; {h.newStatus}
                           </span>
-                          <span className={styles.timelineDate}>
+                          <span className="text-[0.6875rem] text-muted ml-[0.5rem]">
                             {formatDateTime(h.changedAt)}
                           </span>
                           {h.reason && (
-                            <p className={styles.timelineReason}>{h.reason}</p>
+                            <p className="text-[0.75rem] text-slate mt-[2px]">{h.reason}</p>
                           )}
                         </div>
                       </div>

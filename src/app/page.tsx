@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getUser, logout as authLogout, type UserInfo } from '@/lib/auth';
@@ -9,9 +9,8 @@ import { useCart } from '@/hooks/use-cart';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { UserMenu } from '@/components/user-menu/UserMenu';
 import { ToastContainer, showToast } from '@/components/toast/Toast';
-import styles from './page.module.css';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 24;
 const BANNER_SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1280&h=400&fit=crop',
@@ -33,6 +32,14 @@ const BANNER_SLIDES = [
 type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
 export default function HomePage() {
+  return (
+    <Suspense>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addItem: cartAddItem, totalItems: cartCount } = useCart();
@@ -50,9 +57,10 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
 
   useEffect(() => {
@@ -68,18 +76,20 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch products when filters change
+  const sortMap: Record<SortOption, string> = useMemo(() => ({
+    popular: 'popular',
+    newest: 'newest',
+    'price-low': 'price-low',
+    'price-high': 'price-high',
+    rating: 'rating',
+  }), []);
+
+  // Fetch products — reset on filter change
   useEffect(() => {
     setLoading(true);
-    const sortMap: Record<SortOption, string> = {
-      popular: 'popular',
-      newest: 'newest',
-      'price-low': 'price-low',
-      'price-high': 'price-high',
-      rating: 'rating',
-    };
+    setPage(1);
     fetchProducts({
-      page,
+      page: 1,
       limit: ITEMS_PER_PAGE,
       category: activeCategory !== 'ALL' ? activeCategory : undefined,
       search: search.trim() || undefined,
@@ -87,16 +97,34 @@ export default function HomePage() {
     })
       .then((res) => {
         setProducts(res.items);
-        setTotalPages(res.pagination.totalPages);
         setTotalCount(res.pagination.total);
+        setHasMore(res.pagination.page < res.pagination.totalPages);
       })
       .catch(() => {
         setProducts([]);
-        setTotalPages(1);
         setTotalCount(0);
+        setHasMore(false);
       })
       .finally(() => setLoading(false));
-  }, [page, activeCategory, search, sort]);
+  }, [activeCategory, search, sort, sortMap]);
+
+  function handleLoadMore() {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    fetchProducts({
+      page: nextPage,
+      limit: ITEMS_PER_PAGE,
+      category: activeCategory !== 'ALL' ? activeCategory : undefined,
+      search: search.trim() || undefined,
+      sort: sortMap[sort],
+    })
+      .then((res) => {
+        setProducts((prev) => [...prev, ...res.items]);
+        setPage(nextPage);
+        setHasMore(res.pagination.page < res.pagination.totalPages);
+      })
+      .finally(() => setLoadingMore(false));
+  }
 
   const refreshAuth = useCallback(() => {
     setLoggedIn(isLoggedIn());
@@ -132,10 +160,6 @@ export default function HomePage() {
     }
   }
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [activeCategory, search, sort]);
 
   const paged = products;
 
@@ -160,25 +184,33 @@ export default function HomePage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className="min-h-screen flex flex-col">
       {/* ── Top Bar ── */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarInner}>
-          <div className={styles.topBarLinks}>
+      <div className="bg-charcoal text-[rgba(255,255,255,0.7)] text-[0.75rem] max-sm:hidden">
+        <div className="max-w-[1280px] mx-auto px-[2rem] py-[0.5rem] flex items-center justify-between">
+          <div className="flex items-center gap-[1rem]">
             <span>Download App</span>
-            <span className={styles.topBarDivider}>|</span>
+            <span className="opacity-30">|</span>
             <span>Help Center</span>
           </div>
-          <div className={styles.topBarLinks}>
+          <div className="flex items-center gap-[1rem]">
             {loggedIn ? (
               <span>Welcome, {user?.nickname || user?.name}!</span>
             ) : (
               <>
-                <button type="button" className={styles.topBarBtn} onClick={openSignup}>
+                <button
+                  type="button"
+                  className="bg-none border-none text-[rgba(255,255,255,0.7)] font-body text-[0.75rem] cursor-pointer transition-colors duration-[200ms] p-0 hover:text-white"
+                  onClick={openSignup}
+                >
                   Sign Up
                 </button>
-                <span className={styles.topBarDivider}>|</span>
-                <button type="button" className={styles.topBarBtn} onClick={openLogin}>
+                <span className="opacity-30">|</span>
+                <button
+                  type="button"
+                  className="bg-none border-none text-[rgba(255,255,255,0.7)] font-body text-[0.75rem] cursor-pointer transition-colors duration-[200ms] p-0 hover:text-white"
+                  onClick={openLogin}
+                >
                   Sign In
                 </button>
               </>
@@ -188,17 +220,17 @@ export default function HomePage() {
       </div>
 
       {/* ── Header ── */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <Link href="/" className={styles.logo}>
+      <header className="sticky top-0 z-[100] bg-white border-b border-border-light shadow-subtle">
+        <div className="max-w-[1280px] mx-auto px-[2rem] py-[0.75rem] flex items-center gap-[2rem] max-sm:px-[1rem] max-sm:py-[0.625rem] max-sm:gap-[0.5rem]">
+          <Link href="/" className="font-display text-[1.75rem] font-semibold text-gold-dark tracking-[-0.03em] shrink-0 max-sm:text-[1.375rem]">
             Vibe
           </Link>
 
           {/* Search */}
-          <form className={styles.searchWrapper} onSubmit={handleHeaderSearch}>
+          <form className="flex-1 max-w-[640px] flex border-[2px] border-gold rounded-[8px] overflow-hidden transition-shadow duration-[200ms] focus-within:shadow-[0_0_0_3px_rgba(200,169,110,0.15)]" onSubmit={handleHeaderSearch}>
             <input
               type="text"
-              className={styles.searchInput}
+              className="flex-1 px-[1rem] py-[0.625rem] font-body text-[0.875rem] text-charcoal border-none outline-none bg-white placeholder:text-muted max-[479px]:text-[0.8125rem] max-[479px]:px-[0.75rem] max-[479px]:py-[0.5rem]"
               placeholder="Search for products, brands, and more..."
               value={headerSearch}
               onChange={(e) => {
@@ -210,7 +242,7 @@ export default function HomePage() {
               }}
               onKeyDown={handleHeaderSearchKeyDown}
             />
-            <button type="submit" className={styles.searchBtn}>
+            <button type="submit" className="px-[1rem] bg-gold border-none text-white cursor-pointer flex items-center justify-center transition-colors duration-[200ms] hover:bg-gold-dark">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
@@ -219,21 +251,27 @@ export default function HomePage() {
           </form>
 
           {/* Cart + User */}
-          <div className={styles.headerActions}>
-            <Link href="/cart" className={styles.cartBtn}>
+          <div className="flex items-center gap-[1rem] shrink-0 ml-auto max-[479px]:gap-[0.5rem]">
+            <Link href="/cart" className="relative flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-transparent border-none text-charcoal cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:bg-ivory hover:text-gold-dark">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 01-8 0" />
               </svg>
               {cartCount > 0 && (
-                <span className={styles.cartBadge}>{cartCount > 99 ? '99+' : cartCount}</span>
+                <span className="absolute top-[2px] right-0 min-w-[18px] h-[18px] px-[5px] flex items-center justify-center text-[0.625rem] font-bold text-white bg-error rounded-[9px] leading-none pointer-events-none">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
               )}
             </Link>
             {loggedIn && user ? (
               <UserMenu user={user} onLogout={handleLogout} />
             ) : (
-              <button type="button" className={styles.cartBtn} onClick={openLogin}>
+              <button
+                type="button"
+                className="relative flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-transparent border-none text-charcoal cursor-pointer transition-all duration-[200ms] whitespace-nowrap hover:bg-ivory hover:text-gold-dark"
+                onClick={openLogin}
+              >
                 Sign In
               </button>
             )}
@@ -250,11 +288,15 @@ export default function HomePage() {
       />
 
       {/* ── Category Nav ── */}
-      <nav className={styles.categoryBar}>
-        <div className={styles.categoryBarInner}>
+      <nav className="bg-white border-b border-border-light">
+        <div className="max-w-[1280px] mx-auto px-[2rem] py-[0.625rem] flex gap-[0.5rem] overflow-x-auto scrollbar-none max-sm:px-[1rem] max-sm:py-[0.5rem]">
           <button
             type="button"
-            className={`${styles.categoryChip} ${activeCategory === 'ALL' ? styles.categoryActive : ''}`}
+            className={`px-[1rem] py-[0.4375rem] font-body text-[0.8125rem] font-normal rounded-full whitespace-nowrap cursor-pointer transition-all duration-[200ms] ${
+              activeCategory === 'ALL'
+                ? 'bg-gold border border-gold text-white font-medium hover:bg-gold-dark hover:border-gold-dark'
+                : 'text-slate bg-transparent border border-border hover:border-gold hover:text-gold-dark'
+            }`}
             onClick={() => setActiveCategory('ALL')}
           >
             All
@@ -263,7 +305,11 @@ export default function HomePage() {
             <button
               key={cat.code}
               type="button"
-              className={`${styles.categoryChip} ${activeCategory === cat.code ? styles.categoryActive : ''}`}
+              className={`px-[1rem] py-[0.4375rem] font-body text-[0.8125rem] font-normal rounded-full whitespace-nowrap cursor-pointer transition-all duration-[200ms] ${
+                activeCategory === cat.code
+                  ? 'bg-gold border border-gold text-white font-medium hover:bg-gold-dark hover:border-gold-dark'
+                  : 'text-slate bg-transparent border border-border hover:border-gold hover:text-gold-dark'
+              }`}
               onClick={() => setActiveCategory(cat.code)}
             >
               {cat.label}
@@ -273,25 +319,29 @@ export default function HomePage() {
       </nav>
 
       {/* ── Hero Banner Carousel ── */}
-      <section className={styles.bannerSection}>
-        <div className={styles.bannerInner}>
-          <div className={styles.bannerTrack} style={{ transform: `translateX(-${bannerIndex * 100}%)` }}>
+      <section className="max-w-[1280px] mx-auto px-[2rem] pt-[1.5rem] max-sm:px-[1rem]">
+        <div className="relative rounded-[12px] overflow-hidden">
+          <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${bannerIndex * 100}%)` }}>
             {BANNER_SLIDES.map((slide, i) => (
-              <div key={i} className={styles.bannerSlide}>
-                <img src={slide.image} alt={slide.title} className={styles.bannerImage} />
-                <div className={styles.bannerOverlay}>
-                  <h2 className={styles.bannerTitle}>{slide.title}</h2>
-                  <p className={styles.bannerSubtitle}>{slide.subtitle}</p>
+              <div key={i} className="min-w-full relative">
+                <img src={slide.image} alt={slide.title} className="w-full h-[320px] object-cover block max-sm:h-[200px]" />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.1)_60%,transparent_100%)] flex flex-col justify-center px-[4rem] max-sm:px-[1.5rem]">
+                  <h2 className="font-display text-[2rem] font-semibold text-white m-0 [text-shadow:0_2px_8px_rgba(0,0,0,0.3)] max-sm:text-[1.25rem]">{slide.title}</h2>
+                  <p className="text-[1rem] text-[rgba(255,255,255,0.85)] mt-[0.5rem] [text-shadow:0_1px_4px_rgba(0,0,0,0.3)] max-sm:text-[0.8125rem]">{slide.subtitle}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className={styles.bannerDots}>
+          <div className="absolute bottom-[1rem] left-1/2 -translate-x-1/2 flex gap-[0.5rem]">
             {BANNER_SLIDES.map((_, i) => (
               <button
                 key={i}
                 type="button"
-                className={`${styles.bannerDot} ${i === bannerIndex ? styles.bannerDotActive : ''}`}
+                className={`w-[10px] h-[10px] rounded-full p-0 cursor-pointer transition-all duration-[200ms] ${
+                  i === bannerIndex
+                    ? 'bg-white border-[2px] border-white'
+                    : 'bg-transparent border-[2px] border-[rgba(255,255,255,0.7)] hover:bg-[rgba(255,255,255,0.5)]'
+                }`}
                 onClick={() => setBannerIndex(i)}
               />
             ))}
@@ -300,12 +350,12 @@ export default function HomePage() {
       </section>
 
       {/* ── Product Grid ── */}
-      <section className={styles.shopSection}>
-        <div className={styles.shopInner}>
+      <section className="flex-1 bg-ivory py-[2rem] pb-[4rem]">
+        <div className="max-w-[1280px] mx-auto px-[2rem] max-sm:px-[1rem]">
           {/* Sort Bar */}
-          <div className={styles.sortBar}>
-            <div className={styles.sortLeft}>
-              <span className={styles.resultCount}>
+          <div className="flex items-center justify-between gap-[1rem] px-[1.5rem] py-[1rem] mb-[1.5rem] bg-white rounded-[8px] border border-border-light max-md:flex-col max-md:items-start">
+            <div className="shrink-0">
+              <span className="text-[0.8125rem] text-slate [&>strong]:text-charcoal [&>strong]:font-medium">
                 {totalCount} product{totalCount !== 1 ? 's' : ''}
                 {activeCategory !== 'ALL' && (
                   <> in <strong>{CATEGORIES.find((c) => c.code === activeCategory)?.label}</strong></>
@@ -315,8 +365,8 @@ export default function HomePage() {
                 )}
               </span>
             </div>
-            <div className={styles.sortRight}>
-              <span className={styles.sortLabel}>Sort by:</span>
+            <div className="flex items-center gap-[0.25rem] overflow-x-auto scrollbar-none max-sm:flex-wrap">
+              <span className="text-[0.8125rem] text-muted mr-[0.25rem] whitespace-nowrap shrink-0">Sort by:</span>
               {([
                 { value: 'popular', label: 'Popular' },
                 { value: 'newest', label: 'Latest' },
@@ -327,7 +377,11 @@ export default function HomePage() {
                 <button
                   key={opt.value}
                   type="button"
-                  className={`${styles.sortBtn} ${sort === opt.value ? styles.sortActive : ''}`}
+                  className={`px-[0.875rem] py-[0.375rem] font-body text-[0.8125rem] rounded-[4px] cursor-pointer whitespace-nowrap transition-all duration-[200ms] ${
+                    sort === opt.value
+                      ? 'bg-gold text-white border border-gold hover:bg-gold-dark'
+                      : 'text-slate bg-transparent border border-transparent hover:bg-ivory hover:text-charcoal'
+                  }`}
                   onClick={() => setSort(opt.value)}
                 >
                   {opt.label}
@@ -338,51 +392,51 @@ export default function HomePage() {
 
           {/* Product Grid */}
           {paged.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>
+            <div className="text-center px-[2rem] py-[8rem]">
+              <div className="text-border mb-[1.5rem]">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3 className={styles.emptyTitle}>No products found</h3>
-              <p className={styles.emptyDesc}>
+              <h3 className="font-display text-[1.5rem] font-normal text-charcoal mb-[0.5rem]">No products found</h3>
+              <p className="text-[0.9375rem] text-muted mb-[2rem]">
                 Try adjusting your search or filter to find what you&apos;re looking for.
               </p>
               <button
                 type="button"
-                className={styles.emptyBtn}
+                className="px-[1.5rem] py-[0.625rem] font-body text-[0.875rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:bg-charcoal-light"
                 onClick={() => { setSearch(''); setActiveCategory('ALL'); }}
               >
                 Clear Filters
               </button>
             </div>
           ) : (
-            <div className={styles.productGrid}>
+            <div className="grid grid-cols-4 gap-[1rem] max-md:grid-cols-3 max-sm:grid-cols-2 max-sm:gap-[0.5rem]">
               {paged.map((product) => (
-                <div key={product.id} className={styles.productCard}>
+                <div key={product.id} className="bg-white rounded-[12px] overflow-hidden border border-border-light transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col hover:border-border hover:shadow-soft hover:-translate-y-[4px]">
                   <Link
                     href={getProductHref(product)}
-                    className={styles.productCardLink}
+                    className="block no-underline text-inherit cursor-pointer flex-1"
                   >
-                    <div className={styles.productImage}>
+                    <div className="aspect-square bg-[linear-gradient(145deg,#E8E4DE_0%,#D4CFC6_50%,#C8C0B4_100%)] relative overflow-hidden">
                       {product.imageUrl && (
-                        <img src={product.imageUrl} alt={product.name} className={styles.cardImg} />
+                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover absolute inset-0" />
                       )}
                       {product.salePrice !== null && (
-                        <span className={styles.saleBadge}>{getDiscount(product)}%</span>
+                        <span className="absolute top-[0.5rem] right-[0.5rem] bg-error text-white text-[0.6875rem] font-bold px-[6px] py-[2px] rounded-[4px] z-[1]">{getDiscount(product)}%</span>
                       )}
                     </div>
-                    <div className={styles.productBody}>
-                      <h3 className={styles.productName}>{product.name}</h3>
-                      <p className={styles.productSeller}>{product.seller?.name || 'Unknown Seller'}</p>
-                      <div className={styles.productPricing}>
-                        <div className={styles.priceGroup}>
-                          <span className={styles.productPrice}>
+                    <div className="p-[1rem]">
+                      <h3 className="font-body text-[0.875rem] font-normal text-charcoal leading-[1.4] line-clamp-2 min-h-[2.45em]">{product.name}</h3>
+                      <p className="text-[0.75rem] text-muted mt-[4px]">{product.seller?.name || 'Unknown Seller'}</p>
+                      <div className="flex items-center justify-between gap-[0.5rem] mt-[0.5rem]">
+                        <div className="flex items-baseline gap-[0.5rem]">
+                          <span className="text-[1.0625rem] font-semibold text-error">
                             {formatPrice(product.salePrice ?? product.price)}
                           </span>
                           {product.salePrice !== null && (
-                            <span className={styles.productOriginal}>
+                            <span className="text-[0.75rem] text-muted line-through">
                               {formatPrice(product.price)}
                             </span>
                           )}
@@ -390,7 +444,7 @@ export default function HomePage() {
                         {product.stock > 0 && (
                           <button
                             type="button"
-                            className={styles.quickAddBtn}
+                            className="flex items-center justify-center w-[32px] h-[32px] shrink-0 rounded-full border border-border-light bg-white text-charcoal cursor-pointer transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal hover:text-white hover:border-charcoal"
                             onClick={(e) => { e.preventDefault(); handleQuickAdd(e, product); }}
                             aria-label="Add to cart"
                           >
@@ -401,11 +455,11 @@ export default function HomePage() {
                           </button>
                         )}
                       </div>
-                      <div className={styles.productMeta}>
-                        <span className={styles.productRating}>
-                          <span className={styles.star}>&#9733;</span> {product.rating}
+                      <div className="flex items-center justify-between mt-[0.5rem] pt-[0.5rem] border-t border-border-light">
+                        <span className="text-[0.75rem] text-slate">
+                          <span className="text-gold">&#9733;</span> {product.rating}
                         </span>
-                        <span className={styles.productSold}>{product.sold} sold</span>
+                        <span className="text-[0.6875rem] text-muted">{product.sold} sold</span>
                       </div>
                     </div>
                   </Link>
@@ -414,98 +468,78 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
+          {/* Load More */}
+          {hasMore && (
+            <div className="flex flex-col items-center gap-[1rem] mt-[3rem] pb-[1.5rem]">
+              <span className="text-[0.8125rem] text-muted">
+                Showing {products.length.toLocaleString()} of {totalCount.toLocaleString()} products
+              </span>
               <button
                 type="button"
-                className={styles.pageBtn}
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
+                className="inline-flex items-center justify-center gap-[0.25rem] min-w-[200px] h-[44px] px-[2rem] font-body text-[0.9375rem] font-medium text-gold-dark bg-white border-[1.5px] border-gold rounded-full cursor-pointer transition-all duration-[200ms] hover:not-disabled:bg-gold hover:not-disabled:text-white disabled:opacity-70 disabled:cursor-wait"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
               >
-                &lsaquo;
+                {loadingMore ? (
+                  <>
+                    <span className="inline-block w-[16px] h-[16px] border-[2px] border-current border-t-transparent rounded-full animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More'
+                )}
               </button>
-              {(() => {
-                const pages: (number | string)[] = [];
-                if (totalPages <= 7) {
-                  for (let i = 1; i <= totalPages; i++) pages.push(i);
-                } else {
-                  pages.push(1);
-                  if (page > 3) pages.push('...');
-                  for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-                    pages.push(i);
-                  }
-                  if (page < totalPages - 2) pages.push('...');
-                  pages.push(totalPages);
-                }
-                return pages.map((p, idx) =>
-                  p === '...' ? (
-                    <span key={`dots-${idx}`} className={styles.pageDots}>&hellip;</span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      className={`${styles.pageBtn} ${p === page ? styles.pageBtnActive : ''}`}
-                      onClick={() => setPage(p as number)}
-                    >
-                      {p}
-                    </button>
-                  )
-                );
-              })()}
-              <button
-                type="button"
-                className={styles.pageBtn}
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-              >
-                &rsaquo;
-              </button>
+              <div className="w-[200px] h-[3px] bg-border rounded-[2px] overflow-hidden">
+                <div
+                  className="h-full bg-gold rounded-[2px] transition-[width] duration-300 ease-out"
+                  style={{ width: `${Math.min((products.length / totalCount) * 100, 100)}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.footerBrand}>
-            <span className={styles.footerLogo}>Vibe</span>
-            <p className={styles.footerTagline}>
+      <footer className="bg-white border-t-[4px] border-gold">
+        <div className="max-w-[1280px] mx-auto px-[2rem] pt-[4rem] pb-[3rem] grid grid-cols-[1fr_2fr] gap-[4rem] max-md:grid-cols-1">
+          <div className="max-w-[280px]">
+            <span className="font-display text-[1.5rem] font-semibold text-gold-dark tracking-[-0.03em]">Vibe</span>
+            <p className="text-[0.875rem] text-muted mt-[0.5rem] leading-[1.6]">
               The marketplace for handcrafted &amp; artisan goods.
             </p>
           </div>
-          <div className={styles.footerLinks}>
-            <div className={styles.footerCol}>
-              <h4 className={styles.footerColTitle}>Shop</h4>
+          <div className="grid grid-cols-3 gap-[2rem] max-sm:grid-cols-2">
+            <div className="flex flex-col gap-[0.5rem]">
+              <h4 className="font-body text-[0.8125rem] font-semibold tracking-[0.05em] uppercase text-charcoal mb-[0.25rem]">Shop</h4>
               {CATEGORIES.slice(0, 4).map((c) => (
                 <button
                   key={c.code}
                   type="button"
-                  className={styles.footerLink}
+                  className="text-[0.875rem] text-slate text-left bg-none border-none cursor-pointer font-body p-0 transition-colors duration-[200ms] hover:text-gold-dark"
                   onClick={() => { setActiveCategory(c.code); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 >
                   {c.label}
                 </button>
               ))}
             </div>
-            <div className={styles.footerCol}>
-              <h4 className={styles.footerColTitle}>Company</h4>
-              <a href="#">About Us</a>
-              <a href="#">Careers</a>
-              <a href="#">Blog</a>
+            <div className="flex flex-col gap-[0.5rem]">
+              <h4 className="font-body text-[0.8125rem] font-semibold tracking-[0.05em] uppercase text-charcoal mb-[0.25rem]">Company</h4>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">About Us</a>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Careers</a>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Blog</a>
             </div>
-            <div className={styles.footerCol}>
-              <h4 className={styles.footerColTitle}>Support</h4>
-              <a href="#">Help Center</a>
-              <a href="#">Shipping</a>
-              <a href="#">Returns</a>
-              <a href="#">Contact</a>
+            <div className="flex flex-col gap-[0.5rem]">
+              <h4 className="font-body text-[0.8125rem] font-semibold tracking-[0.05em] uppercase text-charcoal mb-[0.25rem]">Support</h4>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Help Center</a>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Shipping</a>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Returns</a>
+              <a href="#" className="text-[0.875rem] text-slate transition-colors duration-[200ms] hover:text-gold-dark">Contact</a>
             </div>
           </div>
         </div>
-        <div className={styles.footerBottom}>
-          <p>&copy; 2026 Vibe. All rights reserved.</p>
+        <div className="max-w-[1280px] mx-auto px-[2rem] py-[1.5rem] border-t border-border-light max-sm:px-[1rem] max-sm:py-[1rem]">
+          <p className="text-[0.8125rem] text-muted">&copy; 2026 Vibe. All rights reserved.</p>
         </div>
       </footer>
 

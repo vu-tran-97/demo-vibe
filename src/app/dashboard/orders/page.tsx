@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { formatPrice } from '@/utils/format';
 import {
   fetchBuyerOrders,
   fetchOrderById,
@@ -11,7 +12,6 @@ import {
   type OrderStatus,
   type OrderListResponse,
 } from '@/lib/orders';
-import styles from './orders.module.css';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Pending',
@@ -31,6 +31,25 @@ const STATUS_FILTERS = [
   'DELIVERED',
   'CANCELLED',
 ] as const;
+
+function getStatusClasses(status: OrderStatus) {
+  switch (status) {
+    case 'PENDING':
+      return 'text-[#b8860b] bg-[rgba(184,134,11,0.08)]';
+    case 'PAID':
+      return 'text-[#2E7D32] bg-[rgba(46,125,50,0.08)]';
+    case 'CONFIRMED':
+      return 'text-[#6B7AE8] bg-[rgba(107,122,232,0.08)]';
+    case 'SHIPPED':
+      return 'text-gold-dark bg-[rgba(200,169,110,0.12)]';
+    case 'DELIVERED':
+      return 'text-success bg-[rgba(90,138,106,0.08)]';
+    case 'CANCELLED':
+      return 'text-error bg-[rgba(200,80,80,0.08)]';
+    default:
+      return '';
+  }
+}
 
 export default function OrdersPage() {
   const { user } = useAuth(true);
@@ -111,25 +130,6 @@ export default function OrdersPage() {
     }
   }
 
-  function getStatusClass(status: OrderStatus) {
-    switch (status) {
-      case 'PENDING':
-        return styles.statusPending;
-      case 'PAID':
-        return styles.statusPaid;
-      case 'CONFIRMED':
-        return styles.statusConfirmed;
-      case 'SHIPPED':
-        return styles.statusShipped;
-      case 'DELIVERED':
-        return styles.statusDelivered;
-      case 'CANCELLED':
-        return styles.statusCancelled;
-      default:
-        return '';
-    }
-  }
-
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -140,17 +140,17 @@ export default function OrdersPage() {
 
   if (isSeller) {
     return (
-      <div className={styles.orders}>
-        <div className={styles.pageHeader}>
+      <div className="flex flex-col gap-[2rem]">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className={styles.pageTitle}>Orders</h2>
-            <p className={styles.pageSubtitle}>
+            <h2 className="font-display text-[1.75rem] font-normal">Orders</h2>
+            <p className="text-[0.8125rem] text-muted mt-[2px]">
               As a seller, view your sales history.
             </p>
           </div>
         </div>
-        <div className={styles.sellerRedirect}>
-          <Link href="/dashboard/orders/sales" className={styles.sellerLink}>
+        <div className="text-center py-[3rem]">
+          <Link href="/dashboard/orders/sales" className="inline-flex items-center py-[0.75rem] px-[1.5rem] font-body text-[0.875rem] font-medium text-white bg-charcoal rounded-[8px] transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-charcoal-light hover:-translate-y-[2px] hover:shadow-soft">
             Go to Sales Dashboard
           </Link>
         </div>
@@ -159,24 +159,24 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className={styles.orders}>
+    <div className="flex flex-col gap-[2rem]">
       {/* Header */}
-      <div className={styles.pageHeader}>
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className={styles.pageTitle}>My Orders</h2>
-          <p className={styles.pageSubtitle}>
+          <h2 className="font-display text-[1.75rem] font-normal">My Orders</h2>
+          <p className="text-[0.8125rem] text-muted mt-[2px]">
             {loading ? 'Loading...' : `${totalCount} order${totalCount !== 1 ? 's' : ''}`}
           </p>
         </div>
       </div>
 
       {/* Status Filters */}
-      <div className={styles.statusTabs}>
+      <div className="flex gap-[2px] bg-ivory-warm rounded-[8px] p-[3px] overflow-x-auto [-webkit-overflow-scrolling:touch] max-sm:p-[2px]">
         {STATUS_FILTERS.map((s) => (
           <button
             key={s}
             type="button"
-            className={`${styles.tab} ${statusFilter === s ? styles.tabActive : ''}`}
+            className={`py-[0.5rem] px-[1rem] font-body text-[0.8125rem] font-normal text-slate bg-transparent border-none rounded-[6px] cursor-pointer whitespace-nowrap transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-charcoal max-sm:py-[0.375rem] max-sm:px-[0.75rem] max-sm:text-[0.75rem] ${statusFilter === s ? 'bg-white text-charcoal font-medium shadow-subtle' : ''}`}
             onClick={() => setStatusFilter(s)}
           >
             {s === 'ALL' ? 'All' : STATUS_LABELS[s as OrderStatus]}
@@ -185,23 +185,23 @@ export default function OrdersPage() {
       </div>
 
       {/* Date Range Filters */}
-      <div className={styles.dateFilters}>
-        <div className={styles.dateField}>
-          <label className={styles.dateLabel} htmlFor="startDate">From</label>
+      <div className="flex items-end gap-[1rem] flex-wrap">
+        <div className="flex flex-col gap-[4px]">
+          <label className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]" htmlFor="startDate">From</label>
           <input
             id="startDate"
             type="date"
-            className={styles.dateInput}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-gold"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
-        <div className={styles.dateField}>
-          <label className={styles.dateLabel} htmlFor="endDate">To</label>
+        <div className="flex flex-col gap-[4px]">
+          <label className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]" htmlFor="endDate">To</label>
           <input
             id="endDate"
             type="date"
-            className={styles.dateInput}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.8125rem] text-charcoal bg-white border border-border rounded-[8px] outline-none transition-[border-color] duration-[200ms] focus:border-gold"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
@@ -209,7 +209,7 @@ export default function OrdersPage() {
         {(startDate || endDate) && (
           <button
             type="button"
-            className={styles.clearDatesBtn}
+            className="py-[0.5rem] px-[0.75rem] font-body text-[0.75rem] text-error bg-transparent border-none cursor-pointer transition-opacity duration-[200ms] hover:opacity-70"
             onClick={() => {
               setStartDate('');
               setEndDate('');
@@ -222,9 +222,9 @@ export default function OrdersPage() {
 
       {/* Error State */}
       {error && (
-        <div className={styles.errorState}>
+        <div className="text-center py-[3rem] px-[2rem] text-error text-[0.875rem]">
           <p>{error}</p>
-          <button type="button" className={styles.retryBtn} onClick={loadOrders}>
+          <button type="button" className="mt-[1rem] py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:border-charcoal" onClick={loadOrders}>
             Retry
           </button>
         </div>
@@ -232,18 +232,18 @@ export default function OrdersPage() {
 
       {/* Loading State */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
+        <div className="flex flex-col items-center gap-[1rem] py-[6rem] px-[2rem] text-muted text-[0.875rem]">
+          <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
           <p>Loading orders...</p>
         </div>
       )}
 
       {/* Order List */}
       {!loading && !error && (
-        <div className={styles.orderList}>
+        <div className="flex flex-col gap-[0.5rem]">
           {orders.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>
+            <div className="text-center py-[6rem] px-[2rem]">
+              <div className="text-border mb-[1.5rem]">
                 <svg
                   width="48"
                   height="48"
@@ -257,8 +257,8 @@ export default function OrdersPage() {
                   <path d="M16 10a4 4 0 01-8 0" />
                 </svg>
               </div>
-              <h3 className={styles.emptyTitle}>No orders found</h3>
-              <p className={styles.emptyDesc}>
+              <h3 className="font-display text-[1.25rem] text-charcoal mb-[0.5rem]">No orders found</h3>
+              <p className="text-[0.875rem] text-muted">
                 Orders matching this filter will appear here.
               </p>
             </div>
@@ -267,59 +267,59 @@ export default function OrdersPage() {
               <button
                 key={order.id}
                 type="button"
-                className={`${styles.orderCard} animate-fade-up delay-${Math.min(i + 1, 8)}`}
+                className={`flex flex-col gap-[1rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px] cursor-pointer text-left w-full transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-border hover:shadow-soft hover:-translate-y-[1px] max-sm:py-[1rem] max-sm:px-[1.5rem] animate-fade-up delay-${Math.min(i + 1, 8)}`}
                 onClick={() => handleOpenDetail(order.id)}
               >
-                <div className={styles.orderTop}>
-                  <div className={styles.orderMeta}>
-                    <span className={styles.orderNumber}>
+                <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-[0.5rem]">
+                  <div className="flex items-center gap-[1rem]">
+                    <span className="font-body text-[0.875rem] font-medium text-charcoal">
                       {order.orderNo}
                     </span>
-                    <span className={styles.orderDate}>
+                    <span className="text-[0.75rem] text-muted">
                       {formatDate(order.createdAt)}
                     </span>
                   </div>
                   <span
-                    className={`${styles.statusBadge} ${getStatusClass(order.status)}`}
+                    className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getStatusClasses(order.status)}`}
                   >
                     {STATUS_LABELS[order.status]}
                   </span>
                 </div>
 
-                <div className={styles.orderItems}>
+                <div className="flex flex-col gap-[0.5rem]">
                   {order.items.map((item) => (
-                    <div key={item.id} className={styles.orderItem}>
-                      <span className={styles.itemEmoji}>
+                    <div key={item.id} className="flex items-center gap-[1rem]">
+                      <span className="text-[1.5rem] w-[40px] h-[40px] flex items-center justify-center bg-ivory rounded-[8px] shrink-0">
                         {item.productImageUrl ? (
                           <img
                             src={item.productImageUrl}
                             alt={item.productName}
-                            className={styles.itemImage}
+                            className="w-full h-full object-cover rounded-[8px]"
                           />
                         ) : (
                           '📦'
                         )}
                       </span>
-                      <div className={styles.itemInfo}>
-                        <span className={styles.itemName}>
+                      <div className="flex-1 flex flex-col gap-[2px]">
+                        <span className="text-[0.8125rem] font-medium text-charcoal">
                           {item.productName}
                         </span>
-                        <span className={styles.itemQty}>
+                        <span className="text-[0.75rem] text-muted">
                           Qty: {item.quantity}
                         </span>
                       </div>
-                      <span className={styles.itemPrice}>
-                        ${item.subtotalAmount.toFixed(2)}
+                      <span className="text-[0.875rem] font-medium text-charcoal">
+                        {formatPrice(item.subtotalAmount)}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className={styles.orderBottom}>
-                  <div className={styles.orderTotal}>
-                    <span className={styles.totalLabel}>Total</span>
-                    <span className={styles.totalValue}>
-                      ${order.totalAmount.toFixed(2)}
+                <div className="flex items-center justify-between pt-[0.5rem] border-t border-t-border-light">
+                  <div className="flex items-center gap-[0.5rem]">
+                    <span className="text-[0.8125rem] text-slate">Total</span>
+                    <span className="font-display text-[1.125rem] font-normal text-charcoal">
+                      {formatPrice(order.totalAmount)}
                     </span>
                   </div>
                 </div>
@@ -331,21 +331,21 @@ export default function OrdersPage() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className={styles.pagination}>
+        <div className="flex items-center justify-center gap-[1.5rem]">
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-35 disabled:cursor-not-allowed"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
           >
             Previous
           </button>
-          <span className={styles.pageInfo}>
+          <span className="text-[0.8125rem] text-slate">
             Page {page} of {totalPages}
           </span>
           <button
             type="button"
-            className={styles.pageBtn}
+            className="py-[0.5rem] px-[1.25rem] font-body text-[0.8125rem] font-medium text-charcoal bg-white border border-border rounded-[8px] cursor-pointer transition-all duration-[200ms] hover:not-disabled:border-charcoal hover:not-disabled:bg-ivory disabled:opacity-35 disabled:cursor-not-allowed"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
@@ -357,40 +357,40 @@ export default function OrdersPage() {
       {/* Order Detail Modal */}
       {(selectedOrder || detailLoading) && (
         <div
-          className={styles.modalOverlay}
+          className="fixed inset-0 bg-[rgba(0,0,0,0.3)] backdrop-blur-[4px] flex items-center justify-center z-[100] animate-fade-in p-[2rem]"
           onClick={() => !detailLoading && setSelectedOrder(null)}
         >
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-[16px] w-full max-w-[560px] max-h-[85vh] overflow-y-auto p-[2rem] animate-scale-in shadow-elevated max-sm:max-w-full max-sm:m-[1rem]" onClick={(e) => e.stopPropagation()}>
             {detailLoading ? (
-              <div className={styles.loadingState}>
-                <div className={styles.spinner} />
+              <div className="flex flex-col items-center gap-[1rem] py-[6rem] px-[2rem] text-muted text-[0.875rem]">
+                <div className="w-[32px] h-[32px] border-2 border-border-light border-t-charcoal rounded-full animate-spin" />
                 <p>Loading order details...</p>
               </div>
             ) : selectedOrder ? (
               <>
-                <div className={styles.modalHeader}>
+                <div className="flex items-start justify-between mb-[1.5rem]">
                   <div>
-                    <h2 className={styles.modalTitle}>Order Details</h2>
-                    <p className={styles.modalOrderNum}>
+                    <h2 className="font-display text-[1.375rem] font-normal text-charcoal">Order Details</h2>
+                    <p className="text-[0.8125rem] text-muted mt-[2px]">
                       {selectedOrder.orderNo}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className={styles.modalClose}
+                    className="w-[32px] h-[32px] flex items-center justify-center bg-ivory border-none rounded-[8px] cursor-pointer text-slate text-[0.875rem] transition-all duration-[200ms] hover:bg-ivory-warm hover:text-charcoal"
                     onClick={() => setSelectedOrder(null)}
                   >
                     ✕
                   </button>
                 </div>
 
-                <div className={styles.modalStatus}>
+                <div className="flex items-center gap-[1rem] mb-[2rem]">
                   <span
-                    className={`${styles.statusBadge} ${getStatusClass(selectedOrder.status)}`}
+                    className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getStatusClasses(selectedOrder.status)}`}
                   >
                     {STATUS_LABELS[selectedOrder.status]}
                   </span>
-                  <span className={styles.modalDate}>
+                  <span className="text-[0.8125rem] text-muted">
                     Ordered on {formatDate(selectedOrder.createdAt)}
                   </span>
                 </div>
@@ -410,14 +410,14 @@ export default function OrdersPage() {
                     }
                   }
                   return (
-                    <div className={styles.progressBar}>
+                    <div className="flex items-start justify-between mb-[2rem] p-[1.5rem] bg-ivory rounded-[12px] relative before:content-[''] before:absolute before:top-[calc(1.5rem+8px)] before:left-[calc(1.5rem+8px)] before:right-[calc(1.5rem+8px)] before:h-[2px] before:bg-border max-sm:p-[1rem]">
                       {steps.map((step, idx) => (
                         <div
                           key={step}
-                          className={`${styles.progressStep} ${idx <= maxIdx ? styles.stepCompleted : ''} ${idx === maxIdx ? styles.stepCurrent : ''}`}
+                          className={`flex flex-col items-center gap-[0.5rem] relative z-[1]`}
                         >
-                          <div className={styles.stepDot} />
-                          <span className={styles.stepLabel}>
+                          <div className={`w-[18px] h-[18px] rounded-full transition-all duration-[200ms] ${idx <= maxIdx ? 'bg-charcoal border-2 border-charcoal' : 'bg-white border-2 border-border'} ${idx === maxIdx ? 'border-gold bg-gold shadow-[0_0_0_4px_rgba(200,169,110,0.2)]' : ''}`} />
+                          <span className={`text-[0.6875rem] whitespace-nowrap max-sm:text-[0.5625rem] ${idx <= maxIdx ? 'text-charcoal font-medium' : 'text-muted'}`}>
                             {STATUS_LABELS[step]}
                           </span>
                         </div>
@@ -429,24 +429,24 @@ export default function OrdersPage() {
                 {/* Status History Timeline */}
                 {selectedOrder.statusHistory &&
                   selectedOrder.statusHistory.length > 0 && (
-                    <div className={styles.statusTimeline}>
-                      <h3 className={styles.modalSectionTitle}>
+                    <div className="mb-[2rem]">
+                      <h3 className="font-body text-[0.8125rem] font-semibold text-slate uppercase tracking-[0.05em] mb-[1rem]">
                         Status History
                       </h3>
                       {selectedOrder.statusHistory.map((entry) => (
-                        <div key={entry.id} className={styles.timelineItem}>
-                          <div className={styles.timelineDot} />
-                          <div className={styles.timelineContent}>
+                        <div key={entry.id} className="flex gap-[1rem] py-[0.5rem] [&+&]:border-t [&+&]:border-t-border-light">
+                          <div className="w-[10px] h-[10px] rounded-full bg-charcoal mt-[4px] shrink-0" />
+                          <div className="flex flex-wrap items-center gap-[0.5rem]">
                             <span
-                              className={`${styles.statusBadge} ${getStatusClass(entry.newStatus as OrderStatus)}`}
+                              className={`text-[0.6875rem] font-semibold py-[3px] px-[10px] rounded-[4px] tracking-[0.02em] ${getStatusClasses(entry.newStatus as OrderStatus)}`}
                             >
                               {STATUS_LABELS[entry.newStatus as OrderStatus] || entry.newStatus}
                             </span>
-                            <span className={styles.timelineDate}>
+                            <span className="text-[0.75rem] text-muted">
                               {formatDate(entry.changedAt)}
                             </span>
                             {entry.reason && (
-                              <p className={styles.timelineReason}>
+                              <p className="w-full text-[0.75rem] text-slate mt-[2px]">
                                 {entry.reason}
                               </p>
                             )}
@@ -456,75 +456,74 @@ export default function OrdersPage() {
                     </div>
                   )}
 
-                <div className={styles.modalItems}>
-                  <h3 className={styles.modalSectionTitle}>Items</h3>
+                <div className="mb-[2rem]">
+                  <h3 className="font-body text-[0.8125rem] font-semibold text-slate uppercase tracking-[0.05em] mb-[1rem]">Items</h3>
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className={styles.modalItem}>
-                      <span className={styles.modalItemEmoji}>
+                    <div key={item.id} className="flex items-center gap-[1rem] py-[0.5rem] [&+&]:border-t [&+&]:border-t-border-light">
+                      <span className="text-[1.75rem] w-[48px] h-[48px] flex items-center justify-center bg-ivory rounded-[8px]">
                         {item.productImageUrl ? (
                           <img
                             src={item.productImageUrl}
                             alt={item.productName}
-                            className={styles.itemImage}
+                            className="w-full h-full object-cover rounded-[8px]"
                           />
                         ) : (
                           '📦'
                         )}
                       </span>
-                      <div className={styles.modalItemInfo}>
-                        <span className={styles.modalItemName}>
+                      <div className="flex-1 flex flex-col gap-[2px]">
+                        <span className="text-[0.875rem] font-medium text-charcoal">
                           {item.productName}
                         </span>
-                        <span className={styles.modalItemQty}>
-                          Quantity: {item.quantity} x $
-                          {item.unitPrice.toFixed(2)}
+                        <span className="text-[0.75rem] text-muted">
+                          Quantity: {item.quantity} x {formatPrice(item.unitPrice)}
                         </span>
                       </div>
-                      <span className={styles.modalItemPrice}>
-                        ${item.subtotalAmount.toFixed(2)}
+                      <span className="text-[0.9375rem] font-medium text-charcoal">
+                        {formatPrice(item.subtotalAmount)}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className={styles.modalSummary}>
+                <div className="flex flex-col gap-[0.5rem] p-[1.5rem] bg-ivory rounded-[12px] mb-[1.5rem]">
                   {selectedOrder.shippingAddress && (
-                    <div className={styles.summaryRow}>
+                    <div className="flex items-center justify-between text-[0.8125rem] text-slate">
                       <span>Shipping Address</span>
                       <span>{selectedOrder.shippingAddress}</span>
                     </div>
                   )}
                   {selectedOrder.receiverName && (
-                    <div className={styles.summaryRow}>
+                    <div className="flex items-center justify-between text-[0.8125rem] text-slate">
                       <span>Receiver</span>
                       <span>{selectedOrder.receiverName}</span>
                     </div>
                   )}
                   {selectedOrder.receiverPhone && (
-                    <div className={styles.summaryRow}>
+                    <div className="flex items-center justify-between text-[0.8125rem] text-slate">
                       <span>Phone</span>
                       <span>{selectedOrder.receiverPhone}</span>
                     </div>
                   )}
                   {selectedOrder.shippingMemo && (
-                    <div className={styles.summaryRow}>
+                    <div className="flex items-center justify-between text-[0.8125rem] text-slate">
                       <span>Memo</span>
                       <span>{selectedOrder.shippingMemo}</span>
                     </div>
                   )}
                   <div
-                    className={`${styles.summaryRow} ${styles.summaryTotal}`}
+                    className="flex items-center justify-between text-[0.9375rem] font-medium text-charcoal pt-[0.5rem] border-t border-t-border-light"
                   >
                     <span>Total</span>
-                    <span>${selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>{formatPrice(selectedOrder.totalAmount)}</span>
                   </div>
                 </div>
 
-                <div className={styles.modalActions}>
+                <div className="flex gap-[0.5rem] justify-end max-sm:flex-col">
                   {selectedOrder.status === 'PENDING' && (
                     <button
                       type="button"
-                      className={styles.cancelOrderBtn}
+                      className="py-[0.625rem] px-[1.25rem] font-body text-[0.8125rem] font-medium rounded-[8px] cursor-pointer transition-all duration-[200ms] bg-transparent text-error border border-[rgba(200,80,80,0.3)] hover:bg-[rgba(200,80,80,0.06)] hover:border-error"
                       disabled={cancelling}
                       onClick={() => handleCancelOrder(selectedOrder.id)}
                     >
@@ -533,7 +532,7 @@ export default function OrdersPage() {
                   )}
                   <button
                     type="button"
-                    className={styles.contactBtn}
+                    className="py-[0.625rem] px-[1.25rem] font-body text-[0.8125rem] font-medium rounded-[8px] cursor-pointer transition-all duration-[200ms] bg-transparent text-slate border border-border hover:border-charcoal hover:text-charcoal"
                     onClick={() => setSelectedOrder(null)}
                   >
                     Close

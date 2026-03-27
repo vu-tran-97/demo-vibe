@@ -3,13 +3,17 @@
 import { useState, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { resetPassword, AuthError } from '@/lib/auth';
-import styles from '../auth.module.css';
+import { confirmPasswordReset } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Suspense } from 'react';
+
+const inputCls = "py-[0.75rem] px-[1rem] border border-border rounded-[8px] font-body text-[0.9375rem] text-charcoal bg-white transition-all duration-[200ms] outline-none placeholder:text-muted placeholder:font-light focus:border-charcoal focus:shadow-[0_0_0_3px_rgba(26,26,26,0.06)]";
+const submitCls = "py-[0.875rem] font-body text-[0.9375rem] font-medium text-white bg-charcoal border-none rounded-[8px] cursor-pointer transition-all duration-[200ms] tracking-[0.01em] hover:bg-charcoal-light hover:-translate-y-px hover:shadow-soft disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none";
+const labelCls = "text-[0.8125rem] font-medium text-charcoal tracking-[0.01em]";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const oobCode = searchParams.get('oobCode') || '';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,117 +23,48 @@ function ResetPasswordForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (!token) {
-      setError('Invalid reset link. Please request a new one.');
-      return;
-    }
-
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (!oobCode) { setError('Invalid reset link. Please request a new one.'); return; }
     setLoading(true);
-
-    try {
-      await resetPassword(token, password);
-      setSuccess(true);
-    } catch (err) {
-      if (err instanceof AuthError) {
-        switch (err.code) {
-          case 'INVALID_RESET_TOKEN':
-            setError('This reset link is invalid. Please request a new one.');
-            break;
-          case 'RESET_TOKEN_EXPIRED':
-            setError('This reset link has expired. Please request a new one.');
-            break;
-          case 'VALIDATION_ERROR':
-            setError(err.message);
-            break;
-          default:
-            setError(err.message);
-        }
-      } else {
-        setError('Unable to connect to server. Please try again.');
-      }
+    try { await confirmPasswordReset(auth, oobCode, password); setSuccess(true); }
+    catch (err: unknown) {
+      const firebaseErr = err as { code?: string };
+      if (firebaseErr.code === 'auth/invalid-action-code') setError('This reset link is invalid or expired. Please request a new one.');
+      else if (firebaseErr.code === 'auth/weak-password') setError('Password is too weak. Use at least 6 characters.');
+      else setError('Unable to reset password. Please try again.');
     }
     setLoading(false);
   }
 
   return (
-    <div className={styles.formContainer}>
+    <div className="w-full max-w-[400px] animate-scale-in">
       {success ? (
         <>
-          <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Password reset!</h1>
-            <p className={styles.formSubtitle}>
-              Your password has been successfully updated. You can now sign in
-              with your new password.
-            </p>
+          <div className="mb-[3rem]">
+            <h1 className="text-[2rem] font-normal text-charcoal mb-[0.5rem]">Password reset!</h1>
+            <p className="text-[0.9375rem] text-muted">Your password has been successfully updated. You can now sign in with your new password.</p>
           </div>
-          <Link href="/auth/login" className={styles.submitBtn} style={{ display: 'block', textAlign: 'center' }}>
-            Sign In
-          </Link>
+          <Link href="/auth/login" className={`${submitCls} block text-center`}>Sign In</Link>
         </>
       ) : (
         <>
-          <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Reset password</h1>
-            <p className={styles.formSubtitle}>
-              Enter your new password below
-            </p>
+          <div className="mb-[3rem]">
+            <h1 className="text-[2rem] font-normal text-charcoal mb-[0.5rem]">Reset password</h1>
+            <p className="text-[0.9375rem] text-muted">Enter your new password below</p>
           </div>
-
-          {error && <div className={styles.errorMessage}>{error}</div>}
-
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="password" className={styles.label}>
-                New Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                className={styles.input}
-                placeholder="Min. 8 characters"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-              />
-              <p className={styles.inputHint}>
-                Must include uppercase, lowercase, number, and special character
-              </p>
+          {error && <div className="py-[0.75rem] px-[1rem] bg-[#fef2f2] border border-[#fecaca] rounded-[8px] text-[#991b1b] text-[0.875rem] leading-[1.5] mb-[1.5rem]">{error}</div>}
+          <form className="flex flex-col gap-[1.5rem]" onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-[0.25rem]">
+              <label htmlFor="password" className={labelCls}>New Password</label>
+              <input id="password" type="password" className={inputCls} placeholder="Min. 6 characters" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
-
-            <div className={styles.inputGroup}>
-              <label htmlFor="confirmPassword" className={styles.label}>
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                className={styles.input}
-                placeholder="Repeat your password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+            <div className="flex flex-col gap-[0.25rem]">
+              <label htmlFor="confirmPassword" className={labelCls}>Confirm Password</label>
+              <input id="confirmPassword" type="password" className={inputCls} placeholder="Repeat your password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
             </div>
-
-            <button
-              type="submit"
-              className={styles.submitBtn}
-              disabled={loading}
-            >
-              {loading ? 'Resetting...' : 'Reset Password'}
-            </button>
+            <button type="submit" className={submitCls} disabled={loading}>{loading ? 'Resetting...' : 'Reset Password'}</button>
           </form>
-
-          <p className={styles.formFooter}>
+          <p className="text-center text-[0.875rem] text-muted mt-[1rem] [&_a]:text-charcoal [&_a]:font-medium [&_a]:border-b [&_a]:border-border [&_a]:transition-colors [&_a]:duration-[200ms] hover:[&_a]:border-charcoal">
             <Link href="/auth/login">Back to Sign In</Link>
           </p>
         </>
@@ -140,26 +75,20 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className={styles.page}>
-      <div className={styles.brandPanel}>
-        <div className={styles.gridLines} />
-        <Link href="/" className={styles.brandLogo}>
-          Vibe
-        </Link>
-        <div className={styles.brandContent}>
-          <p className={styles.brandQuote}>
-            &ldquo;A fresh start, beautifully simple.&rdquo;
-          </p>
-          <p className={styles.brandAttribution}>
-            — The Vibe philosophy
-          </p>
+    <div className="min-h-screen grid grid-cols-[1fr_1fr] max-md:grid-cols-[1fr]">
+      <div className="relative flex flex-col justify-between p-[4rem] bg-charcoal overflow-hidden before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_20%_80%,rgba(200,169,110,0.12)_0%,transparent_60%),radial-gradient(ellipse_at_80%_20%,rgba(200,169,110,0.06)_0%,transparent_50%)] before:pointer-events-none max-md:hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04]">
+          <div className="absolute top-0 bottom-0 left-[33.33%] w-px bg-white" />
+          <div className="absolute top-0 bottom-0 left-[66.66%] w-px bg-white" />
         </div>
-        <p className={styles.brandFooter}>
-          &copy; 2026 Vibe. All rights reserved.
-        </p>
+        <Link href="/" className="font-display text-[1.5rem] font-medium text-white tracking-[-0.03em] relative z-[1]">Vibe</Link>
+        <div className="relative z-[1]">
+          <p className="font-display text-[clamp(2rem,3vw,2.75rem)] font-light italic text-white leading-[1.3] mb-[2rem] max-w-[420px]">&ldquo;A fresh start, beautifully simple.&rdquo;</p>
+          <p className="text-[0.875rem] text-white/40 tracking-[0.02em]">— The Vibe philosophy</p>
+        </div>
+        <p className="relative z-[1] text-[0.8125rem] text-white/30">&copy; 2026 Vibe. All rights reserved.</p>
       </div>
-
-      <div className={styles.formPanel}>
+      <div className="flex items-center justify-center p-[4rem] bg-ivory max-md:min-h-screen max-sm:p-[2rem]">
         <Suspense fallback={<div>Loading...</div>}>
           <ResetPasswordForm />
         </Suspense>

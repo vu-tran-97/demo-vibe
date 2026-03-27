@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = '';
 
 // -- Types --
 
@@ -16,7 +16,7 @@ export type PaymentMethod = 'BANK_TRANSFER' | 'EMAIL_INVOICE';
 
 export interface OrderItem {
   id: string;
-  productId: string;
+  productId: number;
   productName: string;
   productImageUrl: string | null;
   quantity: number;
@@ -68,7 +68,7 @@ export interface SellerSaleItem {
   orderId: string;
   orderNo: string;
   orderStatus: OrderStatus;
-  productId: string;
+  productId: number;
   productName: string;
   productImageUrl: string | null;
   unitPrice: number;
@@ -120,7 +120,7 @@ export interface SellerOrderDetail {
 }
 
 export interface CreateOrderPayload {
-  items: { productId: string; quantity: number }[];
+  items: { productId: number; quantity: number }[];
   shipAddr?: string;
   shipRcvrNm?: string;
   shipTelno?: string;
@@ -128,7 +128,7 @@ export interface CreateOrderPayload {
 }
 
 export interface CheckoutPayload {
-  items: { productId: string; quantity: number }[];
+  items: { productId: number; quantity: number }[];
   paymentMethod: PaymentMethod;
   shipAddr?: string;
   shipRcvrNm?: string;
@@ -148,11 +148,9 @@ export interface FetchOrdersParams {
 
 // -- Helpers --
 
-function getAuthHeaders(): Record<string, string> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('accessToken')
-      : null;
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { getAccessToken } = await import('@/lib/auth');
+  const token = await getAccessToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -163,18 +161,17 @@ async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      ...getAuthHeaders(),
+      ...headers,
       ...(options.headers as Record<string, string> | undefined),
     },
   });
 
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       window.location.href = '/';
     }

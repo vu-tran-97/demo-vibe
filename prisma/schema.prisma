@@ -1,5 +1,5 @@
 // Prisma Schema for demo-vibe
-// MongoDB provider with UPPER_SNAKE_CASE field mapping
+// PostgreSQL provider with UPPER_SNAKE_CASE field mapping
 // Reference: docs/database/database-design.md (SSoT)
 
 generator client {
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,7 +17,7 @@ datasource db {
 // ============================================================
 
 model CommonCodeGroup {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          Int      @id @default(autoincrement())
   cdGrpId     String   @unique @map("CD_GRP_ID")
   cdGrpNm     String   @map("CD_GRP_NM")
   cdGrpDc     String?  @map("CD_GRP_DC")
@@ -34,7 +34,7 @@ model CommonCodeGroup {
 }
 
 model CommonCode {
-  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  id      Int     @id @default(autoincrement())
   cdGrpId String  @map("CD_GRP_ID")
   cdVal   String  @map("CD_VAL")
   cdNm    String  @map("CD_NM")
@@ -58,28 +58,21 @@ model CommonCode {
 // ============================================================
 
 model User {
-  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  id               Int       @id @default(autoincrement())
   userEmail        String    @unique @map("USE_EML")
-  userPswd         String?   @map("USE_PSWD")
+  firebaseUid      String    @unique @map("FIREBASE_UID")
   userNm           String    @map("USE_NM")
   userNcnm         String?   @unique @map("USE_NCNM")
   prflImgUrl       String?   @map("PRFL_IMG_URL")
   useRoleCd        String    @default("BUYER") @map("USE_ROLE_CD")
   userSttsCd       String    @default("ACTV") @map("USE_STTS_CD")
   lstLgnDt         DateTime? @map("LST_LGN_DT")
-  emailVrfcYn      String    @default("N") @map("EML_VRFC_YN")
-  emlVrfcTkn       String?   @map("EML_VRFC_TKN")
-  emlVrfcExprDt    DateTime? @map("EML_VRFC_EXPR_DT")
-  pswdRstTkn       String?   @map("PSWD_RST_TKN")
-  pswdRstExprDt    DateTime? @map("PSWD_RST_EXPR_DT")
   rgstDt           DateTime  @default(now()) @map("RGST_DT")
   rgtrId           String?   @map("RGTR_ID")
   mdfcnDt          DateTime  @default(now()) @updatedAt @map("MDFCN_DT")
   mdfrId           String?   @map("MDFR_ID")
   delYn            String    @default("N") @map("DEL_YN")
 
-  socialAccounts SocialAccount[]
-  refreshTokens  RefreshToken[]
   loginLogs      LoginLog[]
   boardPosts     BoardPost[]
   boardComments  BoardComment[]
@@ -97,49 +90,9 @@ model User {
   @@map("TB_COMM_USER")
 }
 
-model SocialAccount {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String   @map("USE_ID") @db.ObjectId
-  sclPrvdCd      String   @map("SCL_PRVD_CD")
-  sclPrvdUserId  String   @map("SCL_PRVD_USE_ID")
-  sclEml         String?  @map("SCL_EML")
-  sclPrflImgUrl  String?  @map("SCL_PRFL_IMG_URL")
-  lnkdDt         DateTime @map("LNKD_DT")
-  rgstDt         DateTime @default(now()) @map("RGST_DT")
-  rgtrId         String?  @map("RGTR_ID")
-  mdfcnDt        DateTime @default(now()) @updatedAt @map("MDFCN_DT")
-  mdfrId         String?  @map("MDFR_ID")
-  delYn          String   @default("N") @map("DEL_YN")
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([sclPrvdCd, sclPrvdUserId])
-  @@map("TB_COMM_SCL_ACNT")
-
-}
-
-model RefreshToken {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @map("USE_ID") @db.ObjectId
-  tknVal     String   @unique @map("TKN_VAL")
-  exprDt     DateTime @map("EXPR_DT")
-  clntIpAddr String   @map("CLNT_IP_ADDR")
-  userAgnt   String?  @map("USE_AGNT")
-  rvkdYn     String   @default("N") @map("RVKD_YN")
-  rgstDt     DateTime @default(now()) @map("RGST_DT")
-  rgtrId     String?  @map("RGTR_ID")
-  mdfcnDt    DateTime @default(now()) @updatedAt @map("MDFCN_DT")
-  mdfrId     String?  @map("MDFR_ID")
-  delYn      String   @default("N") @map("DEL_YN")
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@map("TB_COMM_RFRSH_TKN")
-}
-
 model LoginLog {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @map("USE_ID") @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("USE_ID")
   lgnMthdCd  String   @map("LGN_MTHD_CD")
   lgnDt      DateTime @map("LGN_DT")
   lgnIpAddr  String   @map("LGN_IP_ADDR")
@@ -155,13 +108,28 @@ model LoginLog {
   @@map("TL_COMM_LGN_LOG")
 }
 
+model EmailLog {
+  id         Int       @id @default(autoincrement())
+  rcpntEml   String    @map("RCPNT_EML")
+  sbj        String    @map("SBJ")
+  tmpltNm    String    @map("TMPLT_NM")
+  sndSttsCd  String    @map("SND_STTS_CD")
+  errMsg     String?   @map("ERR_MSG")
+  sndDt      DateTime  @map("SND_DT")
+  mtdt       Json?     @map("MTDT")
+  rgstDt     DateTime  @default(now()) @map("RGST_DT")
+
+  // No DEL_YN — log table
+  @@map("TL_COMM_EML_LOG")
+}
+
 // ============================================================
 // Board Module
 // ============================================================
 
 model BoardPost {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @map("USE_ID") @db.ObjectId
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("USE_ID")
   postTtl      String   @map("POST_TTL")
   postCn       String   @map("POST_CN")
   postCtgrCd   String   @map("POST_CTGR_CD")
@@ -185,11 +153,11 @@ model BoardPost {
 }
 
 model BoardComment {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  postId     String   @map("POST_ID") @db.ObjectId
-  userId     String   @map("USE_ID") @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  postId     Int      @map("POST_ID")
+  userId     Int      @map("USE_ID")
   cmntCn     String   @map("CMNT_CN")
-  prntCmntId String?  @map("PRNT_CMNT_ID") @db.ObjectId
+  prntCmntId Int?     @map("PRNT_CMNT_ID")
   cmntDpth   Int      @map("CMNT_DPTH")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
@@ -204,8 +172,8 @@ model BoardComment {
 }
 
 model BoardAttachment {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  postId       String   @map("POST_ID") @db.ObjectId
+  id           Int      @id @default(autoincrement())
+  postId       Int      @map("POST_ID")
   atchTypeCd   String   @map("ATCH_TYPE_CD")
   fileNm       String   @map("ATCM_NM")
   filePath     String   @map("ATCM_URL")
@@ -224,7 +192,7 @@ model BoardAttachment {
 }
 
 model BoardBanner {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int      @id @default(autoincrement())
   imgUrl    String   @map("IMG_URL")
   ttl       String?  @map("TTL")
   subTtl    String?  @map("SUB_TTL")
@@ -239,9 +207,9 @@ model BoardBanner {
 }
 
 model BoardLike {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  postId String @map("POST_ID") @db.ObjectId
-  userId String @map("USE_ID") @db.ObjectId
+  id     Int    @id @default(autoincrement())
+  postId Int    @map("POST_ID")
+  userId Int    @map("USE_ID")
   rgstDt DateTime @default(now()) @map("RGST_DT")
 
   boardPost BoardPost @relation(fields: [postId], references: [id])
@@ -257,8 +225,8 @@ model BoardLike {
 // ============================================================
 
 model Product {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  sellerId     String   @map("SLLR_ID") @db.ObjectId
+  id           Int      @id @default(autoincrement())
+  sellerId     Int      @map("SLLR_ID")
   prdNm        String   @map("PRD_NM")
   prdDc        String   @map("PRD_DC")
   prdPrc       Float    @map("PRD_PRC")
@@ -290,11 +258,11 @@ model Product {
 // ============================================================
 
 model ChatRoom {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  id             Int       @id @default(autoincrement())
   chatRoomNm     String    @map("CHAT_ROOM_NM")
   chatRoomTypeCd String    @map("CHAT_ROOM_TYPE_CD")
   maxMbrCnt      Int       @map("MAX_MBR_CNT")
-  crtrId         String    @map("CRTR_ID") @db.ObjectId
+  crtrId         Int       @map("CRTR_ID")
   lstMsgCn       String?   @map("LST_MSSG_CN")
   lstMsgDt       DateTime? @map("LST_MSSG_DT")
   rgstDt         DateTime  @default(now()) @map("RGST_DT")
@@ -311,9 +279,9 @@ model ChatRoom {
 }
 
 model ChatRoomMember {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  chatRoomId String    @map("CHAT_ROOM_ID") @db.ObjectId
-  userId     String    @map("USE_ID") @db.ObjectId
+  id         Int       @id @default(autoincrement())
+  chatRoomId Int       @map("CHAT_ROOM_ID")
+  userId     Int       @map("USE_ID")
   joinDt     DateTime  @map("JOIN_DT")
   lastReadDt DateTime? @map("LAST_READ_DT")
   notiYn     String    @default("Y") @map("NOTI_YN")
@@ -327,9 +295,9 @@ model ChatRoomMember {
 }
 
 model ChatMessage {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  chatRoomId String   @map("CHAT_ROOM_ID") @db.ObjectId
-  userId     String   @map("USE_ID") @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  chatRoomId Int      @map("CHAT_ROOM_ID")
+  userId     Int      @map("USE_ID")
   msgCn      String   @map("MSSG_CN")
   msgTypeCd  String   @map("MSSG_TYPE_CD")
   sendDt     DateTime @map("SEND_DT")
@@ -345,8 +313,8 @@ model ChatMessage {
 }
 
 model ChatMessageAttachment {
-  id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  msgId        String  @map("MSSG_ID") @db.ObjectId
+  id           Int     @id @default(autoincrement())
+  msgId        Int     @map("MSSG_ID")
   fileNm       String  @map("ATCM_NM")
   filePath     String  @map("ATCM_URL")
   fileSize     Int     @map("ATCM_SIZE")
@@ -365,9 +333,9 @@ model ChatMessageAttachment {
 // ============================================================
 
 model Order {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          Int       @id @default(autoincrement())
   ordrNo      String    @unique @map("ORDR_NO")
-  byrId       String    @map("BYR_ID") @db.ObjectId
+  byrId       Int       @map("BYR_ID")
   ordrTotAmt  Float     @map("ORDR_TOT_AMT")
   ordrSttsCd  String    @default("PENDING") @map("ORDR_STTS_CD")
   shipAddr    String?   @map("SHIP_ADDR")
@@ -390,10 +358,10 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  ordrId     String   @map("ORDR_ID") @db.ObjectId
-  prdId      String   @map("PRD_ID") @db.ObjectId
-  sllrId     String   @map("SLLR_ID") @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  ordrId     Int      @map("ORDR_ID")
+  prdId      Int      @map("PRD_ID")
+  sllrId     Int      @map("SLLR_ID")
   prdNm      String   @map("PRD_NM")
   prdImgUrl  String   @map("PRD_IMG_URL")
   unitPrc    Float    @map("UNIT_PRC")
@@ -416,12 +384,12 @@ model OrderItem {
 }
 
 model OrderStatusHistory {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  ordrId     String   @map("ORDR_ID") @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  ordrId     Int      @map("ORDR_ID")
   prevSttsCd String   @map("PREV_STTS_CD")
   newSttsCd  String   @map("NEW_STTS_CD")
   chngRsn    String?  @map("CHNG_RSN")
-  chngrId    String   @map("CHNGR_ID") @db.ObjectId
+  chngrId    Int      @map("CHNGR_ID")
   chngDt     DateTime @map("CHNG_DT")
   rgstDt     DateTime @default(now()) @map("RGST_DT")
   rgtrId     String?  @map("RGTR_ID")
@@ -438,12 +406,12 @@ model OrderStatusHistory {
 // ============================================================
 
 model UserActivity {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @map("USE_ID") @db.ObjectId
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("USE_ID")
   actvTypeCd  String   @map("ACTV_TYPE_CD")
   prevVal     String?  @map("PREV_VAL")
   newVal      String?  @map("NEW_VAL")
-  prfmrId     String   @map("PRFMR_ID") @db.ObjectId
+  prfmrId     Int      @map("PRFMR_ID")
   clntIpAddr  String?  @map("CLNT_IP_ADDR")
   actvDt      DateTime @map("ACTV_DT")
   rgstDt      DateTime @default(now()) @map("RGST_DT")

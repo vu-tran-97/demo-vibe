@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { getUser, isLoggedIn } from '@/lib/auth';
-import styles from '@/components/admin/admin.module.css';
 
 const ADMIN_NAV_ITEMS = [
   { href: '/dashboard/admin', label: 'Dashboard' },
@@ -54,15 +53,8 @@ export default function AdminLayout({
 
   if (checking) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-        <div style={{
-          width: '24px',
-          height: '24px',
-          border: '2px solid var(--border-light)',
-          borderTopColor: 'var(--charcoal)',
-          borderRadius: '50%',
-          animation: 'spin 0.6s linear infinite',
-        }} />
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="w-[24px] h-[24px] border-[2px] border-border-light border-t-charcoal rounded-full animate-spin" />
       </div>
     );
   }
@@ -71,14 +63,14 @@ export default function AdminLayout({
 
   return (
     <div>
-      <nav className={styles.adminNav}>
+      <nav className="flex items-center gap-[0.25rem] mb-[2rem] border-b border-border-light pb-0">
         {ADMIN_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`${styles.adminNavLink} ${isActive ? styles.adminNavLinkActive : ''}`}
+              className={`py-[0.5rem] px-[1.5rem] font-body text-[0.8125rem] font-medium no-underline border-b-[2px] mb-[-1px] transition-all duration-[200ms] ${isActive ? 'text-charcoal border-b-charcoal' : 'text-muted border-b-transparent hover:text-charcoal'}`}
             >
               {item.label}
             </Link>

@@ -7,7 +7,7 @@ import { UpdateBannerDto } from './dto/update-banner.dto';
 import { ListPostsQueryDto } from './dto/list-posts-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequestUser } from '../firebase/firebase-auth.guard';
 
 @Injectable()
 export class BoardService {
@@ -37,7 +37,7 @@ export class BoardService {
     };
   }
 
-  async updateBanner(dto: UpdateBannerDto, userId: string) {
+  async updateBanner(dto: UpdateBannerDto, userId: number) {
     const existing = await this.prisma.boardBanner.findFirst({
       orderBy: { rgstDt: 'desc' },
     });
@@ -48,7 +48,7 @@ export class BoardService {
       subTtl: dto.subtitle || null,
       lnkUrl: dto.linkUrl || null,
       useYn: dto.enabled ? 'Y' : 'N',
-      mdfrId: userId,
+      mdfrId: String(userId),
     };
 
     let banner;
@@ -61,7 +61,7 @@ export class BoardService {
       banner = await this.prisma.boardBanner.create({
         data: {
           ...data,
-          rgtrId: userId,
+          rgtrId: String(userId),
         },
       });
     }
@@ -80,7 +80,7 @@ export class BoardService {
 
   // ── Posts ──
 
-  async createPost(dto: CreatePostDto, user: JwtPayload) {
+  async createPost(dto: CreatePostDto, user: RequestUser) {
     // Only SUPER_ADMIN can create NOTICE posts
     if (dto.postCtgrCd === 'NOTICE' && user.role !== 'SUPER_ADMIN') {
       throw new BusinessException(
@@ -92,7 +92,7 @@ export class BoardService {
 
     const post = await this.prisma.boardPost.create({
       data: {
-        userId: user.sub,
+        userId: user.id,
         postTtl: dto.postTtl,
         postCn: dto.postCn,
         postCtgrCd: dto.postCtgrCd,
@@ -101,8 +101,8 @@ export class BoardService {
         cmntCnt: 0,
         pnndYn: 'N',
         srchTags: dto.srchTags || [],
-        rgtrId: user.sub,
-        mdfrId: user.sub,
+        rgtrId: String(user.id),
+        mdfrId: String(user.id),
       },
       include: {
         user: {
@@ -111,7 +111,7 @@ export class BoardService {
       },
     });
 
-    this.logger.log(`User ${user.sub} created post ${post.id}`);
+    this.logger.log(`User ${user.id} created post ${post.id}`);
 
     return this.formatPostResponse(post);
   }
@@ -173,7 +173,7 @@ export class BoardService {
     };
   }
 
-  async getPostById(postId: string) {
+  async getPostById(postId: number) {
     const post = await this.prisma.boardPost.findFirst({
       where: { id: postId, delYn: 'N' },
       include: {
@@ -203,7 +203,7 @@ export class BoardService {
     });
   }
 
-  async updatePost(postId: string, dto: UpdatePostDto, user: JwtPayload) {
+  async updatePost(postId: number, dto: UpdatePostDto, user: RequestUser) {
     const post = await this.prisma.boardPost.findFirst({
       where: { id: postId, delYn: 'N' },
     });
@@ -227,7 +227,7 @@ export class BoardService {
       );
     }
 
-    const updateData: Record<string, unknown> = { mdfrId: user.sub };
+    const updateData: Record<string, unknown> = { mdfrId: String(user.id) };
     if (dto.postTtl !== undefined) updateData.postTtl = dto.postTtl;
     if (dto.postCn !== undefined) updateData.postCn = dto.postCn;
     if (dto.postCtgrCd !== undefined) updateData.postCtgrCd = dto.postCtgrCd;
@@ -243,12 +243,12 @@ export class BoardService {
       },
     });
 
-    this.logger.log(`User ${user.sub} updated post ${postId}`);
+    this.logger.log(`User ${user.id} updated post ${postId}`);
 
     return this.formatPostResponse(updated);
   }
 
-  async deletePost(postId: string, user: JwtPayload) {
+  async deletePost(postId: number, user: RequestUser) {
     const post = await this.prisma.boardPost.findFirst({
       where: { id: postId, delYn: 'N' },
     });
@@ -265,17 +265,17 @@ export class BoardService {
 
     await this.prisma.boardPost.update({
       where: { id: postId },
-      data: { delYn: 'Y', mdfrId: user.sub },
+      data: { delYn: 'Y', mdfrId: String(user.id) },
     });
 
-    this.logger.log(`User ${user.sub} soft-deleted post ${postId}`);
+    this.logger.log(`User ${user.id} soft-deleted post ${postId}`);
 
     return { id: postId, deleted: true };
   }
 
   // ── Comments ──
 
-  async getComments(postId: string) {
+  async getComments(postId: number) {
     const post = await this.prisma.boardPost.findFirst({
       where: { id: postId, delYn: 'N' },
     });
@@ -303,9 +303,9 @@ export class BoardService {
   }
 
   async createComment(
-    postId: string,
+    postId: number,
     dto: CreateCommentDto,
-    user: JwtPayload,
+    user: RequestUser,
   ) {
     const post = await this.prisma.boardPost.findFirst({
       where: { id: postId, delYn: 'N' },
@@ -348,12 +348,12 @@ export class BoardService {
     const comment = await this.prisma.boardComment.create({
       data: {
         postId,
-        userId: user.sub,
+        userId: user.id,
         cmntCn: dto.cmntCn,
         prntCmntId: dto.prntCmntId || null,
         cmntDpth,
-        rgtrId: user.sub,
-        mdfrId: user.sub,
+        rgtrId: String(user.id),
+        mdfrId: String(user.id),
       },
       include: {
         post: {
@@ -369,17 +369,17 @@ export class BoardService {
     });
 
     this.logger.log(
-      `User ${user.sub} added comment ${comment.id} on post ${postId}`,
+      `User ${user.id} added comment ${comment.id} on post ${postId}`,
     );
 
     return this.formatCommentResponse(comment);
   }
 
   async updateComment(
-    postId: string,
-    commentId: string,
+    postId: number,
+    commentId: number,
     dto: UpdateCommentDto,
-    user: JwtPayload,
+    user: RequestUser,
   ) {
     const comment = await this.prisma.boardComment.findFirst({
       where: { id: commentId, postId, delYn: 'N' },
@@ -399,7 +399,7 @@ export class BoardService {
       where: { id: commentId },
       data: {
         cmntCn: dto.cmntCn,
-        mdfrId: user.sub,
+        mdfrId: String(user.id),
       },
       include: {
         post: {
@@ -408,15 +408,15 @@ export class BoardService {
       },
     });
 
-    this.logger.log(`User ${user.sub} updated comment ${commentId}`);
+    this.logger.log(`User ${user.id} updated comment ${commentId}`);
 
     return this.formatCommentResponse(updated);
   }
 
   async deleteComment(
-    postId: string,
-    commentId: string,
-    user: JwtPayload,
+    postId: number,
+    commentId: number,
+    user: RequestUser,
   ) {
     const comment = await this.prisma.boardComment.findFirst({
       where: { id: commentId, postId, delYn: 'N' },
@@ -434,7 +434,7 @@ export class BoardService {
 
     await this.prisma.boardComment.update({
       where: { id: commentId },
-      data: { delYn: 'Y', mdfrId: user.sub },
+      data: { delYn: 'Y', mdfrId: String(user.id) },
     });
 
     // Decrement comment count on post
@@ -443,16 +443,16 @@ export class BoardService {
       data: { cmntCnt: { decrement: 1 } },
     });
 
-    this.logger.log(`User ${user.sub} soft-deleted comment ${commentId}`);
+    this.logger.log(`User ${user.id} soft-deleted comment ${commentId}`);
 
     return { id: commentId, deleted: true };
   }
 
   // ── Private Helpers ──
 
-  private verifyPostOwnership(authorId: string, user: JwtPayload) {
+  private verifyPostOwnership(authorId: number, user: RequestUser) {
     if (user.role === 'SUPER_ADMIN') return;
-    if (authorId !== user.sub) {
+    if (authorId !== user.id) {
       throw new BusinessException(
         'NOT_POST_OWNER',
         'You can only modify your own posts',
@@ -461,9 +461,9 @@ export class BoardService {
     }
   }
 
-  private verifyCommentOwnership(authorId: string, user: JwtPayload) {
+  private verifyCommentOwnership(authorId: number, user: RequestUser) {
     if (user.role === 'SUPER_ADMIN') return;
-    if (authorId !== user.sub) {
+    if (authorId !== user.id) {
       throw new BusinessException(
         'NOT_COMMENT_OWNER',
         'You can only modify your own comments',
@@ -473,8 +473,8 @@ export class BoardService {
   }
 
   private formatPostResponse(post: {
-    id: string;
-    userId: string;
+    id: number;
+    userId: number;
     postTtl: string;
     postCn: string;
     postCtgrCd: string;
@@ -486,7 +486,7 @@ export class BoardService {
     rgstDt: Date;
     mdfcnDt: Date;
     user?: {
-      id: string;
+      id: number;
       userNm: string;
       userNcnm: string | null;
       prflImgUrl: string | null;
@@ -517,16 +517,16 @@ export class BoardService {
 
   // In the Prisma schema, BoardComment.post = User relation (via userId)
   private formatCommentResponse(comment: {
-    id: string;
-    postId: string;
-    userId: string;
+    id: number;
+    postId: number;
+    userId: number;
     cmntCn: string;
-    prntCmntId: string | null;
+    prntCmntId: number | null;
     cmntDpth: number;
     rgstDt: Date;
     mdfcnDt: Date;
     post?: {
-      id: string;
+      id: number;
       userNm: string;
       userNcnm: string | null;
       prflImgUrl: string | null;

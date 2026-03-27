@@ -83,7 +83,7 @@ export function useCart() {
   );
 
   const updateQuantity = useCallback(
-    (productId: string, quantity: number) => {
+    (productId: number, quantity: number) => {
       const current = loadCart();
       const idx = current.findIndex((c) => c.product.id === productId);
       if (idx >= 0) {
@@ -99,7 +99,7 @@ export function useCart() {
   );
 
   const removeItem = useCallback(
-    (productId: string) => {
+    (productId: number) => {
       const current = loadCart().filter((c) => c.product.id !== productId);
       persist(current);
     },
