@@ -1,7 +1,7 @@
 # API Design Document
 
 > **Project:** Vibe E-Commerce Platform
-> **Last Updated:** 2026-03-20
+> **Last Updated:** 2026-03-27
 > **Base URL:** `http://localhost:4000/api`
 > **Swagger UI:** `http://localhost:4000/api/docs`
 > **Response Format:** `{ success: boolean, data: T, error?: string, message?: string }`
@@ -10,13 +10,12 @@
 
 ## 1. Authentication
 
-All protected endpoints require a JWT Bearer token in the `Authorization` header:
+All protected endpoints require a Firebase Auth ID token in the `Authorization` header:
 ```
-Authorization: Bearer <access_token>
+Authorization: Bearer <firebase_id_token>
 ```
 
-- **Access Token:** 15 minutes TTL
-- **Refresh Token:** 7 days TTL, stored in DB with rotation
+- **Token:** Firebase ID token (managed by Firebase Auth SDK, auto-refreshed)
 - **Role-based access:** `BUYER`, `SELLER`, `SUPER_ADMIN`
 
 ---
@@ -25,61 +24,42 @@ Authorization: Bearer <access_token>
 
 ### 2.1 Auth (`/api/auth`)
 
+Authentication is handled by Firebase Auth on the client side. The backend verifies Firebase ID tokens via Firebase Admin SDK.
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/auth/signup` | Public | Register new account |
-| `POST` | `/auth/login` | Public | Login with email/password |
-| `POST` | `/auth/logout` | Required | Invalidate refresh token |
-| `POST` | `/auth/refresh` | Public | Refresh access token |
-| `POST` | `/auth/verify-email` | Public | Verify email with token |
-| `POST` | `/auth/forgot-password` | Public | Request password reset |
-| `POST` | `/auth/reset-password` | Public | Reset password with token |
+| `GET` | `/auth/me` | Required | Get current user profile |
 | `PATCH` | `/auth/profile` | Required | Update profile |
-| `PATCH` | `/auth/password` | Required | Change password |
+| `PATCH` | `/auth/role` | ADMIN | Change user role |
 | `DELETE` | `/auth/account` | Required | Delete account |
 
-#### POST /auth/signup
+#### GET /auth/me
 ```json
-// Request
-{
-  "email": "user@example.com",
-  "password": "MyPass123!",
-  "name": "John Doe",
-  "nickname": "johndoe"      // optional, 2-30 chars
-}
-// Response 201
+// Response 200
 {
   "success": true,
   "data": {
-    "user": { "id": "...", "email": "...", "name": "...", "role": "BUYER" },
-    "accessToken": "eyJ...",
-    "refreshToken": "eyJ...",
-    "expiresIn": 900
+    "id": "...",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "nickname": "johndoe",
+    "role": "BUYER",
+    "profileImageUrl": "https://..."
   }
 }
 ```
 
-#### POST /auth/login
+#### PATCH /auth/profile
 ```json
 // Request
-{ "email": "user@example.com", "password": "MyPass123!" }
-// Response 200 — same shape as signup
-```
-
-#### POST /auth/refresh
-```json
-// Request
-{ "refreshToken": "eyJ..." }
+{
+  "name": "John Doe",
+  "nickname": "johndoe",        // optional
+  "profileImageUrl": "https://..." // optional
+}
 // Response 200
-{ "success": true, "data": { "accessToken": "eyJ...", "refreshToken": "eyJ...", "expiresIn": 900 } }
+{ "success": true, "data": { "id": "...", "email": "...", "name": "...", "role": "BUYER" } }
 ```
-
-### 2.2 Social Auth (`/api/auth/social`)
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/social/:provider` | Public | Redirect to OAuth (google/kakao/naver) |
-| `GET` | `/social/:provider/callback` | Public | OAuth callback handler |
 
 ### 2.3 Products (`/api/products`)
 

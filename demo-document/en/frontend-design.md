@@ -1,9 +1,10 @@
 # Frontend Design Document
 
 > **Project:** Vibe E-Commerce Platform
-> **Last Updated:** 2026-03-20
+> **Last Updated:** 2026-03-27
 > **Framework:** Next.js 15 (App Router, React 19)
 > **Port:** localhost:3000
+> **Production:** `demo-vibe-production.up.railway.app` (frontend), `demo-vibe-backend-production.up.railway.app` (backend)
 
 ---
 
@@ -20,7 +21,7 @@
 │  /orders, /settings    │  Session management                 │
 ├──────────────────────────────────────────────────────────────┤
 │  Shared: hooks, lib, components                              │
-│  Auth (JWT), Cart (localStorage), API client (fetch)         │
+│  Auth (Firebase), Cart (localStorage), API client (fetch)    │
 ├──────────────────────────────────────────────────────────────┤
 │                    NestJS API (port 4000)                     │
 └──────────────────────────────────────────────────────────────┘
@@ -31,9 +32,9 @@
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 15.5 (App Router) |
-| UI | React 19, CSS Modules |
+| UI | React 19, Tailwind CSS v4 + PostCSS |
 | State | React hooks, localStorage (cart) |
-| Auth | JWT (access + refresh tokens in memory/cookie) |
+| Auth | Firebase Auth (ID token) |
 | API Client | Native `fetch` with wrapper |
 | Routing | File-based (App Router) |
 | Build | Turbopack (dev), Webpack (prod) |
@@ -121,26 +122,25 @@
 ## 5. Authentication Flow
 
 ```
-┌─────────┐     POST /auth/login     ┌─────────┐
-│  Login   │ ───────────────────────> │  Server  │
-│  Form    │ <─────────────────────── │  (JWT)   │
-└─────────┘   { accessToken,          └─────────┘
-              refreshToken }
+┌─────────┐     Firebase Auth SDK     ┌──────────────┐
+│  Login   │ ────────────────────────> │  Firebase    │
+│  Form    │ <──────────────────────── │  Auth        │
+└─────────┘   { Firebase ID Token }    └──────────────┘
        │
        ▼
-  Store tokens in memory/localStorage
+  Firebase SDK manages token lifecycle
        │
        ▼
   ┌──────────────┐
-  │ API Requests  │──── Authorization: Bearer <token>
+  │ API Requests  │──── Authorization: Bearer <firebase_id_token>
   └──────────────┘
        │
        ▼  (token expired)
-  ┌──────────────┐     POST /auth/refresh
-  │ Auto-refresh  │──── { refreshToken }
-  └──────────────┘──── New tokens issued
+  ┌──────────────┐
+  │ Auto-refresh  │──── Firebase SDK auto-refreshes ID token
+  └──────────────┘
        │
-       ▼  (refresh failed)
+       ▼  (auth state lost)
   ┌──────────────┐
   │ Session Modal │──── Re-login without page redirect
   └──────────────┘
@@ -180,5 +180,6 @@
 | Colors | CSS Variables (`--color-*`) — no hardcoded values |
 | Font Sizes | Token scale (`--font-size-*`) |
 | Spacing | 8px grid (`--spacing-*`) |
-| Styling | CSS Modules (`.module.css`) per component |
+| Styling | Tailwind CSS v4 utility classes |
+| Currency | VND (vi-VN locale, e.g. 123.456₫) |
 | Icons | Inline SVG |

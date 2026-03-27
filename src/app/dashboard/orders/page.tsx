@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { formatPrice } from '@/utils/format';
 import {
   fetchBuyerOrders,
   fetchOrderById,
@@ -308,7 +309,7 @@ export default function OrdersPage() {
                         </span>
                       </div>
                       <span className="text-[0.875rem] font-medium text-charcoal">
-                        ${item.subtotalAmount.toFixed(2)}
+                        {formatPrice(item.subtotalAmount)}
                       </span>
                     </div>
                   ))}
@@ -318,7 +319,7 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-[0.5rem]">
                     <span className="text-[0.8125rem] text-slate">Total</span>
                     <span className="font-display text-[1.125rem] font-normal text-charcoal">
-                      ${order.totalAmount.toFixed(2)}
+                      {formatPrice(order.totalAmount)}
                     </span>
                   </div>
                 </div>
@@ -475,12 +476,11 @@ export default function OrdersPage() {
                           {item.productName}
                         </span>
                         <span className="text-[0.75rem] text-muted">
-                          Quantity: {item.quantity} x $
-                          {item.unitPrice.toFixed(2)}
+                          Quantity: {item.quantity} x {formatPrice(item.unitPrice)}
                         </span>
                       </div>
                       <span className="text-[0.9375rem] font-medium text-charcoal">
-                        ${item.subtotalAmount.toFixed(2)}
+                        {formatPrice(item.subtotalAmount)}
                       </span>
                     </div>
                   ))}
@@ -515,7 +515,7 @@ export default function OrdersPage() {
                     className="flex items-center justify-between text-[0.9375rem] font-medium text-charcoal pt-[0.5rem] border-t border-t-border-light"
                   >
                     <span>Total</span>
-                    <span>${selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>{formatPrice(selectedOrder.totalAmount)}</span>
                   </div>
                 </div>
 

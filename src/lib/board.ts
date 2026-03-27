@@ -1,6 +1,6 @@
 import { getAccessToken } from '@/lib/auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = '';
 
 // ── Types ──
 
