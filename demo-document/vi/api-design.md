@@ -1,7 +1,7 @@
 # Tài liệu Thiết kế API
 
 > **Dự án:** Nền tảng Thương mại điện tử Vibe
-> **Cập nhật lần cuối:** 2026-03-20
+> **Cập nhật lần cuối:** 2026-03-27
 > **URL gốc:** `http://localhost:4000/api`
 > **Giao diện Swagger:** `http://localhost:4000/api/docs`
 > **Định dạng phản hồi:** `{ success: boolean, data: T, error?: string, message?: string }`
@@ -10,13 +10,13 @@
 
 ## 1. Xác thực (Authentication)
 
-Tất cả các endpoint được bảo vệ đều yêu cầu JWT Bearer token trong header `Authorization`:
+Tất cả các endpoint được bảo vệ đều yêu cầu Firebase ID token trong header `Authorization`:
 ```
-Authorization: Bearer <access_token>
+Authorization: Bearer <firebase_id_token>
 ```
 
-- **Access Token:** Thời gian sống 15 phút
-- **Refresh Token:** Thời gian sống 7 ngày, lưu trong DB với cơ chế xoay vòng (rotation)
+- **Xác thực:** Firebase Auth (email/password) — Firebase SDK phía client tạo ID token
+- **Tự động tạo user:** Khi gọi API lần đầu, nếu user chưa tồn tại trong DB sẽ được tự động tạo từ thông tin Firebase token
 - **Phân quyền theo vai trò:** `BUYER`, `SELLER`, `SUPER_ADMIN`
 
 ---
@@ -27,61 +27,39 @@ Authorization: Bearer <access_token>
 
 | Phương thức | Đường dẫn | Xác thực | Mô tả |
 |-------------|-----------|----------|-------|
-| `POST` | `/auth/signup` | Công khai | Đăng ký tài khoản mới |
-| `POST` | `/auth/login` | Công khai | Đăng nhập bằng email/mật khẩu |
-| `POST` | `/auth/logout` | Bắt buộc | Vô hiệu hóa refresh token |
-| `POST` | `/auth/refresh` | Công khai | Làm mới access token |
-| `POST` | `/auth/verify-email` | Công khai | Xác minh email bằng token |
-| `POST` | `/auth/forgot-password` | Công khai | Yêu cầu đặt lại mật khẩu |
-| `POST` | `/auth/reset-password` | Công khai | Đặt lại mật khẩu bằng token |
-| `PATCH` | `/auth/profile` | Bắt buộc | Cập nhật hồ sơ cá nhân |
-| `PATCH` | `/auth/password` | Bắt buộc | Thay đổi mật khẩu |
-| `DELETE` | `/auth/account` | Bắt buộc | Xóa tài khoản |
+| `GET` | `/auth/me` | Bắt buộc | Lấy thông tin người dùng hiện tại |
+| `PATCH` | `/auth/profile` | Bắt buộc | Cập nhật hồ sơ cá nhân (tên, biệt danh) |
+| `PATCH` | `/auth/role` | Bắt buộc | Thiết lập vai trò lần đầu (BUYER/SELLER) |
+| `DELETE` | `/auth/account` | Bắt buộc | Xóa tài khoản (xóa mềm) |
 
-#### POST /auth/signup
+#### GET /auth/me
 ```json
-// Yêu cầu
-{
-  "email": "user@example.com",
-  "password": "MyPass123!",
-  "name": "John Doe",
-  "nickname": "johndoe"      // tùy chọn, 2-30 ký tự
-}
-// Phản hồi 201
+// Phản hồi 200
 {
   "success": true,
   "data": {
-    "user": { "id": "...", "email": "...", "name": "...", "role": "BUYER" },
-    "accessToken": "eyJ...",
-    "refreshToken": "eyJ...",
-    "expiresIn": 900
+    "id": 52,
+    "firebaseUid": "3PlUwjuAGYapyy2luwE95g8B2HQ2",
+    "email": "seller1000@yopmail.com",
+    "name": "Seller1000",
+    "nickname": "Seller1000",
+    "profileImageUrl": null,
+    "role": "SELLER"
   }
 }
 ```
 
-#### POST /auth/login
+#### PATCH /auth/role
 ```json
 // Yêu cầu
-{ "email": "user@example.com", "password": "MyPass123!" }
-// Phản hồi 200 — cùng định dạng với signup
+{ "role": "SELLER" }
+// Phản hồi 200 — cùng định dạng với GET /auth/me
 ```
 
-#### POST /auth/refresh
-```json
-// Yêu cầu
-{ "refreshToken": "eyJ..." }
-// Phản hồi 200
-{ "success": true, "data": { "accessToken": "eyJ...", "refreshToken": "eyJ...", "expiresIn": 900 } }
-```
+> **Lưu ý:** Đăng ký và đăng nhập được xử lý trực tiếp qua Firebase Auth SDK phía client.
+> Backend chỉ xác minh Firebase ID token và quản lý dữ liệu user trong PostgreSQL.
 
-### 2.2 Xác thực mạng xã hội (`/api/auth/social`)
-
-| Phương thức | Đường dẫn | Xác thực | Mô tả |
-|-------------|-----------|----------|-------|
-| `GET` | `/social/:provider` | Công khai | Chuyển hướng đến OAuth (google/kakao/naver) |
-| `GET` | `/social/:provider/callback` | Công khai | Xử lý callback OAuth |
-
-### 2.3 Sản phẩm (`/api/products`)
+### 2.2 Sản phẩm (`/api/products`)
 
 | Phương thức | Đường dẫn | Xác thực | Mô tả |
 |-------------|-----------|----------|-------|
@@ -265,12 +243,11 @@ Tất cả các endpoint quản trị đều yêu cầu vai trò `SUPER_ADMIN`.
 ### Các mã lỗi phổ biến
 | Mã lỗi | HTTP | Mô tả |
 |---------|------|-------|
-| `UNAUTHORIZED` | 401 | Token không hợp lệ hoặc thiếu |
+| `UNAUTHORIZED` | 401 | Firebase ID token không hợp lệ hoặc thiếu |
 | `FORBIDDEN` | 403 | Không đủ quyền |
 | `NOT_FOUND` | 404 | Không tìm thấy tài nguyên |
 | `VALIDATION_ERROR` | 400 | Dữ liệu đầu vào không hợp lệ |
 | `EMAIL_ALREADY_EXISTS` | 409 | Email đã tồn tại |
-| `INVALID_CREDENTIALS` | 401 | Sai email/mật khẩu |
 | `ORDER_ACCESS_DENIED` | 403 | Không phải chủ đơn hàng |
 
 ---

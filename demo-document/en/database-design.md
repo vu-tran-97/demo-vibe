@@ -1,9 +1,9 @@
 # Database Design Document
 
 > **Project:** Vibe E-Commerce Platform
-> **Last Updated:** 2026-03-20
-> **Database:** MongoDB 7 with Prisma ORM (MongoDB Adapter)
-> **Total Collections:** 19
+> **Last Updated:** 2026-03-27
+> **Database:** PostgreSQL 16 with Prisma ORM
+> **Total Tables:** 19
 
 ---
 
@@ -17,15 +17,14 @@
 │                    Prisma Client                             │
 │         camelCase fields ──@map()──> UPPER_SNAKE_CASE        │
 ├─────────────────────────────────────────────────────────────┤
-│                    MongoDB 7                                 │
-│            Replica Set (rs0) for transactions                │
-│            Connection: mongodb://localhost:27017              │
+│                    PostgreSQL 16                             │
+│            Connection: postgresql://localhost:5432            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## 2. Naming Conventions
 
-### Collection Prefixes
+### Table Prefixes
 | Prefix | Type | Example |
 |--------|------|---------|
 | `TB_` | General table | `TB_COMM_USER` |
@@ -51,7 +50,7 @@
 | `_ADDR` | Address | `SHIP_ADDR` |
 | `_SN` | Sequence | `SORT_NO` |
 
-### Common Fields (all collections)
+### Common Fields (all tables)
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `RGST_DT` | DateTime | `now()` | Created at |
@@ -109,7 +108,7 @@
 
 ---
 
-## 4. Collection Definitions
+## 4. Table Definitions
 
 ### 4.1 Code Tables
 
@@ -373,7 +372,7 @@
 ## 5. Index Strategy
 
 ### Single Indexes
-| Collection | Field | Type | Purpose |
+| Table | Field | Type | Purpose |
 |------------|-------|------|---------|
 | TB_COMM_USER | USE_EML | Unique | Email login |
 | TB_COMM_USER | USE_NCNM | Unique (sparse) | Nickname |
@@ -410,7 +409,7 @@
 ## 6. Prisma Schema Mapping
 
 ```
-MongoDB Collection         Prisma Model              @@map()
+PostgreSQL Table           Prisma Model              @@map()
 ───────────────────────────────────────────────────────────────
 TC_COMM_CD_GRP           CommonCodeGroup            TC_COMM_CD_GRP
 TC_COMM_CD               CommonCode                 TC_COMM_CD
@@ -434,4 +433,26 @@ TH_COMM_ORDR_STTS        OrderStatusHistory         TH_COMM_ORDR_STTS
 TL_COMM_USE_ACTV         UserActivity               TL_COMM_USE_ACTV
 ```
 
-> Field mapping: Prisma uses `camelCase`, MongoDB uses `UPPER_SNAKE_CASE` via `@map()`.
+> Field mapping: Prisma uses `camelCase`, PostgreSQL uses `UPPER_SNAKE_CASE` via `@map()`.
+
+---
+
+## 7. Production Deployment
+
+- **Database hosting:** Railway PostgreSQL
+- **Connection:** Railway-provided `DATABASE_URL` environment variable
+
+---
+
+## 8. Production Data Sources
+
+The platform is seeded with **50,000 products** from 3 real sources, all prices in VND:
+
+| Source | Products | Details |
+|--------|----------|---------|
+| Tiki.vn API | 40,986 | 24 categories, VND native prices |
+| OpenLibrary API | 8,137 | Books with covers, VND 50k-500k |
+| Makeup API | 877 | Cosmetics, VND converted from USD |
+
+- **Crawl script:** `scripts/crawl-tiki.ts`
+- **Currency:** VND (all prices stored and displayed in Vietnamese Dong)

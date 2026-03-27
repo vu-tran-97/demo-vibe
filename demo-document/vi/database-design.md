@@ -1,9 +1,9 @@
 # Tài liệu Thiết kế Cơ sở dữ liệu
 
 > **Dự án:** Nền tảng Thương mại điện tử Vibe
-> **Cập nhật lần cuối:** 2026-03-20
-> **Cơ sở dữ liệu:** MongoDB 7 với Prisma ORM (MongoDB Adapter)
-> **Tổng số Collection:** 19
+> **Cập nhật lần cuối:** 2026-03-27
+> **Cơ sở dữ liệu:** PostgreSQL 16 với Prisma ORM
+> **Tổng số Table:** 19
 
 ---
 
@@ -17,15 +17,16 @@
 │                    Prisma Client                             │
 │         camelCase fields ──@map()──> UPPER_SNAKE_CASE        │
 ├─────────────────────────────────────────────────────────────┤
-│                    MongoDB 7                                 │
-│            Replica Set (rs0) cho transactions                │
-│            Kết nối: mongodb://localhost:27017                 │
+│                    PostgreSQL 16                              │
+│            Kết nối: postgresql://localhost:5432               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> **Production:** Railway PostgreSQL
+
 ## 2. Quy tắc Đặt tên
 
-### Tiền tố Collection
+### Tiền tố Table
 | Tiền tố | Loại | Ví dụ |
 |---------|------|-------|
 | `TB_` | Bảng chung | `TB_COMM_USER` |
@@ -51,7 +52,7 @@
 | `_ADDR` | Địa chỉ (Address) | `SHIP_ADDR` |
 | `_SN` | Số tuần tự (Sequence) | `SORT_NO` |
 
-### Các trường chung (tất cả collection)
+### Các trường chung (tất cả table)
 | Trường | Kiểu | Mặc định | Mô tả |
 |--------|------|----------|-------|
 | `RGST_DT` | DateTime | `now()` | Ngày tạo |
@@ -109,14 +110,14 @@
 
 ---
 
-## 4. Định nghĩa Collection
+## 4. Định nghĩa Table
 
 ### 4.1 Bảng Mã
 
 #### TC_COMM_CD_GRP (Nhóm Mã)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `_id` | ObjectId | PK | |
+| `ID` | String (UUID) | PK | |
 | `CD_GRP_ID` | String | Y, duy nhất | Định danh nhóm (ví dụ: `USE_ROLE`) |
 | `CD_GRP_NM` | String | Y | Tên nhóm |
 | `CD_GRP_DC` | String | N | Mô tả |
@@ -125,7 +126,7 @@
 #### TC_COMM_CD (Mã)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `_id` | ObjectId | PK | |
+| `ID` | String (UUID) | PK | |
 | `CD_GRP_ID` | String | FK | ID nhóm mã |
 | `CD_VAL` | String | Y | Giá trị mã (ví dụ: `ACTV`) |
 | `CD_NM` | String | Y | Tên hiển thị |
@@ -156,7 +157,7 @@
 #### TB_COMM_USER (Người dùng)
 | Trường | Kiểu | Bắt buộc | Ràng buộc | Mô tả |
 |--------|------|----------|-----------|-------|
-| `_id` | ObjectId | PK | | ID Người dùng |
+| `ID` | String (UUID) | PK | | ID Người dùng |
 | `USE_EML` | String | Y | duy nhất, tối đa 100 | Email |
 | `USE_PSWD` | String | N | mã hóa bcrypt | Mật khẩu (null nếu chỉ dùng mạng xã hội) |
 | `USE_NM` | String | Y | tối đa 50 | Họ tên |
@@ -174,7 +175,7 @@
 #### TB_COMM_SCL_ACNT (Tài khoản Mạng xã hội)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `USE_ID` | ObjectId | FK | ID Người dùng |
+| `USE_ID` | String (UUID) | FK | ID Người dùng |
 | `SCL_PRVD_CD` | String | Y | Nhà cung cấp: GOOGLE/KAKAO/NAVER |
 | `SCL_PRVD_USE_ID` | String | Y | ID người dùng từ nhà cung cấp |
 | `SCL_EML` | String | N | Email mạng xã hội |
@@ -186,9 +187,9 @@
 #### TB_COMM_RFRSH_TKN (Token Làm mới)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `USE_ID` | ObjectId | FK | ID Người dùng |
+| `USE_ID` | String (UUID) | FK | ID Người dùng |
 | `TKN_VAL` | String | Y, duy nhất | Giá trị token (đã mã hóa) |
-| `EXPR_DT` | DateTime | Y | Hạn sử dụng (TTL tự động xóa) |
+| `EXPR_DT` | DateTime | Y | Hạn sử dụng |
 | `CLNT_IP_ADDR` | String | Y | Địa chỉ IP máy khách |
 | `USE_AGNT` | String | N | User-Agent |
 | `RVKD_YN` | String(1) | Y | Cờ thu hồi (mặc định: `N`) |
@@ -196,21 +197,21 @@
 #### TL_COMM_LGN_LOG (Nhật ký Đăng nhập)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `USE_ID` | ObjectId | FK | ID Người dùng |
+| `USE_ID` | String (UUID) | FK | ID Người dùng |
 | `LGN_MTHD_CD` | String | Y | Phương thức: EMAIL/GOOGLE/KAKAO/NAVER |
 | `LGN_DT` | DateTime | Y | Thời gian đăng nhập |
 | `LGN_IP_ADDR` | String | Y | Địa chỉ IP |
 | `LGN_RSLT_CD` | String | Y | Kết quả: SUCC/FAIL |
 | `FAIL_RSN` | String | N | Lý do thất bại |
 
-> Không có `DEL_YN`. TTL: 90 ngày dựa trên `LGN_DT`.
+> Không có `DEL_YN`. Dọn dẹp định kỳ: 90 ngày dựa trên `LGN_DT`.
 
 ### 4.3 Module Bảng tin (Board)
 
 #### TB_COMM_BOARD_POST (Bài viết)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `USE_ID` | ObjectId | FK | ID Tác giả |
+| `USE_ID` | String (UUID) | FK | ID Tác giả |
 | `POST_TTL` | String | Y | Tiêu đề (tối đa 200) |
 | `POST_CN` | String | Y | Nội dung (tối đa 10.000) |
 | `POST_CTGR_CD` | String | Y | Danh mục: NOTICE/FREE/QNA/REVIEW |
@@ -223,8 +224,8 @@
 #### TB_COMM_BOARD_CMNT (Bình luận)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `POST_ID` | ObjectId | FK | ID Bài viết |
-| `USE_ID` | ObjectId | FK | ID Tác giả |
+| `POST_ID` | String (UUID) | FK | ID Bài viết |
+| `USE_ID` | String (UUID) | FK | ID Tác giả |
 | `CMNT_CN` | String | Y | Nội dung (tối đa 2.000) |
 | `PRNT_CMNT_ID` | ObjectId | N | Bình luận cha (trả lời 1 cấp) |
 | `CMNT_DPTH` | Number | Y | Độ sâu: 0 (gốc) hoặc 1 (trả lời) |
@@ -232,7 +233,7 @@
 #### TB_COMM_BOARD_ATCH (Tệp đính kèm)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `POST_ID` | ObjectId | FK | ID Bài viết |
+| `POST_ID` | String (UUID) | FK | ID Bài viết |
 | `ATCH_TYPE_CD` | String | Y | Loại: IMG/DOC/VIDEO |
 | `ATCM_NM` | String | Y | Tên tệp |
 | `ATCM_URL` | String | Y | Đường dẫn lưu trữ |
@@ -252,8 +253,8 @@
 #### TR_COMM_BOARD_LIKE (Lượt thích)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `POST_ID` | ObjectId | FK | ID Bài viết |
-| `USE_ID` | ObjectId | FK | ID Người dùng |
+| `POST_ID` | String (UUID) | FK | ID Bài viết |
+| `USE_ID` | String (UUID) | FK | ID Người dùng |
 
 **Ràng buộc duy nhất:** `{ POST_ID, USE_ID }`. Bỏ thích = xóa vật lý.
 
@@ -262,7 +263,7 @@
 #### TB_PROD_PRD (Sản phẩm)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `SLLR_ID` | ObjectId | FK | ID Người bán |
+| `SLLR_ID` | String (UUID) | FK | ID Người bán |
 | `PRD_NM` | String | Y | Tên (tối đa 200) |
 | `PRD_DC` | String | Y | Mô tả (tối đa 10.000) |
 | `PRD_PRC` | Float | Y | Giá (>= 0) |
@@ -284,7 +285,7 @@
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
 | `ORDR_NO` | String | Y, duy nhất | Mã đơn hàng (định dạng: `VB-YYYY-MMDD-NNN`) |
-| `BYR_ID` | ObjectId | FK | ID Người mua (khách: `000000000000000000000000`) |
+| `BYR_ID` | String (UUID) | FK | ID Người mua (khách: `000000000000000000000000`) |
 | `ORDR_TOT_AMT` | Float | Y | Tổng tiền |
 | `ORDR_STTS_CD` | String | Y | Trạng thái: PENDING/PAID/SHIPPED/DELIVERED/CANCELLED/REFUNDED |
 | `SHIP_ADDR` | String | N | Địa chỉ giao hàng (tối đa 500) |
@@ -297,9 +298,9 @@
 #### TB_COMM_ORDR_ITEM (Mục Đơn hàng)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `ORDR_ID` | ObjectId | FK | ID Đơn hàng |
-| `PRD_ID` | ObjectId | FK | ID Sản phẩm |
-| `SLLR_ID` | ObjectId | FK | ID Người bán |
+| `ORDR_ID` | String (UUID) | FK | ID Đơn hàng |
+| `PRD_ID` | String (UUID) | FK | ID Sản phẩm |
+| `SLLR_ID` | String (UUID) | FK | ID Người bán |
 | `PRD_NM` | String | Y | Tên sản phẩm (bản chụp) |
 | `PRD_IMG_URL` | String | Y | Hình ảnh sản phẩm (bản chụp) |
 | `UNIT_PRC` | Float | Y | Đơn giá tại thời điểm đặt hàng |
@@ -312,11 +313,11 @@
 #### TH_COMM_ORDR_STTS (Lịch sử Trạng thái Đơn hàng)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `ORDR_ID` | ObjectId | FK | ID Đơn hàng |
+| `ORDR_ID` | String (UUID) | FK | ID Đơn hàng |
 | `PREV_STTS_CD` | String | Y | Trạng thái trước |
 | `NEW_STTS_CD` | String | Y | Trạng thái mới |
 | `CHNG_RSN` | String | N | Lý do thay đổi |
-| `CHNGR_ID` | ObjectId | FK | Người thay đổi |
+| `CHNGR_ID` | String (UUID) | FK | Người thay đổi |
 | `CHNG_DT` | DateTime | Y | Thời gian thay đổi |
 
 > Bất biến (immutable) — không có `DEL_YN`.
@@ -329,15 +330,15 @@
 | `CHAT_ROOM_NM` | String | Y | Tên phòng (tối đa 100) |
 | `CHAT_ROOM_TYPE_CD` | String | Y | Loại: DM/GROUP |
 | `MAX_MBR_CNT` | Number | Y | Số thành viên tối đa (DM: 2, GROUP: 100) |
-| `CRTR_ID` | ObjectId | FK | ID Người tạo |
+| `CRTR_ID` | String (UUID) | FK | ID Người tạo |
 | `LST_MSSG_CN` | String | N | Xem trước tin nhắn cuối |
 | `LST_MSSG_DT` | DateTime | N | Thời gian tin nhắn cuối |
 
 #### TR_COMM_CHAT_ROOM_MBR (Thành viên)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `CHAT_ROOM_ID` | ObjectId | FK | ID Phòng chat |
-| `USE_ID` | ObjectId | FK | ID Người dùng |
+| `CHAT_ROOM_ID` | String (UUID) | FK | ID Phòng chat |
+| `USE_ID` | String (UUID) | FK | ID Người dùng |
 | `JOIN_DT` | DateTime | Y | Ngày tham gia |
 | `LAST_READ_DT` | DateTime | N | Thời gian đọc cuối |
 | `NOTI_YN` | String(1) | Y | Bật thông báo |
@@ -347,8 +348,8 @@
 #### TB_COMM_CHAT_MSG (Tin nhắn)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `CHAT_ROOM_ID` | ObjectId | FK | ID Phòng |
-| `USE_ID` | ObjectId | FK | ID Người gửi |
+| `CHAT_ROOM_ID` | String (UUID) | FK | ID Phòng |
+| `USE_ID` | String (UUID) | FK | ID Người gửi |
 | `MSSG_CN` | String | Y | Nội dung (tối đa 5.000) |
 | `MSSG_TYPE_CD` | String | Y | Loại: TEXT/IMG/FILE |
 | `SEND_DT` | DateTime | Y | Thời gian gửi |
@@ -358,22 +359,22 @@
 #### TL_COMM_USE_ACTV (Nhật ký Hoạt động Người dùng)
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |--------|------|----------|-------|
-| `USE_ID` | ObjectId | FK | ID Người dùng mục tiêu |
+| `USE_ID` | String (UUID) | FK | ID Người dùng mục tiêu |
 | `ACTV_TYPE_CD` | String | Y | Loại: ROLE_CHANGE/STTS_CHANGE/PRFL_UPDATE/LGN |
 | `PREV_VAL` | String | N | Giá trị trước |
 | `NEW_VAL` | String | N | Giá trị mới |
-| `PRFMR_ID` | ObjectId | FK | Người thực hiện |
+| `PRFMR_ID` | String (UUID) | FK | Người thực hiện |
 | `CLNT_IP_ADDR` | String | N | Địa chỉ IP máy khách |
 | `ACTV_DT` | DateTime | Y | Thời gian hoạt động |
 
-> Không có `DEL_YN`. TTL: 180 ngày dựa trên `ACTV_DT`.
+> Không có `DEL_YN`. Dọn dẹp định kỳ: 180 ngày dựa trên `ACTV_DT`.
 
 ---
 
 ## 5. Chiến lược Chỉ mục (Index)
 
 ### Chỉ mục Đơn
-| Collection | Trường | Loại | Mục đích |
+| Table | Trường | Loại | Mục đích |
 |------------|--------|------|----------|
 | TB_COMM_USER | USE_EML | Duy nhất (Unique) | Đăng nhập bằng email |
 | TB_COMM_USER | USE_NCNM | Duy nhất (sparse) | Biệt danh |
@@ -383,7 +384,7 @@
 | TB_COMM_RFRSH_TKN | TKN_VAL | Duy nhất (Unique) | Xác thực token |
 
 ### Chỉ mục Kết hợp
-| Collection | Các trường | Mục đích |
+| Table | Các trường | Mục đích |
 |------------|-----------|----------|
 | TB_COMM_BOARD_POST | DEL_YN + POST_CTGR_CD + RGST_DT(desc) | Danh sách bảng tin |
 | TB_COMM_BOARD_CMNT | POST_ID + DEL_YN + RGST_DT | Bình luận bài viết |
@@ -392,25 +393,25 @@
 | TB_COMM_ORDR_ITEM | SLLR_ID + ITEM_STTS_CD + RGST_DT(desc) | Doanh số người bán |
 | TB_COMM_CHAT_MSG | CHAT_ROOM_ID + SEND_DT(desc) | Tin nhắn chat |
 
-### Chỉ mục TTL (Tự động xóa)
-| Collection | Trường | TTL |
-|------------|--------|-----|
-| TB_COMM_RFRSH_TKN | EXPR_DT | Khi hết hạn |
-| TL_COMM_LGN_LOG | LGN_DT | 90 ngày |
-| TL_COMM_USE_ACTV | ACTV_DT | 180 ngày |
+### Chính sách dọn dẹp dữ liệu
+| Table | Trường | Thời gian giữ | Cơ chế |
+|-------|--------|---------------|--------|
+| TB_COMM_RFRSH_TKN | EXPR_DT | Khi hết hạn | Cron job xóa định kỳ |
+| TL_COMM_LGN_LOG | LGN_DT | 90 ngày | Cron job xóa định kỳ |
+| TL_COMM_USE_ACTV | ACTV_DT | 180 ngày | Cron job xóa định kỳ |
 
-### Chỉ mục Văn bản (Tìm kiếm toàn văn)
-| Collection | Các trường |
-|------------|-----------|
-| TB_COMM_BOARD_POST | POST_TTL + POST_CN |
-| TB_PROD_PRD | PRD_NM + PRD_DC + SRCH_TAGS |
+### Chỉ mục Tìm kiếm toàn văn (GIN)
+| Table | Các trường | Phương pháp |
+|-------|-----------|-------------|
+| TB_COMM_BOARD_POST | POST_TTL + POST_CN | GIN (tsvector) |
+| TB_PROD_PRD | PRD_NM + PRD_DC + SRCH_TAGS | GIN (tsvector) |
 
 ---
 
 ## 6. Ánh xạ Prisma Schema
 
 ```
-MongoDB Collection         Prisma Model              @@map()
+PostgreSQL Table           Prisma Model              @@map()
 ───────────────────────────────────────────────────────────────
 TC_COMM_CD_GRP           CommonCodeGroup            TC_COMM_CD_GRP
 TC_COMM_CD               CommonCode                 TC_COMM_CD
@@ -434,4 +435,20 @@ TH_COMM_ORDR_STTS        OrderStatusHistory         TH_COMM_ORDR_STTS
 TL_COMM_USE_ACTV         UserActivity               TL_COMM_USE_ACTV
 ```
 
-> Ánh xạ trường: Prisma sử dụng `camelCase`, MongoDB sử dụng `UPPER_SNAKE_CASE` thông qua `@map()`.
+> Ánh xạ trường: Prisma sử dụng `camelCase`, PostgreSQL sử dụng `UPPER_SNAKE_CASE` thông qua `@map()`.
+
+---
+
+## 7. Nguồn dữ liệu sản phẩm
+
+> **Tổng số:** ~50.000 sản phẩm từ 3 nguồn thật
+> **Đơn vị tiền:** VND
+
+| Nguồn | Số lượng | Mô tả |
+|--------|----------|-------|
+| Tiki.vn API | 40.986 sản phẩm | 24 danh mục, giá VND |
+| OpenLibrary API | 8.137 sản phẩm | Sách có ảnh bìa, VND 50k-500k |
+| Makeup API | 877 sản phẩm | Mỹ phẩm, VND |
+
+- **Script crawl:** `scripts/crawl-tiki.ts`
+- **Giá tiền:** VND (định dạng vi-VN, ví dụ 123.456₫)

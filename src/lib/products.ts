@@ -1,4 +1,10 @@
 import { getAccessToken } from '@/lib/auth';
+import { formatPrice, formatNumber } from '@/utils/format';
+import { CATEGORY_LABELS, CATEGORIES } from '@/constants/product';
+
+// Re-export utils and constants for backward compatibility
+export { formatPrice, formatNumber } from '@/utils/format';
+export { CATEGORY_LABELS, CATEGORIES } from '@/constants/product';
 
 const API_BASE = '';
 
@@ -73,24 +79,6 @@ export interface CreateProductData {
 export interface UpdateProductData extends Partial<CreateProductData> {}
 
 // ── Static Data ──
-
-const CATEGORY_LABELS: Record<string, string> = {
-  CERAMICS: 'Ceramics & Pottery',
-  TEXTILES: 'Textiles & Fabrics',
-  ART: 'Art & Prints',
-  JEWELRY: 'Jewelry & Accessories',
-  HOME: 'Home & Living',
-  FOOD: 'Food & Beverages',
-};
-
-export const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([code, label]) => ({
-  code,
-  label,
-}));
-
-export function formatPrice(price: number): string {
-  return `$${price.toFixed(2)}`;
-}
 
 export function getCategoryLabel(code: string): string {
   return CATEGORY_LABELS[code] || code;

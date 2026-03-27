@@ -13,6 +13,7 @@ import {
   type OrderStatus,
   type OrderListResponse,
 } from '@/lib/orders';
+import { formatPrice } from '@/utils/format';
 import { UserMenu } from '@/components/user-menu/UserMenu';
 import { AuthModal } from '@/components/auth-modal/AuthModal';
 import { ToastContainer } from '@/components/toast/Toast';
@@ -316,14 +317,14 @@ export default function MyOrdersPage() {
                               </span>
                             </div>
                           )}
-                          <span className="text-[0.875rem] font-medium text-charcoal">${item.subtotalAmount.toFixed(2)}</span>
+                          <span className="text-[0.875rem] font-medium text-charcoal">{formatPrice(item.subtotalAmount)}</span>
                         </div>
                       ))}
                     </div>
                     <div className="flex items-center justify-between pt-[0.5rem] border-t border-border-light">
                       <div className="flex items-center gap-[0.5rem]">
                         <span className="text-[0.8125rem] text-slate">Total</span>
-                        <span className="font-display text-[1.125rem] font-normal text-charcoal">${order.totalAmount.toFixed(2)}</span>
+                        <span className="font-display text-[1.125rem] font-normal text-charcoal">{formatPrice(order.totalAmount)}</span>
                       </div>
                     </div>
                   </button>
@@ -401,7 +402,7 @@ export default function MyOrdersPage() {
                             <div className="flex-1 flex flex-col gap-[2px]">
                               <span className="text-[0.875rem] font-medium text-charcoal">{item.productName}</span>
                               <span className="text-[0.75rem] text-muted">
-                                Qty: {item.quantity} x ${item.unitPrice.toFixed(2)}
+                                Qty: {item.quantity} x {formatPrice(item.unitPrice)}
                                 {item.sellerName && ` — ${item.sellerName}`}
                               </span>
                             </div>
@@ -413,7 +414,7 @@ export default function MyOrdersPage() {
                                 {ITEM_LABELS[item.itemStatus] || item.itemStatus}
                               </span>
                             </div>
-                            <span className="text-[0.9375rem] font-medium text-charcoal">${item.subtotalAmount.toFixed(2)}</span>
+                            <span className="text-[0.9375rem] font-medium text-charcoal">{formatPrice(item.subtotalAmount)}</span>
                           </div>
 
                           {/* Per-item progress bar */}
@@ -463,7 +464,7 @@ export default function MyOrdersPage() {
                       {selectedOrder.receiverPhone && <div className="flex items-center justify-between text-[0.8125rem] text-slate"><span>Phone</span><span>{selectedOrder.receiverPhone}</span></div>}
                       {selectedOrder.shippingMemo && <div className="flex items-center justify-between text-[0.8125rem] text-slate"><span>Memo</span><span>{selectedOrder.shippingMemo}</span></div>}
                       <div className="flex items-center justify-between text-[0.9375rem] font-medium text-charcoal pt-[0.5rem] border-t border-border-light">
-                        <span>Total</span><span>${selectedOrder.totalAmount.toFixed(2)}</span>
+                        <span>Total</span><span>{formatPrice(selectedOrder.totalAmount)}</span>
                       </div>
                     </div>
                     <div className="flex gap-[0.5rem] justify-end max-sm:flex-col">

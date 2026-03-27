@@ -1,7 +1,7 @@
 # Tài liệu thiết kế Frontend
 
 > **Dự án:** Vibe E-Commerce Platform
-> **Cập nhật lần cuối:** 2026-03-20
+> **Cập nhật lần cuối:** 2026-03-27
 > **Framework:** Next.js 15 (App Router, React 19)
 > **Port:** localhost:3000
 
@@ -20,7 +20,7 @@
 │  /orders, /settings         │  Quản lý phiên đăng nhập        │
 ├──────────────────────────────────────────────────────────────┤
 │  Dùng chung: hooks, lib, components                          │
-│  Auth (JWT), Cart (localStorage), API client (fetch)         │
+│  Auth (Firebase), Cart (localStorage), API client (fetch)    │
 ├──────────────────────────────────────────────────────────────┤
 │                    NestJS API (port 4000)                     │
 └──────────────────────────────────────────────────────────────┘
@@ -31,9 +31,10 @@
 | Tầng | Công nghệ |
 |------|-----------|
 | Framework | Next.js 15.5 (App Router) |
-| Giao diện | React 19, CSS Modules |
+| Giao diện | React 19, Tailwind CSS v4 + PostCSS |
 | Trạng thái | React hooks, localStorage (giỏ hàng) |
-| Xác thực | JWT (access + refresh tokens lưu trong memory/cookie) |
+| Xác thực | Firebase Auth (ID token) |
+| Định dạng tiền | VND (vi-VN locale, ví dụ: 123.456₫) |
 | API Client | `fetch` gốc với wrapper |
 | Định tuyến | Dựa trên file (App Router) |
 | Build | Turbopack (dev), Webpack (prod) |
@@ -106,14 +107,14 @@
 
 | Hook | Đường dẫn | Mục đích |
 |------|-----------|----------|
-| `useAuth` | `hooks/use-auth.ts` | Trạng thái xác thực, đăng nhập/đăng xuất, làm mới token, quản lý phiên |
+| `useAuth` | `hooks/use-auth.ts` | Trạng thái xác thực Firebase, đăng nhập/đăng xuất, quản lý phiên |
 | `useCart` | `hooks/use-cart.ts` | Trạng thái giỏ hàng (localStorage), thêm/xóa/cập nhật sản phẩm |
 
 ### 4.3 Các module thư viện (Lib Modules)
 
 | Module | Đường dẫn | Mục đích |
 |--------|-----------|----------|
-| `auth` | `lib/auth.ts` | Lưu trữ token, hàm hỗ trợ xác thực API, thông tin người dùng |
+| `auth` | `lib/auth.ts` | Firebase Auth, hàm hỗ trợ xác thực API, thông tin người dùng |
 | `products` | `lib/products.ts` | API client sản phẩm, danh mục, formatPrice |
 
 ---
@@ -121,27 +122,26 @@
 ## 5. Luồng xác thực (Authentication Flow)
 
 ```
-┌─────────┐     POST /auth/login     ┌─────────┐
-│  Form    │ ───────────────────────> │  Server  │
-│  Đăng    │ <─────────────────────── │  (JWT)   │
-│  nhập    │   { accessToken,         └─────────┘
-└─────────┘   refreshToken }
+┌─────────┐   Firebase signIn()    ┌──────────────┐
+│  Form    │ ────────────────────> │  Firebase     │
+│  Đăng    │ <──────────────────── │  Auth         │
+│  nhập    │   Firebase ID Token   └──────────────┘
+└─────────┘
        │
        ▼
-  Lưu tokens trong memory/localStorage
+  Firebase onAuthStateChanged() — tự động quản lý phiên
        │
        ▼
   ┌──────────────┐
-  │ Gọi API      │──── Authorization: Bearer <token>
+  │ Gọi API      │──── Authorization: Bearer <Firebase ID Token>
   └──────────────┘
        │
        ▼  (token hết hạn)
-  ┌──────────────┐     POST /auth/refresh
-  │ Tự động làm  │──── { refreshToken }
-  │ mới token    │──── Cấp tokens mới
+  ┌──────────────┐
+  │ Firebase SDK  │──── getIdToken(true) — tự động làm mới
   └──────────────┘
        │
-       ▼  (làm mới thất bại)
+       ▼  (phiên hết hạn)
   ┌──────────────┐
   │ Modal phiên  │──── Đăng nhập lại không cần chuyển trang
   └──────────────┘
@@ -181,5 +181,15 @@
 | Màu sắc | CSS Variables (`--color-*`) — không dùng giá trị cố định |
 | Cỡ chữ | Thang token (`--font-size-*`) |
 | Khoảng cách | Lưới 8px (`--spacing-*`) |
-| Kiểu dáng | CSS Modules (`.module.css`) cho mỗi component |
+| Kiểu dáng | Tailwind CSS v4 (utility-first) |
 | Biểu tượng | Inline SVG |
+
+---
+
+## 9. URL Production
+
+| Môi trường | URL |
+|------------|-----|
+| Frontend (Vercel) | https://demo-vibe.vercel.app |
+| Backend API (Railway) | https://demo-vibe-api.up.railway.app/api |
+| Swagger UI | https://demo-vibe-api.up.railway.app/api/docs |

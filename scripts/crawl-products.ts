@@ -1,19 +1,22 @@
 /**
- * Product Crawler Bot — Crawls product data from DummyJSON + Fakestoreapi
- * and inserts directly via Prisma to generate ~50,000 products for sellers.
+ * Product Crawler Bot (Legacy) — Crawls from DummyJSON + FakeStoreAPI with variations.
+ *
+ * ⚠️ DEPRECATED: Use scripts/crawl-tiki.ts instead for real product data.
  *
  * Data sources:
  *   - DummyJSON (https://dummyjson.com/products) — 194 products
  *   - FakeStore (https://fakestoreapi.com/products) — 20 products
- *   - Picsum Photos for extra images
- *
- * Strategy: Crawl real data, then multiply with variations to reach 50K.
+ *   - Generates variations to multiply product count
  *
  * Usage: npx tsx scripts/crawl-products.ts
  *
- * Prerequisites:
- *   - PostgreSQL running
- *   - Seller users already seeded (run seed-users.ts first)
+ * For real data crawling, use:
+ *   npx tsx scripts/crawl-tiki.ts [seller-email] [target-count]
+ *
+ * Current production data sources (50K real products):
+ *   - Tiki.vn API — 40,986 products (24 categories, VND prices)
+ *   - OpenLibrary API — 8,137 products (books with covers)
+ *   - Makeup API — 877 products (cosmetics)
  */
 
 import { PrismaClient } from '.prisma/client';

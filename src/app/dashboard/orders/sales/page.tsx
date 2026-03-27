@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { formatPrice } from '@/utils/format';
 import {
   fetchSellerSales,
   fetchSellerSummary,
@@ -269,7 +270,7 @@ export default function SalesPage() {
             <div className="flex flex-col gap-[0.25rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px]">
               <span className="text-[0.75rem] font-medium text-slate uppercase tracking-[0.04em]">Total Revenue</span>
               <span className="font-display text-[1.75rem] font-normal text-charcoal">
-                ${summary.totalRevenue.toFixed(2)}
+                {formatPrice(summary.totalRevenue)}
               </span>
             </div>
             <div className="flex flex-col gap-[0.25rem] py-[1.5rem] px-[2rem] bg-white border border-border-light rounded-[12px]">
@@ -288,7 +289,7 @@ export default function SalesPage() {
                   <div key={m.month} className="flex flex-col gap-[4px] py-[1rem] px-[1.5rem] bg-ivory rounded-[8px]">
                     <span className="text-[0.75rem] font-medium text-slate">{m.month}</span>
                     <span className="font-display text-[1.125rem] text-charcoal">
-                      ${m.revenue.toFixed(2)}
+                      {formatPrice(m.revenue)}
                     </span>
                     <span className="text-[0.6875rem] text-muted">
                       {m.orderCount} order{m.orderCount !== 1 ? 's' : ''}
@@ -426,7 +427,7 @@ export default function SalesPage() {
                     </p>
                     <p className="text-[0.875rem] font-medium text-charcoal">{sale.productName}</p>
                     <p className="text-[0.75rem] text-muted">
-                      Qty: {sale.quantity} x ${sale.unitPrice.toFixed(2)}
+                      Qty: {sale.quantity} x {formatPrice(sale.unitPrice)}
                     </p>
                     {sale.trackingNumber && (
                       <p className="text-[0.6875rem] text-gold-dark mt-[2px]">
@@ -438,7 +439,7 @@ export default function SalesPage() {
                   {/* Meta */}
                   <div className="flex flex-col items-end gap-[4px] shrink-0 max-sm:items-start max-sm:flex-row max-sm:gap-[1rem]">
                     <span className="font-display text-[1rem] font-normal text-charcoal">
-                      ${sale.subtotalAmount.toFixed(2)}
+                      {formatPrice(sale.subtotalAmount)}
                     </span>
                     <span className="text-[0.6875rem] text-muted">
                       {formatDate(sale.orderedAt)}
@@ -655,7 +656,7 @@ export default function SalesPage() {
                   <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
                     <span className="text-slate">Total Amount</span>
                     <span className="font-medium text-charcoal">
-                      ${detailOrder.totalAmount.toFixed(2)}
+                      {formatPrice(detailOrder.totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between py-[0.25rem] text-[0.8125rem]">
@@ -729,8 +730,8 @@ export default function SalesPage() {
                           {item.productName}
                         </p>
                         <p className="text-[0.75rem] text-muted">
-                          Qty: {item.quantity} x ${item.unitPrice.toFixed(2)} ={' '}
-                          ${item.subtotalAmount.toFixed(2)}
+                          Qty: {item.quantity} x {formatPrice(item.unitPrice)} ={' '}
+                          {formatPrice(item.subtotalAmount)}
                           {item.trackingNumber && (
                             <> | Tracking: {item.trackingNumber}</>
                           )}
