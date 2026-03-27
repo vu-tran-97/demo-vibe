@@ -20,6 +20,17 @@ export class FirebaseService implements OnModuleInit {
       return;
     }
 
+    // Priority: env JSON string → file path → Application Default Credentials
+    const envJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (envJson) {
+      const serviceAccount = JSON.parse(envJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      this.logger.log('Firebase Admin SDK initialized with service account (env)');
+      return;
+    }
+
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
       || join(process.cwd(), '..', 'firebase-service-account.json');
 
